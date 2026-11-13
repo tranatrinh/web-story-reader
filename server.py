@@ -1,35 +1,39 @@
 from flask import Flask, request, send_file
-from flask_cors import CORS
-from gtts import gTTS
-import io
+import asyncio
+import edge_tts
+import os
 
 app = Flask(__name__)
-CORS(app)
+
+async def generate_audio(text, output_file):
+    voice = "vi-VN-HoaiMyNeural" # Giọng nữ mượt mà, tự nhiên
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
 
 @app.route('/tts', methods=['POST'])
 def tts():
-    data = request.json
-    text = data.get('text', '')
-    
     try:
-        # Sử dụng Google TTS (gTTS) - Ổn định, không bao giờ lỗi kết nối
-        tts_obj = gTTS(text=text, lang='vi', slow=False)
+        data = request.get_json()
+        text = data.get('text', '')
+        if not text:
+            return {"error": "Không có nội dung"}, 400
+
+        output_file = "temp_edge.mp3"
         
-        # Lưu vào RAM (không ghi file rác ra máy)
-        fp = io.BytesIO()
-        tts_obj.write_to_fp(fp)
-        fp.seek(0)
-        
-        return send_file(
-            fp,
-            mimetype="audio/mp3",
-            as_attachment=False,
-            download_name="audio.mp3"
-        )
+        # Chạy bất đồng bộ
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(generate_audio(text, output_file))
+
+        return send_file(output_file, mimetype="audio/mp3")
+
     except Exception as e:
-        print(f"Lỗi: {e}")
         return {"error": str(e)}, 500
 
+@app.route('/')
+def home():
+    return "Server Edge-TTS đang hoạt động hoàn hảo!"
+
 if __name__ == '__main__':
-    print("Trạm trung chuyển gTTS (Google) đang chạy trên cổng 5000!")
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
