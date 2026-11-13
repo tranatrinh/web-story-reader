@@ -136,12 +136,12 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO TỐC ĐỘ CAO (TẢI GỐI ĐẦU THÔNG MINH) ---
+        // --- HỆ THỐNG PHÁT AUDIO TỐC ĐỘ CAO (TẢI NGẦM GỐI ĐẦU) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
-        let audioCache = {}; // Bộ nhớ đệm lưu các blob đã tải trước
+        let audioCache = {};
 
         function splitTextForAPI(text) {
             const cleanText = text.replace(/[\r\n]+/g, " ").trim();
@@ -151,8 +151,8 @@
             let currentChunk = "";
 
             sentences.forEach(sentence => {
-                // Chia đoạn vừa phải (~700 ký tự) để server tạo cực nhanh trong 1-2 giây
-                if ((currentChunk + sentence).length > 700) {
+                // Chia đoạn ngắn vừa phải (~600 ký tự) để server tạo trong tích tắc
+                if ((currentChunk + sentence).length > 600) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -181,12 +181,11 @@
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
         }
 
-        // Tải trước 3 đoạn tiếp theo ngầm dưới nền
         async function prefetchAhead(currentIndex) {
             for (let i = 1; i <= 3; i++) {
                 let targetIdx = currentIndex + i;
@@ -223,8 +222,7 @@
         } 
 
         async function playSequence() {
-            // Tải trước đoạn đầu tiên
-            status.textContent = `⏳ Đang chuẩn bị phát...`;
+            status.textContent = `⏳ Đang tải câu đầu tiên...`;
             if (!audioCache[currentChunkIndex]) {
                 audioCache[currentChunkIndex] = await getAudioBlob(chunks[currentChunkIndex]);
             }
@@ -238,7 +236,7 @@
                     
                     if (!isPlaying) break;
 
-                    // Kích hoạt tải ngầm các đoạn kế tiếp ngay lập tức
+                    // Tải ngầm các câu kế tiếp ngay lập tức dưới nền
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
@@ -251,13 +249,12 @@
                         globalAudio.play().catch(reject);
                     });
 
-                    // Xóa cache cũ để giải phóng RAM
                     delete audioCache[currentChunkIndex];
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `⚠️ Đang tải lại đoạn ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    status.textContent = `⚠️ Đang tải lại câu ${currentChunkIndex + 1}...`;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
 
@@ -267,7 +264,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 500);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
