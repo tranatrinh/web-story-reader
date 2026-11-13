@@ -136,22 +136,21 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO AN TOÀN (CẮT NHỎ VÀ CHỐNG NGHẼN) ---
+        // --- HỆ THỐNG PHÁT AUDIO TỐC ĐỘ CAO (KHÔNG DELAY) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
 
-                function splitTextForAPI(text) {
+        function splitTextForAPI(text) {
             const cleanText = text.replace(/[\r\n]+/g, " ").trim();
-            const rawSentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
+            const sentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
             
             const result = [];
             let currentChunk = "";
 
-            rawSentences.forEach(sentence => {
-                // Giảm xuống 130 ký tự để server xử lý siêu nhanh, không bị timeout
-                if ((currentChunk + sentence).length > 130) {
+            sentences.forEach(sentence => {
+                if ((currentChunk + sentence).length > 350) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -161,7 +160,6 @@
             if (currentChunk) result.push(currentChunk.trim());
             return result.filter(ch => ch.length > 0);
         }
-
 
         async function getAudioBlob(text, retries = 3) {
             for (let i = 0; i < retries; i++) {
@@ -176,14 +174,14 @@
                     });
                     
                     if (!response.ok) {
-                        throw new Error("Lỗi từ server");
+                        throw new Error("Server bận");
                     }
                     
                     const blob = await response.blob();
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 1500)); // Đợi thử lại nếu lỗi
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
         }
@@ -219,7 +217,6 @@
                     let currentUrl;
                     
                     if (nextAudioPromise) {
-                        status.textContent = `🔊 Đang chuẩn bị phát đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
                         currentUrl = await nextAudioPromise;
                         nextAudioPromise = null;
                     } else {
@@ -232,9 +229,8 @@
                         break;
                     }
 
-                    // Tải gối đầu đoạn kế tiếp kèm độ trễ chống nghẽn request
+                    // Tải gối đầu ngay lập tức không có độ trễ thừa giúp chuyển tiếp mượt mà
                     if (currentChunkIndex + 1 < chunks.length) {
-                        await new Promise(resolve => setTimeout(resolve, 800)); 
                         nextAudioPromise = getAudioBlob(chunks[currentChunkIndex + 1]);
                     }
 
@@ -252,8 +248,8 @@
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `❌ Lỗi kết nối hoặc quá tải server. Đang thử lại...`;
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    status.textContent = `⚠️ Đang tải lại đoạn ${currentChunkIndex + 1}...`;
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
 
@@ -263,7 +259,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 1000);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
