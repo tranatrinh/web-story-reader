@@ -44,7 +44,7 @@
         <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
-    <!-- Khung hiển thị nội dung văn bản để bạn đọc theo dõi -->
+    <!-- Khung hiển thị nội dung văn bản để theo dõi -->
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
 
     <script>
@@ -189,7 +189,7 @@
             if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
             chunks = splitTextForAPI(text); 
-            currentChunkIndex = 0;
+            currentChunkIndex = 0; // Đảm bảo bắt đầu từ đoạn đầu tiên (Đoạn 1)
             isPlaying = true;
             audioCache = {}; 
 
