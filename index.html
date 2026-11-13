@@ -189,28 +189,47 @@
             if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
             chunks = splitTextForAPI(text); 
-            currentChunkIndex = 0; // Đảm bảo bắt đầu từ đoạn đầu tiên (Đoạn 1)
+            currentChunkIndex = 0; // Đặt cứng vị trí bắt đầu luôn là 0 (Đoạn 1)
             isPlaying = true;
             audioCache = {}; 
 
-            status.textContent = `⏳ Đang chuẩn bị âm thanh...`; 
+            status.textContent = `⏳ Đang chuẩn bị âm thanh đoạn 1...`; 
             
             // Mở khóa audio trên trình duyệt di động
             globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await globalAudio.play().catch(() => {});
 
-            // Tải trước đoạn 0 và đoạn 1 ngay từ đầu
             try {
+                // Tải trước đoạn 0 (chính là đoạn 1)
                 audioCache[0] = await fetchAudio(chunks[0]);
+                
+                // Nếu có từ đoạn 2 trở đi thì tải ngầm tiếp
                 if (chunks.length > 1) {
                     fetchAudio(chunks[1]).then(url => audioCache[1] = url).catch(() => {});
                 }
-                playCachedChunk();
+                
+                // Gán trực tiếp đoạn 0 vào audio và phát ngay lập tức
+                globalAudio.src = audioCache[0];
+                globalAudio.playbackRate = parseFloat(speedSelect.value);
+                status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn 1/${chunks.length})`;
+                
+                await globalAudio.play();
+
+                // Tải gối đầu các đoạn tiếp theo
+                for (let i = 1; i <= 2; i++) {
+                    let nextIdx = currentChunkIndex + i;
+                    if (nextIdx < chunks.length && !audioCache[nextIdx]) {
+                        fetchAudio(chunks[nextIdx]).then(url => {
+                            audioCache[nextIdx] = url;
+                        }).catch(() => {});
+                    }
+                }
+
             } catch (err) {
                 status.textContent = `❌ Lỗi: ${err.message}`;
                 isPlaying = false;
             }
-        } 
+        }
 
         async function playCachedChunk() {
             if (!isPlaying) return;
