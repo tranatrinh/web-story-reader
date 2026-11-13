@@ -145,7 +145,7 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        function splitTextForAPI(text, maxLength = 100) {
+        function splitTextForAPI(text, maxLength = 200) {
             const result = [];
             const sentences = text.match(/[^.,!?\n]+[.,!?\n]+/g) || [text];
             let currentChunk = "";
