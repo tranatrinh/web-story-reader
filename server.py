@@ -10,7 +10,6 @@ app = Flask(__name__)
 CORS(app)
 
 def run_sync(coro):
-    """Hàm chạy bất đồng bộ an toàn qua new_event_loop độc lập"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -35,17 +34,14 @@ def tts():
         if not text:
             return {"error": "Không có nội dung"}, 400
 
-        # Sử dụng time.time() thay vì asyncio để tránh hoàn toàn lỗi Thread Event Loop
         output_file = f"temp_{os.getpid()}_{int(time.time() * 1000)}.mp3"
         
-        # Gọi sinh âm thanh an toàn
         run_sync(generate_audio(text, output_file))
 
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             return {"error": "Không tạo được file âm thanh"}, 500
 
-        response = send_file(output_file, mimetype="audio/mp3", as_attachment=False)
-        return response
+        return send_file(output_file, mimetype="audio/mp3", as_attachment=False)
 
     except Exception as e:
         print("--- LỖI XẢY RA TRONG TTS ---")
