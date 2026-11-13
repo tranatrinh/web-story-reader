@@ -16,19 +16,19 @@ async def generate_audio(text, output_file):
 def tts():
     try:
         data = request.get_json()
-        text = data.get('text', '')
+        text = data.get('text', '').strip()
         if not text:
             return {"error": "Không có nội dung"}, 400
 
-        output_file = f"temp_{os.getpid()}.mp3"
+        output_file = f"temp_{os.getpid()}_{int(asyncio.get_event_loop().time())}.mp3"
         
-        # Chạy bất đồng bộ để gọi edge-tts
+        # Thử tạo file audio với edge-tts
         asyncio.run(generate_audio(text, output_file))
 
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
-            return {"error": "Không tạo được file âm thanh từ Edge-TTS"}, 500
+            return {"error": "Không tạo được file âm thanh"}, 500
 
-        response = send_file(output_file, mimetype="audio/mp3")
+        response = send_file(output_file, mimetype="audio/mp3", as_attachment=False)
         return response
 
     except Exception as e:
