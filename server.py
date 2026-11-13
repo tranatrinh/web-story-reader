@@ -1,14 +1,14 @@
 from flask import Flask, request, send_file
-from flask_cors import CORS  # Thêm dòng này
+from flask_cors import CORS
 import asyncio
 import edge_tts
 import os
 
 app = Flask(__name__)
-CORS(app)  # Kích hoạt CORS cho phép mọi nguồn truy cập
+CORS(app)
 
 async def generate_audio(text, output_file):
-    voice = "vi-VN-HoaiMyNeural" 
+    voice = "vi-VN-HoaiMyNeural"
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_file)
 
@@ -20,13 +20,16 @@ def tts():
         if not text:
             return {"error": "Không có nội dung"}, 400
 
-        output_file = "temp_edge.mp3"
+        output_file = f"temp_{os.getpid()}.mp3"
         
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(generate_audio(text, output_file))
+        # Chạy bất đồng bộ để gọi edge-tts
+        asyncio.run(generate_audio(text, output_file))
 
-        return send_file(output_file, mimetype="audio/mp3")
+        if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
+            return {"error": "Không tạo được file âm thanh từ Edge-TTS"}, 500
+
+        response = send_file(output_file, mimetype="audio/mp3")
+        return response
 
     except Exception as e:
         return {"error": str(e)}, 500
