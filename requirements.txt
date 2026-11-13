@@ -1,4 +1,4 @@
 Flask
 flask-cors
-edge-tts
-requests
+edge-tts>=6.1.9
+
