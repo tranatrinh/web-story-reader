@@ -3,6 +3,7 @@ from flask_cors import CORS
 import asyncio
 import edge_tts
 import os
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -14,24 +15,30 @@ async def generate_audio(text, output_file):
 
 @app.route('/tts', methods=['POST'])
 def tts():
+    output_file = None
     try:
         data = request.get_json()
+        if not data:
+            return {"error": "Invalid JSON"}, 400
+            
         text = data.get('text', '').strip()
         if not text:
             return {"error": "Không có nội dung"}, 400
 
         output_file = f"temp_{os.getpid()}_{int(asyncio.get_event_loop().time())}.mp3"
         
-        # Thử tạo file audio với edge-tts
+        # Chạy bất đồng bộ tạo file âm thanh
         asyncio.run(generate_audio(text, output_file))
 
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             return {"error": "Không tạo được file âm thanh"}, 500
 
-        response = send_file(output_file, mimetype="audio/mp3", as_attachment=False)
-        return response
+        return send_file(output_file, mimetype="audio/mp3", as_attachment=False)
 
     except Exception as e:
+        # In chi tiết lỗi ra log của Render để dễ theo dõi
+        print("--- LỖI XẢY RA ---")
+        traceback.print_exc()
         return {"error": str(e)}, 500
 
 @app.route('/')
