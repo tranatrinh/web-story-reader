@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO TỐC ĐỘ CAO (KHÔNG DELAY) ---
+        // --- HỆ THỐNG GOM NHÓM ĐOẠN LỚN (GIẢM SỐ LẦN ĐỔI AUDIO) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -150,7 +150,8 @@
             let currentChunk = "";
 
             sentences.forEach(sentence => {
-                if ((currentChunk + sentence).length > 350) {
+                // Gom đoạn lớn khoảng 1200 ký tự (đọc liên tục ~1 phút mỗi đoạn) để cực kỳ mượt mà, ít ngắt quãng
+                if ((currentChunk + sentence).length > 1200) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -173,15 +174,13 @@
                         body: JSON.stringify({ text: text })
                     });
                     
-                    if (!response.ok) {
-                        throw new Error("Server bận");
-                    }
+                    if (!response.ok) throw new Error("Server bận");
                     
                     const blob = await response.blob();
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
         }
@@ -220,7 +219,7 @@
                         currentUrl = await nextAudioPromise;
                         nextAudioPromise = null;
                     } else {
-                        status.textContent = `⏳ Đang tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
+                        status.textContent = `⏳ Đang tổng hợp đoạn lớn ${currentChunkIndex + 1}/${chunks.length}...`;
                         currentUrl = await getAudioBlob(chunks[currentChunkIndex]);
                     }
                     
@@ -229,14 +228,14 @@
                         break;
                     }
 
-                    // Tải gối đầu ngay lập tức không có độ trễ thừa giúp chuyển tiếp mượt mà
+                    // Tải gối đầu đoạn kế tiếp dưới nền
                     if (currentChunkIndex + 1 < chunks.length) {
                         nextAudioPromise = getAudioBlob(chunks[currentChunkIndex + 1]);
                     }
 
                     globalAudio.src = currentUrl;
                     globalAudio.playbackRate = parseFloat(speedSelect.value);
-                    status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
+                    status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Phần ${currentChunkIndex + 1}/${chunks.length})`;
                     
                     await new Promise((resolve, reject) => {
                         globalAudio.onended = resolve;
@@ -249,7 +248,7 @@
 
                 } catch (err) {
                     status.textContent = `⚠️ Đang tải lại đoạn ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
 
@@ -259,7 +258,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 500);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
