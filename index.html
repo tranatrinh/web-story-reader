@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - Giọng đọc Siri & Hệ thống</title>
+    <title>Web Story Reader - Giọng Siri / Hệ thống</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -26,9 +26,9 @@
             <option value="0">Đang phân tích...</option>
         </select>
 
-        <!-- Danh sách chọn giọng đọc của Siri / Hệ thống -->
+        <!-- Chọn giọng Siri / Hệ thống -->
         <select id="voiceSelect">
-            <option value="">Đang tải danh sách giọng...</option>
+            <option value="">Đang tải giọng đọc...</option>
         </select>
 
         <select id="speedSelect">
@@ -60,19 +60,17 @@
         let currentChapterIndex = 0;
         let voices = [];
 
-        // --- TẢI DANH SÁCH GIỌNG ĐỌC TỪ HỆ THỐNG (SIRI / NATIVE) ---
         function loadVoices() {
             voices = window.speechSynthesis.getVoices();
             voiceSelect.innerHTML = "";
             
-            // Lọc ưu tiên các giọng tiếng Việt có trong máy
+            // Lọc ưu tiên giọng tiếng Việt
             let viVoices = voices.filter(v => v.lang.toLowerCase().includes('vi'));
             let displayVoices = viVoices.length > 0 ? viVoices : voices;
 
             displayVoices.forEach((voice) => {
                 const option = document.createElement('option');
                 option.value = voices.indexOf(voice);
-                // Hiển thị tên rõ ràng để bạn chọn đúng giọng mong muốn
                 option.textContent = `${voice.name} (${voice.lang})`;
                 voiceSelect.appendChild(option);
             });
@@ -84,7 +82,6 @@
             }
         }
 
-        // Trình duyệt load giọng bất đồng bộ
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices();
 
@@ -171,7 +168,7 @@
             }
         }
 
-        // --- ĐIỀU KHIỂN ĐỌC KHÔNG ĐỘ TRỄ ---
+        // --- HỆ THỐNG ĐỌC BẰNG GIỌNG HỆ THỐNG (SIRI) ---
         let currentUtterance = null;
         let chunks = [];
         let currentChunkIndex = 0;
