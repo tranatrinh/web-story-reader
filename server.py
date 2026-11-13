@@ -1,12 +1,28 @@
 from flask import Flask, request, send_file
 from flask_cors import CORS
-import asyncio
 import edge_tts
+import asyncio
 import os
 import traceback
 
 app = Flask(__name__)
 CORS(app)
+
+def run_sync(coro):
+    """Hàm hỗ trợ chạy bất đồng bộ an toàn trong môi trường Flask"""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Nếu đã có loop đang chạy, tạo loop mới cho tiến trình hiện tại
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            return new_loop.run_until_complete(coro)
+        else:
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop.run_until_complete(coro)
 
 async def generate_audio(text, output_file):
     voice = "vi-VN-HoaiMyNeural"
@@ -27,8 +43,8 @@ def tts():
 
         output_file = f"temp_{os.getpid()}_{int(asyncio.get_event_loop().time())}.mp3"
         
-        # Chạy bất đồng bộ tạo file âm thanh
-        asyncio.run(generate_audio(text, output_file))
+        # Chạy sinh âm thanh bằng hàm bọc an toàn
+        run_sync(generate_audio(text, output_file))
 
         if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
             return {"error": "Không tạo được file âm thanh"}, 500
@@ -36,8 +52,7 @@ def tts():
         return send_file(output_file, mimetype="audio/mp3", as_attachment=False)
 
     except Exception as e:
-        # In chi tiết lỗi ra log của Render để dễ theo dõi
-        print("--- LỖI XẢY RA ---")
+        print("--- LỖI XẢY RA TRONG TTS ---")
         traceback.print_exc()
         return {"error": str(e)}, 500
 
