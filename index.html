@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - Microsoft Edge Neural TTS</title>
+    <title>Web Story Reader - Microsoft Edge HoaiMyNeural</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG TÁCH CÂU AN TOÀN, KHÔNG BỎ SÓT BẤT KỲ DÒNG NÀO ---
+        // --- HỆ THỐNG GOM NHÓM ĐOẠN THEO DÒNG THỰC TẾ (KHÔNG BAO GIỜ BỎ SÓT CHỮ) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -144,7 +144,6 @@
         let audioCache = {};
 
         function splitTextForAPI(text) {
-            // Tách dựa trên các dòng hoặc dấu câu, gom nhóm tối đa ~400 ký tự để server xử lý trong chớp mắt
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
@@ -153,11 +152,12 @@
                 const trimmed = line.trim();
                 if (!trimmed) return;
 
-                if ((currentChunk + " " + trimmed).length > 400) {
+                // Gom nhóm các dòng lại với kích thước ~800 ký tự để vừa giữ trọn vẹn hội thoại vừa tạo cực nhanh
+                if ((currentChunk + "\n" + trimmed).length > 800) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = trimmed;
                 } else {
-                    currentChunk += (currentChunk ? " " : "") + trimmed;
+                    currentChunk += (currentChunk ? "\n" : "") + trimmed;
                 }
             });
 
@@ -183,13 +183,13 @@
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
         }
 
         async function prefetchAhead(currentIndex) {
-            for (let i = 1; i <= 3; i++) {
+            for (let i = 1; i <= 2; i++) {
                 let targetIdx = currentIndex + i;
                 if (targetIdx < chunks.length && !audioCache[targetIdx]) {
                     try {
@@ -224,7 +224,7 @@
         } 
 
         async function playSequence() {
-            status.textContent = `⏳ Đang tải câu đầu tiên...`;
+            status.textContent = `⏳ Đang chuẩn bị giọng đọc Hoài My...`;
             if (!audioCache[currentChunkIndex]) {
                 audioCache[currentChunkIndex] = await getAudioBlob(chunks[currentChunkIndex]);
             }
@@ -238,12 +238,12 @@
                     
                     if (!isPlaying) break;
 
-                    // Tải ngầm các câu tiếp theo dưới nền
+                    // Tải ngầm phần tiếp theo dưới nền ngay lập tức
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
                     globalAudio.playbackRate = parseFloat(speedSelect.value);
-                    status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
+                    status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (Phần ${currentChunkIndex + 1}/${chunks.length})`;
                     
                     await new Promise((resolve, reject) => {
                         globalAudio.onended = resolve;
@@ -255,8 +255,8 @@
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `⚠️ Đang tải lại câu ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    status.textContent = `⚠️ Đang tải lại phần ${currentChunkIndex + 1}...`;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
 
@@ -266,7 +266,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 500);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
