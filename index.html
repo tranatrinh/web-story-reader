@@ -136,18 +136,23 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO QUA RENDER (EDGE-TTS) ---
+        // --- HỆ THỐNG PHÁT AUDIO AN TOÀN (CẮT NHỎ CHUẨN XÁC) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
 
-        function splitTextForAPI(text, maxLength = 300) {
+        function splitTextForAPI(text) {
+            // Làm sạch các ký tự trắng thừa và chia nhỏ theo câu dấu chấm, hỏi, cảm, xuống dòng
+            const cleanText = text.replace(/[\r\n]+/g, " ").trim();
+            const rawSentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
+            
             const result = [];
-            const sentences = text.match(/[^.,!?\n]+[.,!?\n]+/g) || [text];
             let currentChunk = "";
-            sentences.forEach(sentence => {
-                if ((currentChunk + sentence).length > maxLength) {
+
+            rawSentences.forEach(sentence => {
+                // Giới hạn an toàn mỗi đoạn gửi lên server tối đa khoảng 180 ký tự để không bị timeout
+                if ((currentChunk + sentence).length > 180) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -155,7 +160,7 @@
                 }
             });
             if (currentChunk) result.push(currentChunk.trim());
-            return result;
+            return result.filter(ch => ch.length > 0);
         }
 
         async function getAudioBlob(text) {
@@ -170,7 +175,7 @@
             
             if (!response.ok) {
                 const errText = await response.text();
-                throw new Error(errText || "Lỗi kết nối Server");
+                throw new Error("Lỗi từ server: " + errText);
             }
             
             const blob = await response.blob();
@@ -188,6 +193,8 @@
             if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
             chunks = splitTextForAPI(text); 
+            if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
+
             currentChunkIndex = 0;
             isPlaying = true;
             
@@ -238,7 +245,7 @@
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `❌ Lỗi: ${err.message}`;
+                    status.textContent = `❌ ${err.message}`;
                     isPlaying = false;
                     break;
                 }
