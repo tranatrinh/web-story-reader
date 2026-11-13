@@ -142,7 +142,7 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        function splitTextForAPI(text) {
+                function splitTextForAPI(text) {
             const cleanText = text.replace(/[\r\n]+/g, " ").trim();
             const rawSentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
             
@@ -150,7 +150,8 @@
             let currentChunk = "";
 
             rawSentences.forEach(sentence => {
-                if ((currentChunk + sentence).length > 180) {
+                // Giảm xuống 130 ký tự để server xử lý siêu nhanh, không bị timeout
+                if ((currentChunk + sentence).length > 130) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -160,6 +161,7 @@
             if (currentChunk) result.push(currentChunk.trim());
             return result.filter(ch => ch.length > 0);
         }
+
 
         async function getAudioBlob(text, retries = 3) {
             for (let i = 0; i < retries; i++) {
