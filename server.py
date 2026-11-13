@@ -1,65 +1,235 @@
-from flask import Flask, request, send_file
-from flask_cors import CORS
-import edge_tts
-import asyncio
-import os
-import traceback
+    <script>
+        const fileInput = document.getElementById('fileInput'); 
+        const storyText = document.getElementById('storyText'); 
+        const status = document.getElementById('status'); 
+        const chapterSelect = document.getElementById('chapterSelect');
+        const speedSelect = document.getElementById('speedSelect');
 
-app = Flask(__name__)
-CORS(app)
+        let chapters = [];
+        let currentChapterIndex = 0;
 
-def run_sync(coro):
-    """Hàm hỗ trợ chạy bất đồng bộ an toàn trong môi trường Flask"""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Nếu đã có loop đang chạy, tạo loop mới cho tiến trình hiện tại
-            new_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(new_loop)
-            return new_loop.run_until_complete(coro)
-        else:
-            return loop.run_until_complete(coro)
-    except RuntimeError:
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        return new_loop.run_until_complete(coro)
+        // --- ĐỌC VÀ TÁCH CHƯƠNG FILE ---
+        fileInput.addEventListener('change', async (e) => { 
+            const file = e.target.files[0]; 
+            if (!file) return; 
+            status.textContent = `⏳ Đang phân tích file: ${file.name}...`; 
+            storyText.value = ""; 
+            chapters = [];
+            chapterSelect.style.display = "none";
+            chapterSelect.innerHTML = "";
 
-async def generate_audio(text, output_file):
-    voice = "vi-VN-HoaiMyNeural"
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(output_file)
+            try { 
+                if (file.name.toLowerCase().endsWith('.txt')) { 
+                    const text = await file.text(); 
+                    const splits = text.split(/^(?=Chương\s+\d+|Hồi\s+\d+|Quyển\s+\d+)/im);
+                    if (splits.length <= 1) {
+                        chapters.push({ title: "Toàn bộ nội dung", content: text });
+                    } else {
+                        splits.forEach((content) => {
+                            if (content.trim()) {
+                                let title = content.trim().split('\n')[0].substring(0, 40) + "...";
+                                chapters.push({ title: title, content: content.trim() });
+                            }
+                        });
+                    }
+                } else if (file.name.toLowerCase().endsWith('.epub')) { 
+                    const zip = await JSZip.loadAsync(file); 
+                    const containerXml = await zip.file("META-INF/container.xml").async("text"); 
+                    const parser = new DOMParser(); 
+                    const containerDoc = parser.parseFromString(containerXml, "text/xml"); 
+                    const opfPath = containerDoc.querySelector("rootfile").getAttribute("full-path"); 
+                    const basePath = opfPath.substring(0, opfPath.lastIndexOf('/') + 1); 
+                    const opfXml = await zip.file(opfPath).async("text"); 
+                    const opfDoc = parser.parseFromString(opfXml, "text/xml"); 
+                    
+                    const manifest = {}; 
+                    opfDoc.querySelectorAll("manifest > item").forEach(item => { 
+                        manifest[item.getAttribute("id")] = item.getAttribute("href"); 
+                    }); 
+                    const spineItems = opfDoc.querySelectorAll("spine > itemref"); 
+                    
+                    for (let i = 0; i < spineItems.length; i++) { 
+                        const idref = spineItems[i].getAttribute("idref"); 
+                        const href = manifest[idref]; 
+                        if (href) { 
+                            const filePath = basePath + decodeURIComponent(href); 
+                            const fileInZip = zip.file(filePath); 
+                            if (fileInZip) { 
+                                const htmlContent = await fileInZip.async("text"); 
+                                const htmlDoc = parser.parseFromString(htmlContent, "text/html"); 
+                                const titleTag = htmlDoc.querySelector("title");
+                                const title = titleTag && titleTag.textContent ? titleTag.textContent.trim() : `Phần ${i + 1}`;
+                                const text = htmlDoc.body.textContent || htmlDoc.body.innerText; 
+                                if(text.trim()) {
+                                    chapters.push({ title: title, content: text.trim() });
+                                }
+                            } 
+                        } 
+                    } 
+                }
+                
+                chapters.forEach((chap, idx) => {
+                    const opt = document.createElement("option");
+                    opt.value = idx;
+                    opt.textContent = chap.title;
+                    chapterSelect.appendChild(opt);
+                });
+                chapterSelect.style.display = "block";
+                chapterSelect.value = 0;
+                loadSelectedChapter();
+                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
+            } catch (err) { 
+                status.textContent = `❌ Lỗi đọc file.`; 
+            } 
+        }); 
 
-@app.route('/tts', methods=['POST'])
-def tts():
-    output_file = None
-    try:
-        data = request.get_json()
-        if not data:
-            return {"error": "Invalid JSON"}, 400
+        function loadSelectedChapter() {
+            currentChapterIndex = parseInt(chapterSelect.value);
+            if(chapters[currentChapterIndex]) {
+                storyText.value = chapters[currentChapterIndex].content;
+                storyText.scrollTop = 0;
+            }
+        }
+
+        // --- HỆ THỐNG PHÁT AUDIO TỐI ƯU CHỐNG QUÁ TẢI RENDER ---
+        let globalAudio = new Audio();
+        let isPlaying = false;
+        let chunks = [];
+        let currentChunkIndex = 0;
+
+        function splitTextForAPI(text) {
+            const cleanText = text.replace(/[\r\n]+/g, " ").trim();
+            const sentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
             
-        text = data.get('text', '').strip()
-        if not text:
-            return {"error": "Không có nội dung"}, 400
+            const result = [];
+            let currentChunk = "";
 
-        output_file = f"temp_{os.getpid()}_{int(asyncio.get_event_loop().time())}.mp3"
-        
-        # Chạy sinh âm thanh bằng hàm bọc an toàn
-        run_sync(generate_audio(text, output_file))
+            sentences.forEach(sentence => {
+                // Tăng độ dài mỗi chunk lên ~500 ký tự để giảm số lượng request gửi lên Render
+                if ((currentChunk + sentence).length > 500) {
+                    if (currentChunk) result.push(currentChunk.trim());
+                    currentChunk = sentence;
+                } else {
+                    currentChunk += sentence;
+                }
+            });
+            if (currentChunk) result.push(currentChunk.trim());
+            return result.filter(ch => ch.length > 0);
+        }
 
-        if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
-            return {"error": "Không tạo được file âm thanh"}, 500
+        async function getAudioBlob(text, retries = 4) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch("https://story-reader-api.onrender.com/tts", {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'audio/mp3'
+                        },
+                        body: JSON.stringify({ text: text })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("Server bận");
+                    }
+                    
+                    const blob = await response.blob();
+                    return URL.createObjectURL(blob);
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    // Chờ lâu hơn giữa các lần thử lại (3 giây) để server Render hồi phục CPU
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+            }
+        }
 
-        return send_file(output_file, mimetype="audio/mp3", as_attachment=False)
+        function updateSpeed() {
+            if (globalAudio) {
+                globalAudio.playbackRate = parseFloat(speedSelect.value);
+            }
+        }
 
-    except Exception as e:
-        print("--- LỖI XẢY RA TRONG TTS ---")
-        traceback.print_exc()
-        return {"error": str(e)}, 500
+        async function startTTS() { 
+            const text = storyText.value.trim(); 
+            if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
-@app.route('/')
-def home():
-    return "Server Edge-TTS đang hoạt động hoàn hảo!"
+            chunks = splitTextForAPI(text); 
+            if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+            currentChunkIndex = 0;
+            isPlaying = true;
+            
+            // Mở khóa audio trên iOS Safari
+            globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            await globalAudio.play().catch(() => {});
+
+            playSequence();
+        } 
+
+        async function playSequence() {
+            let nextAudioPromise = null;
+
+            while (isPlaying && currentChunkIndex < chunks.length) {
+                try {
+                    let currentUrl;
+                    
+                    if (nextAudioPromise) {
+                        status.textContent = `🔊 Đang chuẩn bị đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
+                        currentUrl = await nextAudioPromise;
+                        nextAudioPromise = null;
+                    } else {
+                        status.textContent = `⏳ Đang tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
+                        currentUrl = await getAudioBlob(chunks[currentChunkIndex]);
+                    }
+                    
+                    if (!isPlaying) {
+                        URL.revokeObjectURL(currentUrl);
+                        break;
+                    }
+
+                    // Tăng độ trễ gối đầu lên 2 giây để Render không bị dồn dập request
+                    if (currentChunkIndex + 1 < chunks.length) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); 
+                        nextAudioPromise = getAudioBlob(chunks[currentChunkIndex + 1]);
+                    }
+
+                    globalAudio.src = currentUrl;
+                    globalAudio.playbackRate = parseFloat(speedSelect.value);
+                    status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
+                    
+                    await new Promise((resolve, reject) => {
+                        globalAudio.onended = resolve;
+                        globalAudio.onerror = (e) => reject(new Error("Lỗi phát audio"));
+                        globalAudio.play().catch(reject);
+                    });
+
+                    URL.revokeObjectURL(currentUrl);
+                    currentChunkIndex++;
+
+                } catch (err) {
+                    status.textContent = `⚠️ Quá tải, đang kết nối lại...`;
+                    await new Promise(resolve => setTimeout(resolve, 4000));
+                }
+            }
+
+            if (isPlaying && currentChunkIndex >= chunks.length) {
+                if (currentChapterIndex < chapters.length - 1) {
+                    status.textContent = "⏭ Đang chuyển chương tiếp theo...";
+                    currentChapterIndex++;
+                    chapterSelect.value = currentChapterIndex;
+                    loadSelectedChapter();
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 2000);
+                } else {
+                    status.textContent = "✅ Đã đọc hết truyện.";
+                    isPlaying = false;
+                }
+            }
+        }
+
+        function stopTTS() { 
+            isPlaying = false;
+            globalAudio.pause();
+            globalAudio.src = "";
+            status.textContent = "⏹ Đã dừng đọc."; 
+        }
+    </script>
