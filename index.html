@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG GOM NHÓM ĐOẠN THEO DÒNG THỰC TẾ (KHÔNG BAO GIỜ BỎ SÓT CHỮ) ---
+        // --- HỆ THỐNG GOM ĐOẠN TĂNG DẦN CẤP SỐ NHÂN ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -147,14 +147,20 @@
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
+            
+            // Định mức ký tự tăng dần theo cấp số nhân cho các đoạn đầu tiên: 100 -> 200 -> 400 -> 800 -> 1500 (giới hạn trần để mượt mà)
+            let currentLimit = 100; 
 
             lines.forEach(line => {
                 const trimmed = line.trim();
                 if (!trimmed) return;
 
-                // Gom nhóm các dòng lại với kích thước ~800 ký tự để vừa giữ trọn vẹn hội thoại vừa tạo cực nhanh
-                if ((currentChunk + "\n" + trimmed).length > 800) {
-                    if (currentChunk) result.push(currentChunk.trim());
+                if ((currentChunk + "\n" + trimmed).length > currentLimit) {
+                    if (currentChunk) {
+                        result.push(currentChunk.trim());
+                        // Tăng dần định mức cho đoạn tiếp theo theo cấp số nhân
+                        if (currentLimit < 1500) currentLimit *= 2;
+                    }
                     currentChunk = trimmed;
                 } else {
                     currentChunk += (currentChunk ? "\n" : "") + trimmed;
@@ -224,7 +230,7 @@
         } 
 
         async function playSequence() {
-            status.textContent = `⏳ Đang chuẩn bị giọng đọc Hoài My...`;
+            status.textContent = `⏳ Đang tải đoạn mở đầu siêu tốc (Hoài My)...`;
             if (!audioCache[currentChunkIndex]) {
                 audioCache[currentChunkIndex] = await getAudioBlob(chunks[currentChunkIndex]);
             }
@@ -238,7 +244,7 @@
                     
                     if (!isPlaying) break;
 
-                    // Tải ngầm phần tiếp theo dưới nền ngay lập tức
+                    // Tải ngầm các phần tiếp theo dưới nền
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
