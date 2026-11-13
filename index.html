@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - Đọc chuẩn xác & Tốc độ đến 2.0x</title>
+    <title>Web Story Reader - Đọc mượt mà không giật</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -140,14 +140,14 @@
             }
         }
 
-        // --- ĐIỀU KHIỂN PHÁT TUẦN TỰ ---
+        // --- ĐIỀU KHIỂN PHÁT TUẦN TỰ MƯỢT MÀ ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // Cấu hình chia đoạn nhỏ gọn (maxLength = 100) giúp tạo audio siêu tốc
-        function splitTextForAPI(text, maxLength = 100) {
+        // Tăng maxLength lên 300 ký tự giúp gom câu vừa phải, giảm số lần request tránh nghẽn mạng
+        function splitTextForAPI(text, maxLength = 300) {
             const result = [];
             const sentences = text.match(/[^.,!?\n]+[.,!?\n]+/g) || [text];
             let currentChunk = "";
@@ -164,7 +164,6 @@
         }
 
         async function fetchAudio(text) {
-            // Trỏ trực tiếp tới API trên Render của bạn
             const response = await fetch("https://story-reader-api.onrender.com/tts", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -190,7 +189,7 @@
             currentChunkIndex = 0;
             isPlaying = true;
             
-            // Mở khóa audio trên trình duyệt di động
+            // Mở khóa audio trên trình duyệt di động (iOS Safari)
             globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await globalAudio.play().catch(() => {});
 
@@ -198,43 +197,35 @@
         } 
 
         async function playSequence() {
-            let nextAudioPromise = null;
-            
-            status.textContent = `⏳ Đang lấy âm thanh (Đoạn 1/${chunks.length})...`;
-            let currentUrl = await fetchAudio(chunks[0]);
-
             while (isPlaying && currentChunkIndex < chunks.length) {
-                if (!isPlaying) { URL.revokeObjectURL(currentUrl); break; }
-
-                // Tải trước đoạn kế tiếp ngầm ở dưới nền
-                if (currentChunkIndex + 1 < chunks.length) {
-                    nextAudioPromise = fetchAudio(chunks[currentChunkIndex + 1]);
-                } else {
-                    nextAudioPromise = null;
-                }
-
-                globalAudio.src = currentUrl;
-                globalAudio.playbackRate = parseFloat(speedSelect.value); // Hỗ trợ tốc độ đến 2.0x / 1.75x
-                status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
+                status.textContent = `⏳ Đang tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
                 
-                // Phát đoạn hiện tại và đợi đọc xong
-                await new Promise((resolve, reject) => {
-                    globalAudio.onended = resolve;
-                    globalAudio.onerror = (e) => reject(new Error("Lỗi phát audio"));
-                    globalAudio.play().catch(reject);
-                });
-
-                URL.revokeObjectURL(currentUrl);
-                currentChunkIndex++;
-
-                // Chuyển sang đoạn tiếp theo
-                if (currentChunkIndex < chunks.length) {
-                    if (nextAudioPromise) {
-                        status.textContent = `⏳ Đang đợi tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
-                        currentUrl = await nextAudioPromise;
-                    } else {
-                        currentUrl = await fetchAudio(chunks[currentChunkIndex]);
+                try {
+                    let currentUrl = await fetchAudio(chunks[currentChunkIndex]);
+                    
+                    if (!isPlaying) {
+                        URL.revokeObjectURL(currentUrl);
+                        break;
                     }
+
+                    globalAudio.src = currentUrl;
+                    globalAudio.playbackRate = parseFloat(speedSelect.value); // Hỗ trợ tốc độ đến 2.0x
+                    status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
+                    
+                    // Phát tuần tự từng đoạn, đợi đọc xong mới sang đoạn tiếp theo
+                    await new Promise((resolve, reject) => {
+                        globalAudio.onended = resolve;
+                        globalAudio.onerror = (e) => reject(new Error("Lỗi phát audio"));
+                        globalAudio.play().catch(reject);
+                    });
+
+                    URL.revokeObjectURL(currentUrl);
+                    currentChunkIndex++;
+
+                } catch (err) {
+                    status.textContent = `❌ Lỗi: ${err.message}`;
+                    isPlaying = false;
+                    break;
                 }
             }
 
