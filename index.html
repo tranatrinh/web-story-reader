@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO TỐC ĐỘ CAO (TẢI NGẦM GỐI ĐẦU) ---
+        // --- HỆ THỐNG TÁCH CÂU GIỮ NGUYÊN NGOẶC KÉP ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -144,14 +144,16 @@
         let audioCache = {};
 
         function splitTextForAPI(text) {
+            // Thay thế các khoảng trắng thừa nhưng giữ nguyên cấu trúc câu thoại
             const cleanText = text.replace(/[\r\n]+/g, " ").trim();
-            const sentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
+            
+            // Chia câu thông minh: nhận diện cả dấu chấm/hỏi/cảm lẫn các đoạn hội thoại trong ngoặc kép ("..." hoặc “...”)
+            const rawSentences = cleanText.match(/(".*?"|“.*?”|[^.!?]+[.!?]+)(\s|$)/g) || [cleanText];
             
             const result = [];
             let currentChunk = "";
 
-            sentences.forEach(sentence => {
-                // Chia đoạn ngắn vừa phải (~600 ký tự) để server tạo trong tích tắc
+            rawSentences.forEach(sentence => {
                 if ((currentChunk + sentence).length > 600) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
@@ -236,7 +238,6 @@
                     
                     if (!isPlaying) break;
 
-                    // Tải ngầm các câu kế tiếp ngay lập tức dưới nền
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
@@ -264,7 +265,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 500);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
