@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG GOM NHÓM ĐOẠN LỚN (GIẢM SỐ LẦN ĐỔI AUDIO) ---
+        // --- HỆ THỐNG GOM NHÓM ĐOẠN SIÊU LỚN (GIẢM TỐI ĐA SỐ LẦN ĐỔI AUDIO) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -150,8 +150,8 @@
             let currentChunk = "";
 
             sentences.forEach(sentence => {
-                // Gom đoạn lớn khoảng 1200 ký tự (đọc liên tục ~1 phút mỗi đoạn) để cực kỳ mượt mà, ít ngắt quãng
-                if ((currentChunk + sentence).length > 1200) {
+                // Gom đoạn siêu lớn khoảng 3000 ký tự (đọc liên tục ~3 phút mỗi phần)
+                if ((currentChunk + sentence).length > 3000) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
                 } else {
@@ -180,7 +180,7 @@
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 }
             }
         }
@@ -219,7 +219,7 @@
                         currentUrl = await nextAudioPromise;
                         nextAudioPromise = null;
                     } else {
-                        status.textContent = `⏳ Đang tổng hợp đoạn lớn ${currentChunkIndex + 1}/${chunks.length}...`;
+                        status.textContent = `⏳ Đang tổng hợp phần lớn ${currentChunkIndex + 1}/${chunks.length} (Vui lòng chờ)...`;
                         currentUrl = await getAudioBlob(chunks[currentChunkIndex]);
                     }
                     
@@ -228,7 +228,7 @@
                         break;
                     }
 
-                    // Tải gối đầu đoạn kế tiếp dưới nền
+                    // Tải gối đầu phần tiếp theo dưới nền từ sớm
                     if (currentChunkIndex + 1 < chunks.length) {
                         nextAudioPromise = getAudioBlob(chunks[currentChunkIndex + 1]);
                     }
@@ -247,8 +247,8 @@
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `⚠️ Đang tải lại đoạn ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    status.textContent = `⚠️ Đang tải lại phần ${currentChunkIndex + 1}...`;
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
 
