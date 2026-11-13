@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG TÁCH CÂU GIỮ NGUYÊN NGOẶC KÉP ---
+        // --- HỆ THỐNG TÁCH CÂU AN TOÀN, KHÔNG BỎ SÓT BẤT KỲ DÒNG NÀO ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
@@ -144,23 +144,23 @@
         let audioCache = {};
 
         function splitTextForAPI(text) {
-            // Thay thế các khoảng trắng thừa nhưng giữ nguyên cấu trúc câu thoại
-            const cleanText = text.replace(/[\r\n]+/g, " ").trim();
-            
-            // Chia câu thông minh: nhận diện cả dấu chấm/hỏi/cảm lẫn các đoạn hội thoại trong ngoặc kép ("..." hoặc “...”)
-            const rawSentences = cleanText.match(/(".*?"|“.*?”|[^.!?]+[.!?]+)(\s|$)/g) || [cleanText];
-            
+            // Tách dựa trên các dòng hoặc dấu câu, gom nhóm tối đa ~400 ký tự để server xử lý trong chớp mắt
+            const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
 
-            rawSentences.forEach(sentence => {
-                if ((currentChunk + sentence).length > 600) {
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                if ((currentChunk + " " + trimmed).length > 400) {
                     if (currentChunk) result.push(currentChunk.trim());
-                    currentChunk = sentence;
+                    currentChunk = trimmed;
                 } else {
-                    currentChunk += sentence;
+                    currentChunk += (currentChunk ? " " : "") + trimmed;
                 }
             });
+
             if (currentChunk) result.push(currentChunk.trim());
             return result.filter(ch => ch.length > 0);
         }
@@ -183,7 +183,7 @@
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
         }
@@ -238,6 +238,7 @@
                     
                     if (!isPlaying) break;
 
+                    // Tải ngầm các câu tiếp theo dưới nền
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
@@ -255,7 +256,7 @@
 
                 } catch (err) {
                     status.textContent = `⚠️ Đang tải lại câu ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
 
@@ -265,7 +266,7 @@
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 500);
+                    setTimeout(() => { if (isPlaying) startTTS(); }, 300);
                 } else {
                     status.textContent = "✅ Đã đọc hết truyện.";
                     isPlaying = false;
