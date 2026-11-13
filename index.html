@@ -136,14 +136,13 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT AUDIO AN TOÀN (CẮT NHỎ CHUẨN XÁC) ---
+        // --- HỆ THỐNG PHÁT AUDIO AN TOÀN (CẮT NHỎ VÀ CHỐNG NGHẼN) ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
 
         function splitTextForAPI(text) {
-            // Làm sạch các ký tự trắng thừa và chia nhỏ theo câu dấu chấm, hỏi, cảm, xuống dòng
             const cleanText = text.replace(/[\r\n]+/g, " ").trim();
             const rawSentences = cleanText.match(/[^.!?]+[.!?]+(\s|$)/g) || [cleanText];
             
@@ -151,7 +150,6 @@
             let currentChunk = "";
 
             rawSentences.forEach(sentence => {
-                // Giới hạn an toàn mỗi đoạn gửi lên server tối đa khoảng 180 ký tự để không bị timeout
                 if ((currentChunk + sentence).length > 180) {
                     if (currentChunk) result.push(currentChunk.trim());
                     currentChunk = sentence;
@@ -163,23 +161,29 @@
             return result.filter(ch => ch.length > 0);
         }
 
-        async function getAudioBlob(text) {
-            const response = await fetch("https://story-reader-api.onrender.com/tts", {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'audio/mp3'
-                },
-                body: JSON.stringify({ text: text })
-            });
-            
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error("Lỗi từ server: " + errText);
+        async function getAudioBlob(text, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch("https://story-reader-api.onrender.com/tts", {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'audio/mp3'
+                        },
+                        body: JSON.stringify({ text: text })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("Lỗi từ server");
+                    }
+                    
+                    const blob = await response.blob();
+                    return URL.createObjectURL(blob);
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // Đợi thử lại nếu lỗi
+                }
             }
-            
-            const blob = await response.blob();
-            return URL.createObjectURL(blob);
         }
 
         function updateSpeed() {
@@ -226,8 +230,9 @@
                         break;
                     }
 
-                    // Tải gối đầu đoạn kế tiếp dưới nền
+                    // Tải gối đầu đoạn kế tiếp kèm độ trễ chống nghẽn request
                     if (currentChunkIndex + 1 < chunks.length) {
+                        await new Promise(resolve => setTimeout(resolve, 800)); 
                         nextAudioPromise = getAudioBlob(chunks[currentChunkIndex + 1]);
                     }
 
@@ -245,9 +250,8 @@
                     currentChunkIndex++;
 
                 } catch (err) {
-                    status.textContent = `❌ ${err.message}`;
-                    isPlaying = false;
-                    break;
+                    status.textContent = `❌ Lỗi kết nối hoặc quá tải server. Đang thử lại...`;
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
 
