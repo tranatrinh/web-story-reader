@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - Đọc chuẩn từ đoạn 1</title>
+    <title>Web Story Reader - Đọc chuẩn xác</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -44,7 +44,6 @@
         <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
-    <!-- Khung hiển thị nội dung văn bản để theo dõi -->
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
 
     <script>
@@ -140,13 +139,11 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT TẢI GỐI ĐẦU CHUẨN XÁC ---
+        // --- HỆ THỐNG PHÁT TUẦN TỰ ĐƠN GIẢN & CHUẨN XÁC ---
         let globalAudio = new Audio();
         let isPlaying = false;
         let chunks = [];
-        let audioCache = {}; 
         let currentChunkIndex = 0;
-        
         let apiEndpoint = "https://story-reader-api.onrender.com/tts";
 
         function splitTextForAPI(text, maxLength = 100) {
@@ -188,33 +185,19 @@
             if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
             chunks = splitTextForAPI(text); 
-            currentChunkIndex = 0; // Bắt buộc bắt đầu từ đoạn 0 (Đoạn 1)
+            currentChunkIndex = 0; // Luôn bắt đầu từ 0 tuyệt đối
             isPlaying = true;
-            audioCache = {}; 
 
-            status.textContent = `⏳ Đang chuẩn bị âm thanh Đoạn 1/${chunks.length}...`; 
+            status.textContent = `⏳ Đang mở khóa âm thanh...`; 
             
-            // Mở khóa audio trên trình duyệt di động
+            // Mở khóa audio cho iOS Safari
             globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await globalAudio.play().catch(() => {});
 
-            try {
-                // Tải trước đoạn 0 và đoạn 1
-                audioCache[0] = await fetchAudio(chunks[0]);
-                if (chunks.length > 1) {
-                    fetchAudio(chunks[1]).then(url => audioCache[1] = url).catch(() => {});
-                }
-
-                // Phát ngay đoạn 0 (Đoạn 1)
-                playCurrentChunk();
-
-            } catch (err) {
-                status.textContent = `❌ Lỗi: ${err.message}`;
-                isPlaying = false;
-            }
+            playNextChunk();
         } 
 
-        async function playCurrentChunk() {
+        async function playNextChunk() {
             if (!isPlaying) return;
 
             if (currentChunkIndex >= chunks.length) {
@@ -231,55 +214,40 @@
                 return;
             }
 
-            // Nếu đoạn hiện tại chưa có trong cache, tải ngay lập tức
-            if (!audioCache[currentChunkIndex]) {
-                status.textContent = `⏳ Đang đợi tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
-                try {
-                    audioCache[currentChunkIndex] = await fetchAudio(chunks[currentChunkIndex]);
-                } catch (e) {
-                    if (!isPlaying) return;
+            try {
+                status.textContent = `⏳ Đang tải đoạn ${currentChunkIndex + 1}/${chunks.length}...`;
+                
+                // Lấy trực tiếp đoạn hiện tại
+                const audioUrl = await fetchAudio(chunks[currentChunkIndex]);
+                
+                if (!isPlaying) {
+                    URL.revokeObjectURL(audioUrl);
+                    return;
                 }
-            }
 
-            if (!isPlaying) return;
+                globalAudio.src = audioUrl;
+                globalAudio.playbackRate = parseFloat(speedSelect.value);
+                status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
 
-            globalAudio.src = audioCache[currentChunkIndex];
-            globalAudio.playbackRate = parseFloat(speedSelect.value);
-            status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title} (Đoạn ${currentChunkIndex + 1}/${chunks.length})`;
+                await globalAudio.play();
 
-            await globalAudio.play().catch(() => {});
+                // Khi đoạn này đọc xong, tự động tăng index và gọi đoạn kế tiếp
+                globalAudio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    currentChunkIndex++;
+                    playNextChunk();
+                };
 
-            // Tải gối đầu các đoạn tiếp theo ngầm ở dưới nền
-            for (let i = 1; i <= 2; i++) {
-                let nextIdx = currentChunkIndex + i;
-                if (nextIdx < chunks.length && !audioCache[nextIdx]) {
-                    fetchAudio(chunks[nextIdx]).then(url => {
-                        audioCache[nextIdx] = url;
-                    }).catch(() => {});
-                }
+            } catch (err) {
+                status.textContent = `❌ Lỗi: ${err.message}`;
+                isPlaying = false;
             }
         }
-
-        // Khi đoạn audio hiện tại đọc xong
-        globalAudio.onended = () => {
-            if (!isPlaying) return;
-            
-            // Xóa cache cũ để giải phóng bộ nhớ
-            if (audioCache[currentChunkIndex]) {
-                URL.revokeObjectURL(audioCache[currentChunkIndex]);
-                delete audioCache[currentChunkIndex];
-            }
-
-            // Tăng chỉ mục sang đoạn tiếp theo rồi phát tiếp
-            currentChunkIndex++;
-            playCurrentChunk();
-        };
 
         function stopTTS() { 
             isPlaying = false;
             globalAudio.pause();
             globalAudio.src = "";
-            audioCache = {};
             status.textContent = "⏹ Đã dừng đọc."; 
         }
     </script>
