@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Zero Latency Sync</title>
+    <title>Local Tunnel Story Reader - Dual PingPong</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -64,28 +64,31 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // Trình phát chính + Bộ giải mã trước (Pre-decoder) giúp chuyển đoạn 0ms
-        const player = new Audio();
-        player.playsInline = true;
-        const preloader = new Audio();
-        preloader.preload = "auto";
+        // Hệ thống Dual-Slot Ping-Pong Audio: Chẵn phát players[0], Lẻ phát players[1] -> Chuyển đoạn 0ms không khựng
+        const players = [new Audio(), new Audio()];
+        players.forEach(p => {
+            p.playsInline = true;
+            p.preload = "auto";
+        });
 
         let isPlaying = false;
         let playSessionId = 0;
-        let audioCache = {};   // Map: index -> Promise<blobUrl>
-        let resolvedUrls = {}; // Map: index -> blobUrl
+        let audioCache = {};    // Map: index -> Promise<blobUrl>
+        let resolvedUrls = {};  // Map: index -> blobUrl
+        let activeDownloads = 0;
+        const MAX_CONCURRENT_FETCH = 2; // Cho phép 2 luồng tải song song để không bao giờ hụt hơi ở đoạn 3
         let canvasStreamInitialized = false;
 
-        // --- 1. BÓC TÁCH ĐOẠN VĂN NGẮN GỌN ĐỂ TẢI SIÊU TỐC ---
+        // --- 1. BÓC TÁCH VĂN BẢN SẠCH (KHÔNG CHÈN "UNKNOWN") ---
+        function isInvalidTitle(str) {
+            if (!str) return true;
+            const s = str.trim().toLowerCase();
+            return s === "" || s === "unknown" || s === "untitled" || s === "chương mới";
+        }
+
         function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
-
-            let title = fallbackTitle;
-            const hTag = doc.querySelector("h1, h2, h3, title");
-            if (hTag && hTag.textContent.trim()) {
-                title = hTag.textContent.replace(/\s+/g, ' ').trim();
-            }
 
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
@@ -93,29 +96,39 @@
             });
 
             const rawText = doc.body ? doc.body.textContent : doc.textContent;
-            const paragraphs = processRawTextToChunks(rawText, title);
-            return { title: title.substring(0, 60), paragraphs };
+            const paragraphs = processRawTextToChunks(rawText);
+
+            // Tìm tên chương chuẩn xác: ưu tiên h1/h2/h3 hợp lệ, nếu là "Unknown" thì lấy ngay đoạn đầu tiên của truyện
+            let title = "";
+            const heading = doc.querySelector("h1, h2, h3");
+            if (heading && !isInvalidTitle(heading.textContent)) {
+                title = heading.textContent.replace(/\s+/g, ' ').trim();
+            }
+            if (isInvalidTitle(title) && paragraphs.length > 0) {
+                title = paragraphs[0];
+            }
+            if (isInvalidTitle(title)) {
+                title = fallbackTitle;
+            }
+
+            return { title: title.substring(0, 55), paragraphs };
         }
 
-        function processRawTextToChunks(rawText, chapterTitle) {
+        function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
             const cleanLines = [];
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (trimmed.length > 0) {
+                // Bỏ qua các dòng rác chỉ chứa chữ "Unknown"
+                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown") {
                     cleanLines.push(trimmed);
                 }
             }
 
-            if (chapterTitle && cleanLines.length > 0 && !cleanLines[0].toLowerCase().includes(chapterTitle.toLowerCase().substring(0, 15))) {
-                cleanLines.unshift(chapterTitle);
-            }
-
-            // Cắt các đoạn ở ngưỡng ~240 ký tự (tối ưu tốc độ phản hồi TTS nhanh gấp đôi)
-            // Cắt ngay từ lúc tạo mảng hiển thị để DOM và Audio luôn khớp 1-1 tuyệt đối!
+            // Cắt câu ở ngưỡng 260 ký tự để tạo file MP3 cực nhanh và giữ nguyên đồng bộ 1-1 với thẻ <p>
             const finalChunks = [];
-            const MAX_LEN = 250;
+            const MAX_LEN = 260;
 
             for (let para of cleanLines) {
                 if (para.length <= MAX_LEN) {
@@ -155,19 +168,21 @@
                     const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s+\d+)/im);
 
                     if (splits.length <= 1) {
+                        const paras = processRawTextToChunks(text);
                         chapters.push({
-                            title: "Toàn bộ nội dung",
-                            paragraphs: processRawTextToChunks(text, "")
+                            title: paras[0] ? paras[0].substring(0, 50) : "Toàn bộ nội dung",
+                            paragraphs: paras
                         });
                     } else {
                         splits.forEach((content, idx) => {
                             if (content.trim()) {
-                                let firstLine = content.trim().split(/\r?\n/)[0].trim();
-                                let title = firstLine.length > 50 ? firstLine.substring(0, 50) + "..." : (firstLine || `Chương ${idx + 1}`);
-                                chapters.push({
-                                    title: title,
-                                    paragraphs: processRawTextToChunks(content, "")
-                                });
+                                const paras = processRawTextToChunks(content);
+                                if (paras.length > 0) {
+                                    chapters.push({
+                                        title: paras[0].substring(0, 55),
+                                        paragraphs: paras
+                                    });
+                                }
                             }
                         });
                     }
@@ -251,15 +266,19 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            // Tải ngầm sẵn đoạn 0 ngay khi vừa hiển thị chương để bấm "Đọc" là phát ngay 0ms!
-            getChunkAudioPromise(0, playSessionId).catch(() => {});
+            // Tải ngầm trước 3 đoạn đầu tiên ngay khi mở chương
+            clearAudioCache();
+            const session = playSessionId;
+            for (let i = 0; i < Math.min(3, chunks.length); i++) {
+                getChunkAudioPromise(i, session).catch(() => {});
+            }
         }
 
         function jumpToChunk(index) {
             startTTS(index);
         }
 
-        // --- 3. BỘ ĐỆM TẢI TRƯỚC KHÔNG NGHẼN BĂNG THÔNG ---
+        // --- 3. QUẢN LÝ BỘ ĐỆM TRƯỢT (SLIDING WINDOW PREFETCH) ---
         function clearAudioCache() {
             audioCache = {};
             for (let key in resolvedUrls) {
@@ -284,7 +303,7 @@
                 } catch (err) {
                     if (session !== playSessionId) throw err;
                     if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, 400));
+                    await new Promise(r => setTimeout(r, 350));
                 }
             }
         }
@@ -305,46 +324,60 @@
             return audioCache[index];
         }
 
-        // Tải tuần tự các đoạn kế tiếp sau khi đoạn chính đã phát (Chống nghẽn server)
-        async function prefetchNextChunks(currentIndex, session) {
-            for (let offset = 1; offset <= 3; offset++) {
-                const targetIdx = currentIndex + offset;
-                if (targetIdx >= chunks.length || session !== playSessionId || !isPlaying) break;
-                try {
-                    const url = await getChunkAudioPromise(targetIdx, session);
-                    // Nếu là đoạn kế tiếp ngay sát (currentIndex + 1), nạp sẵn vào bộ giải mã âm thanh
-                    if (offset === 1 && url && session === playSessionId) {
-                        preloader.src = url;
-                        preloader.load();
+        // Luôn bơm trước 4 đoạn tiếp theo vào RAM và nạp sẵn đoạn kế tiếp (idx + 1) vào thẻ Audio chờ
+        function pumpPrefetchQueue(currentIndex, session) {
+            // 1. Nạp sẵn đoạn kế tiếp (currentIndex + 1) vào thẻ Audio đối diện ngay khi tải xong
+            const nextIdx = currentIndex + 1;
+            if (nextIdx < chunks.length) {
+                const nextPlayer = players[nextIdx % 2];
+                getChunkAudioPromise(nextIdx, session).then(url => {
+                    if (session === playSessionId && isPlaying && currentChunkIndex === currentIndex) {
+                        if (nextPlayer.dataset.loadedIdx !== String(nextIdx)) {
+                            nextPlayer.src = url;
+                            nextPlayer.dataset.loadedIdx = String(nextIdx);
+                            nextPlayer.playbackRate = parseFloat(speedSelect.value);
+                            nextPlayer.load();
+                        }
                     }
-                } catch (e) {}
+                }).catch(() => {});
+            }
+
+            // 2. Tải gối đầu thêm các đoạn +2, +3, +4
+            for (let offset = 2; offset <= 4; offset++) {
+                const targetIdx = currentIndex + offset;
+                if (targetIdx < chunks.length) {
+                    getChunkAudioPromise(targetIdx, session).catch(() => {});
+                }
             }
         }
 
-        // --- 4. TRÌNH PHÁT SIÊU TỐC ĐỒNG BỘ 1-1 ---
+        // --- 4. TRÌNH PHÁT DUAL PING-PONG (KHÔNG TRỄ GIỮA CÁC ĐOẠN) ---
         async function startTTS(startIndex = 0) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
             }
 
-            // Nếu bấm đọc từ đoạn 0 và đoạn 0 đã được tải sẵn lúc mở chương thì giữ nguyên cache
-            const keepPreloadedZero = (startIndex === 0 && audioCache[0]);
-
+            // Giữ lại các đoạn đã được tải sẵn trong cache nếu cùng chương
             playSessionId++;
             const currentSession = playSessionId;
 
-            player.pause();
-            if (!keepPreloadedZero) {
-                clearAudioCache();
-            }
+            players.forEach(p => {
+                p.onended = null;
+                p.onerror = null;
+                p.pause();
+                p.dataset.loadedIdx = "";
+            });
 
             currentChunkIndex = startIndex;
             isPlaying = true;
 
-            // Mở khóa Audio iOS tức thì
-            player.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-            player.play().catch(() => {});
+            // Mở khóa đồng thời cả 2 thẻ Audio trên iOS ngay trong cú chạm đầu tiên
+            const silentWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            players.forEach(p => {
+                if (!p.src) p.src = silentWav;
+                p.play().then(() => p.pause()).catch(() => {});
+            });
 
             initCanvasPiP();
 
@@ -354,13 +387,17 @@
         async function playLoop(session) {
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
+                const activePlayer = players[idx % 2];
 
-                // 1. Highlight ngay đoạn chuẩn bị đọc
+                // 1. Highlight ngay đoạn văn hiện tại
                 highlightParagraph(idx);
 
-                // 2. ƯU TIÊN TUYỆT ĐỐI: Chỉ tải đoạn hiện tại (idx) trước để không bị chia băng thông
+                // 2. Kích hoạt bơm tải trước cho các đoạn phía sau (idx+1, idx+2, idx+3, idx+4)
+                pumpPrefetchQueue(idx, session);
+
+                // 3. Nếu đoạn hiện tại chưa có sẵn trong RAM thì báo trạng thái chờ
                 if (!resolvedUrls[idx]) {
-                    status.textContent = `⚡ Đang nạp nhanh đoạn ${idx + 1}/${chunks.length}...`;
+                    status.textContent = `⏳ Đang tải (${idx + 1}/${chunks.length})...`;
                 }
 
                 let audioUrl;
@@ -368,25 +405,23 @@
                     audioUrl = await getChunkAudioPromise(idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang kết nối lại đoạn ${idx + 1}...`;
-                    await new Promise(r => setTimeout(r, 800));
+                    status.textContent = `⚠️ Đang thử lại đoạn ${idx + 1}...`;
+                    await new Promise(r => setTimeout(r, 700));
                     continue;
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // 3. NGAY KHI CÓ AUDIO ĐOẠN HIỆN TẠI -> Bắt đầu tải ngầm tuần tự 3 đoạn kế tiếp
-                prefetchNextChunks(idx, session);
-
-                // 4. Phát đoạn hiện tại ngay lập tức
+                // 4. Phát ngay trên thẻ activePlayer (đã được nạp sẵn từ nhịp trước nếu có)
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
-                await playSingleAudio(audioUrl, session);
+                await playOnSlot(activePlayer, idx, audioUrl, session);
 
-                // Giải phóng RAM đoạn vừa đọc xong
-                if (resolvedUrls[idx]) {
-                    URL.revokeObjectURL(resolvedUrls[idx]);
-                    delete resolvedUrls[idx];
-                    delete audioCache[idx];
+                // Xóa bộ nhớ của đoạn cũ đã phát qua (idx - 1) để nhẹ RAM
+                const oldIdx = idx - 1;
+                if (oldIdx >= 0 && resolvedUrls[oldIdx]) {
+                    URL.revokeObjectURL(resolvedUrls[oldIdx]);
+                    delete resolvedUrls[oldIdx];
+                    delete audioCache[oldIdx];
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
@@ -408,29 +443,33 @@
             }
         }
 
-        function playSingleAudio(url, session) {
+        function playOnSlot(playerInstance, idx, url, session) {
             return new Promise((resolve) => {
                 if (session !== playSessionId || !isPlaying) {
                     resolve();
                     return;
                 }
 
-                player.onended = null;
-                player.onerror = null;
+                playerInstance.onended = null;
+                playerInstance.onerror = null;
 
-                player.src = url;
-                player.playbackRate = parseFloat(speedSelect.value);
+                // Nếu thẻ này chưa được pre-load sẵn url của đoạn idx thì mới gán src
+                if (playerInstance.dataset.loadedIdx !== String(idx)) {
+                    playerInstance.src = url;
+                    playerInstance.dataset.loadedIdx = String(idx);
+                }
+                playerInstance.playbackRate = parseFloat(speedSelect.value);
 
                 const finish = () => {
-                    player.onended = null;
-                    player.onerror = null;
+                    playerInstance.onended = null;
+                    playerInstance.onerror = null;
                     resolve();
                 };
 
-                player.onended = finish;
-                player.onerror = finish;
+                playerInstance.onended = finish;
+                playerInstance.onerror = finish;
 
-                player.play().catch(() => {
+                playerInstance.play().catch(() => {
                     finish();
                 });
             });
@@ -449,16 +488,19 @@
         }
 
         function updateSpeed() {
-            player.playbackRate = parseFloat(speedSelect.value);
+            const rate = parseFloat(speedSelect.value);
+            players.forEach(p => p.playbackRate = rate);
         }
 
         function stopTTS() {
             playSessionId++;
             isPlaying = false;
-            player.onended = null;
-            player.onerror = null;
-            player.pause();
-            player.src = "";
+            players.forEach(p => {
+                p.onended = null;
+                p.onerror = null;
+                p.pause();
+                p.dataset.loadedIdx = "";
+            });
             clearAudioCache();
             status.textContent = "⏹ Đã dừng đọc.";
         }
