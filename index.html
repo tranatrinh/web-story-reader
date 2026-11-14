@@ -138,14 +138,10 @@
             }
         }
 
-        // --- HỆ THỐNG ĐỌC TỨC THÌ BẰNG NATIVE SPEECH SYNTHESIS ---
+        // --- HỆ THỐNG ĐỌC TỨC THÌ KHÔNG CẦN SERVER ---
         function updateSpeed() {
             if (currentUtterance && synth.speaking) {
                 currentUtterance.rate = parseFloat(speedSelect.value);
-                // Khởi động lại để cập nhật tốc độ mượt mà
-                let textToResume = storyText.value;
-                synth.cancel();
-                // Tạm thời lưu ý tốc độ
             }
         }
 
@@ -167,7 +163,6 @@
             currentUtterance.lang = 'vi-VN';
             currentUtterance.rate = parseFloat(speedSelect.value);
 
-            // Tự động tìm và gán giọng tiếng Việt chất lượng cao có sẵn trên thiết bị
             let voices = synth.getVoices();
             let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN') || v.name.toLowerCase().includes('vietnam'));
             if (viVoice) {
@@ -194,7 +189,6 @@
                 status.textContent = "❌ Lỗi trình phát âm thanh.";
             };
 
-            // Bấm vào là phát liền lập tức 0 độ trễ, không phụ thuộc server hay mạng
             synth.speak(currentUtterance);
         }
 
@@ -205,7 +199,6 @@
             status.textContent = "⏹ Đã dừng đọc.";
         }
 
-        // Nạp trước danh sách giọng nói của trình duyệt
         if (synth && synth.onvoiceschanged !== undefined) {
             synth.onvoiceschanged = () => synth.getVoices();
         }
