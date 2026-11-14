@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Robust File Load</title>
+    <title>Local Tunnel Story Reader - Perfect Final</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -73,7 +73,6 @@
             try { 
                 if (file.name.toLowerCase().endsWith('.txt')) { 
                     const text = await file.text(); 
-                    // Tách chương linh hoạt hơn theo từ khóa
                     const splits = text.split(/(?=Chương\s+\d+|Hồi\s+\d+|Quyển\s+\d+|Chapter\s+\d+)/i);
                     
                     if (splits.length <= 1) {
@@ -90,7 +89,6 @@
                 } else if (file.name.toLowerCase().endsWith('.epub')) { 
                     const zip = await JSZip.loadAsync(file); 
                     
-                    // Tìm file container.xml để lấy đường dẫn tệp OPF chính xác
                     const containerFile = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
                     if (!containerFile) throw new Error("Không tìm thấy container.xml trong EPUB");
                     
@@ -125,7 +123,6 @@
                                 const htmlContent = await fileInZip.async("text"); 
                                 const htmlDoc = parser.parseFromString(htmlContent, "text/html"); 
                                 
-                                // Lấy tiêu đề từ thẻ title hoặc h1/h2
                                 let title = `Chương ${i + 1}`;
                                 const titleTag = htmlDoc.querySelector("title");
                                 const h1Tag = htmlDoc.querySelector("h1");
@@ -210,12 +207,19 @@
             pipVideo.play().catch(()=>{});
         }
 
+        // --- TÁCH CHƯƠNG VÀ TIÊU ĐỀ AN TOÀN KHÔNG BỊ MẤT CHỮ ---
         function splitTextForAPI(text) {
+            let currentTitle = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "Chương mới";
+            
             const lines = text.split(/\r?\n/);
             const result = [];
+            
+            // Xướng tên tiêu đề chương trước ở đoạn đầu tiên
+            result.push(currentTitle);
+
             let currentChunk = "";
-            let currentLimit = 300; 
-            let maxLimit = 600;
+            let currentLimit = 250; 
+            let maxLimit = 500;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -224,7 +228,7 @@
                 if ((currentChunk + "\n" + trimmed).length > currentLimit) {
                     if (currentChunk) {
                         result.push(currentChunk.trim());
-                        if (currentLimit < maxLimit) currentLimit *= 1.5;
+                        if (currentLimit < maxLimit) currentLimit *= 1.4;
                     }
                     currentChunk = trimmed;
                 } else {
@@ -283,6 +287,7 @@
             isPlaying = true;
             nextBlobUrl = null;
             
+            // Mở khóa audio ngay lập tức trong sự kiện click
             audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             audioA.play().catch(() => {});
 
