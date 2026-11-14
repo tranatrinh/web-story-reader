@@ -253,4 +253,111 @@
             nextBlobUrl = null;
             
             // Kích hoạt mở khóa audio ngay lập tức trong sự kiện click
-            audioA.src = "data:audio/wav;base64,UklGRigAAAB
+            audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            audioA.play().catch(() => {});
+
+            setupCanvasStream();
+
+            status.textContent = `⏳ Đang tải đoạn đầu...`;
+            
+            let firstUrl;
+            try {
+                firstUrl = await getAudioBlob(chunks[0]);
+            } catch (err) {
+                status.textContent = `⚠️ Lỗi kết nối server nhà.`;
+                isPlaying = false;
+                return;
+            }
+
+            if (!isPlaying) return;
+
+            if (chunks.length > 1) {
+                getAudioBlob(chunks[1]).then(url => { nextBlobUrl = url; }).catch(() => {});
+            }
+
+            playCurrentChunk(firstUrl);
+        } 
+
+        async function playCurrentChunk(url) {
+            if (!isPlaying) return;
+
+            activeAudio.src = url;
+            activeAudio.playbackRate = parseFloat(speedSelect.value);
+            
+            let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
+            status.textContent = `🔊 ${currentTitle}`;
+
+            if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
+                nextAudio.src = nextBlobUrl;
+                nextAudio.playbackRate = parseFloat(speedSelect.value);
+                nextAudio.load();
+            }
+
+            try {
+                await activeAudio.play();
+            } catch (e) {}
+
+            if (!nextBlobUrl && currentChunkIndex + 2 < chunks.length) {
+                getAudioBlob(chunks[currentChunkIndex + 2]).then(u => { nextBlobUrl = u; }).catch(() => {});
+            }
+
+            activeAudio.onended = async () => {
+                URL.revokeObjectURL(url);
+                currentChunkIndex++;
+
+                if (!isPlaying) return;
+
+                if (currentChunkIndex < chunks.length) {
+                    if (nextBlobUrl) {
+                        let temp = activeAudio;
+                        activeAudio = nextAudio;
+                        nextAudio = temp;
+                        
+                        let currentUrlToPlay = nextBlobUrl;
+                        nextBlobUrl = null;
+
+                        if (currentChunkIndex + 1 < chunks.length) {
+                            getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
+                        }
+
+                        playCurrentChunk(currentUrlToPlay);
+                    } else {
+                        status.textContent = `⏳ Đang tải phần tiếp theo...`;
+                        try {
+                            const freshUrl = await getAudioBlob(chunks[currentChunkIndex]);
+                            if (currentChunkIndex + 1 < chunks.length) {
+                                getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
+                            }
+                            playCurrentChunk(freshUrl);
+                        } catch (e) {
+                            status.textContent = `⚠️ Thử lại phần ${currentChunkIndex + 1}...`;
+                            setTimeout(() => { playCurrentChunk(url); }, 2000);
+                        }
+                    }
+                } else {
+                    if (currentChapterIndex < chapters.length - 1) {
+                        status.textContent = "⏭ Đang chuyển chương...";
+                        currentChapterIndex++;
+                        chapterSelect.value = currentChapterIndex;
+                        loadSelectedChapter();
+                        setTimeout(() => { if (isPlaying) startTTS(); }, 100);
+                    } else {
+                        status.textContent = "✅ Đã đọc hết truyện.";
+                        isPlaying = false;
+                    }
+                }
+            };
+        }
+
+        function stopTTS() { 
+            isPlaying = false;
+            audioA.pause();
+            audioB.pause();
+            audioA.src = "";
+            audioB.src = "";
+            nextBlobUrl = null;
+            status.textContent = "⏹ Đã dừng đọc."; 
+        }
+    </script>
+</body>
+</html>
