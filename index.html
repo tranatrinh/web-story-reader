@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Native PiP</title>
+    <title>Local Tunnel Story Reader - Instant One-Click Play</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -16,7 +16,6 @@
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 5px; font-size: 14px; }
         textarea { width: 100%; height: 45vh; background-color: #1e1e1e; color: #f5f5f5; font-size: 16px; line-height: 1.5; padding: 12px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; resize: none; margin-bottom: 10px; }
         
-        /* Hiển thị khung video trực tiếp để bấm PiP chuẩn trên iOS */
         #pipVideo { width: 100%; height: 180px; background: #000; border-radius: 8px; object-fit: cover; }
         #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 5px; font-weight: bold;}
     </style>
@@ -47,7 +46,6 @@
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
     
-    <!-- Thẻ Video có hiển thị hình ảnh động để iOS cấp quyền chạy PiP nền -->
     <video id="pipVideo" controls playsinline muted></video>
 
     <script>
@@ -154,7 +152,6 @@
         let nextBlobUrl = null;
         let canvasCtx = null;
 
-        // Tạo khung hình động canvas để thẻ video luôn có tín hiệu video chạy ngầm
         function setupCanvasStream() {
             const canvas = document.createElement('canvas');
             canvas.width = 400;
@@ -255,10 +252,11 @@
             isPlaying = true;
             nextBlobUrl = null;
             
-            setupCanvasStream();
-
+            // MỞ KHÓA AUDIO NGAY LẬP TỨC TRONG CÚ CLICK ĐẦU TIÊN
             audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await audioA.play().catch(() => {});
+
+            setupCanvasStream();
 
             status.textContent = `⏳ Đang tải đoạn đầu...`;
             try {
