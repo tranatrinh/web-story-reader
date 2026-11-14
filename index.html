@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Final Stable</title>
+    <title>Local Tunnel Story Reader - Robust File Load</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -41,7 +41,7 @@
         <button class="btn-play" onclick="startTTS()">▶ Đọc</button>
         <button class="btn-pip" onclick="togglePiP()">🔲 Bật PiP</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
-        <div id="status">Sẵn sàng! Hãy chọn file truyện.</div>
+        <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
@@ -59,10 +59,12 @@
         let chapters = [];
         let currentChapterIndex = 0;
 
+        // --- XỬ LÝ CHỌN VÀ LOAD FILE TỐI ƯU ---
         fileInput.addEventListener('change', async (e) => { 
             const file = e.target.files[0]; 
             if (!file) return; 
-            status.textContent = `⏳ Đang phân tích file...`; 
+            
+            status.textContent = `⏳ Đang đọc file: ${file.name}...`; 
             storyText.value = ""; 
             chapters = [];
             chapterSelect.style.display = "none";
@@ -71,31 +73,46 @@
             try { 
                 if (file.name.toLowerCase().endsWith('.txt')) { 
                     const text = await file.text(); 
-                    const splits = text.split(/^(?=Chương\s+\d+|Hồi\s+\d+|Quyển\s+\d+)/im);
+                    // Tách chương linh hoạt hơn theo từ khóa
+                    const splits = text.split(/(?=Chương\s+\d+|Hồi\s+\d+|Quyển\s+\d+|Chapter\s+\d+)/i);
+                    
                     if (splits.length <= 1) {
                         chapters.push({ title: "Toàn bộ nội dung", content: text });
                     } else {
                         splits.forEach((content) => {
                             if (content.trim()) {
-                                let title = content.trim().split('\n')[0].substring(0, 40) + "...";
+                                let firstLine = content.trim().split('\n')[0];
+                                let title = firstLine.length > 40 ? firstLine.substring(0, 40) + "..." : firstLine;
                                 chapters.push({ title: title, content: content.trim() });
                             }
                         });
                     }
                 } else if (file.name.toLowerCase().endsWith('.epub')) { 
                     const zip = await JSZip.loadAsync(file); 
-                    const containerXml = await zip.file("META-INF/container.xml").async("text"); 
+                    
+                    // Tìm file container.xml để lấy đường dẫn tệp OPF chính xác
+                    const containerFile = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
+                    if (!containerFile) throw new Error("Không tìm thấy container.xml trong EPUB");
+                    
+                    const containerXml = await containerFile.async("text"); 
                     const parser = new DOMParser(); 
                     const containerDoc = parser.parseFromString(containerXml, "text/xml"); 
-                    const opfPath = containerDoc.querySelector("rootfile").getAttribute("full-path"); 
-                    const basePath = opfPath.substring(0, opfPath.lastIndexOf('/') + 1); 
-                    const opfXml = await zip.file(opfPath).async("text"); 
+                    const rootfile = containerDoc.querySelector("rootfile");
+                    if (!rootfile) throw new Error("Không tìm thấy rootfile trong EPUB");
+                    
+                    const opfPath = rootfile.getAttribute("full-path"); 
+                    const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : ""; 
+                    
+                    const opfFile = zip.file(opfPath);
+                    if (!opfFile) throw new Error("Không tìm thấy file OPF");
+                    const opfXml = await opfFile.async("text"); 
                     const opfDoc = parser.parseFromString(opfXml, "text/xml"); 
                     
                     const manifest = {}; 
                     opfDoc.querySelectorAll("manifest > item").forEach(item => { 
                         manifest[item.getAttribute("id")] = item.getAttribute("href"); 
                     }); 
+                    
                     const spineItems = opfDoc.querySelectorAll("spine > itemref"); 
                     
                     for (let i = 0; i < spineItems.length; i++) { 
@@ -103,19 +120,32 @@
                         const href = manifest[idref]; 
                         if (href) { 
                             const filePath = basePath + decodeURIComponent(href); 
-                            const fileInZip = zip.file(filePath); 
+                            const fileInZip = zip.file(filePath) || zip.file(filePath.replace(/^\//, '')); 
                             if (fileInZip) { 
                                 const htmlContent = await fileInZip.async("text"); 
                                 const htmlDoc = parser.parseFromString(htmlContent, "text/html"); 
+                                
+                                // Lấy tiêu đề từ thẻ title hoặc h1/h2
+                                let title = `Chương ${i + 1}`;
                                 const titleTag = htmlDoc.querySelector("title");
-                                const title = titleTag && titleTag.textContent ? titleTag.textContent.trim() : `Phần ${i + 1}`;
-                                const text = htmlDoc.body.textContent || htmlDoc.body.innerText; 
-                                if(text.trim()) {
-                                    chapters.push({ title: title, content: text.trim() });
+                                const h1Tag = htmlDoc.querySelector("h1");
+                                if (h1Tag && h1Tag.textContent.trim()) {
+                                    title = h1Tag.textContent.trim();
+                                } else if (titleTag && titleTag.textContent.trim()) {
+                                    title = titleTag.textContent.trim();
+                                }
+                                
+                                const text = htmlDoc.body ? (htmlDoc.body.textContent || htmlDoc.body.innerText) : htmlDoc.textContent; 
+                                if(text && text.trim().length > 0) {
+                                    chapters.push({ title: title.substring(0, 40), content: text.trim() });
                                 }
                             } 
                         } 
                     } 
+                }
+
+                if (chapters.length === 0) {
+                    chapters.push({ title: "Nội dung truyện", content: await file.text() });
                 }
                 
                 chapters.forEach((chap, idx) => {
@@ -127,9 +157,10 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 loadSelectedChapter();
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
+                status.textContent = `✅ Đã tải thành công ${chapters.length} phần/chương!`; 
             } catch (err) { 
-                status.textContent = `❌ Lỗi đọc file.`; 
+                console.error(err);
+                status.textContent = `❌ Lỗi đọc file: ${err.message}`; 
             } 
         }); 
 
@@ -243,7 +274,7 @@
 
         async function startTTS() { 
             const text = storyText.value.trim(); 
-            if (!text) { alert("Không có nội dung để đọc!"); return; } 
+            if (!text) { alert("Không có nội dung để đọc! Vui lòng chọn file truyện trước."); return; } 
 
             chunks = splitTextForAPI(text); 
             if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
@@ -252,7 +283,6 @@
             isPlaying = true;
             nextBlobUrl = null;
             
-            // Kích hoạt mở khóa audio ngay lập tức trong sự kiện click
             audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             audioA.play().catch(() => {});
 
