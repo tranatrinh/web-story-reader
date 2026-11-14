@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Perfect Sync Final</title>
+    <title>Local Tunnel Story Reader - Perfect 1-1 Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -15,7 +15,6 @@
         .btn-pip { background-color: #2196F3; }
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 5px; font-size: 14px; }
         
-        /* Khung hiển thị truyện dạng danh sách đoạn văn để quét chữ */
         #storyContainer { width: 100%; height: 45vh; background-color: #1e1e1e; color: #aaa; font-size: 16px; line-height: 1.6; padding: 12px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
         #storyContainer p { margin: 12px 0; padding: 6px 8px; border-radius: 6px; transition: background-color 0.3s, color 0.3s; }
         
@@ -47,7 +46,6 @@
         <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
-    <!-- Khung hiển thị văn bản quét chữ -->
     <div id="storyContainer">Nội dung truyện sẽ hiển thị ở đây sau khi bạn chọn file...</div>
     
     <video id="pipVideo" controls playsinline muted></video>
@@ -63,7 +61,6 @@
         let chapters = [];
         let currentChapterIndex = 0;
 
-        // --- XỬ LÝ CHỌN VÀ LOAD FILE TỐI ƯU ---
         fileInput.addEventListener('change', async (e) => { 
             const file = e.target.files[0]; 
             if (!file) return; 
@@ -165,7 +162,7 @@
             } 
         }); 
 
-        // --- ĐỒNG BỘ 100% GIỮA NỘI DUNG HIỂN THỊ VÀ MẢNG ÂM THANH ---
+        // --- TÁCH ĐOẠN 1-1 CHUẨN XÁC TUYỆT ĐỐI ---
         function splitTextForAPI(text) {
             let currentTitle = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "Chương mới";
             
@@ -174,29 +171,13 @@
             
             result.push(currentTitle);
 
-            let currentChunk = "";
-            let currentLimit = 300; 
-            let maxLimit = 600;
-
             lines.forEach(line => {
                 const trimmed = line.trim();
                 if (!trimmed) return;
                 if (trimmed === currentTitle) return;
 
-                if ((currentChunk + "\n" + trimmed).length > currentLimit) {
-                    if (currentChunk) {
-                        result.push(currentChunk.trim());
-                        if (currentLimit < maxLimit) currentLimit *= 1.4;
-                    }
-                    currentChunk = trimmed;
-                } else {
-                    currentChunk += (currentChunk ? "\n" : "") + trimmed;
-                }
+                result.push(trimmed);
             });
-
-            if (currentChunk) {
-                result.push(currentChunk.trim());
-            }
 
             return result.filter(ch => ch.length > 0);
         }
@@ -331,7 +312,7 @@
             let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
             status.textContent = `🔊 ${currentTitle}`;
 
-            // --- TÍNH NĂNG QUÉT CHỮ & TỰ ĐỘNG CUỘN ĐỒNG BỘ 100% ---
+            // --- QUÉT CHỮ & CUỘN MÀN HÌNH KHỚP 1-1 TUYỆT ĐỐI ---
             document.querySelectorAll('#storyContainer p').forEach(p => {
                 p.style.backgroundColor = 'transparent';
                 p.style.color = '#aaa';
@@ -344,7 +325,7 @@
                 activePara.style.fontWeight = 'bold';
                 activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            // -----------------------------------------------------
+            // ----------------------------------------------------
 
             if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
                 nextAudio.src = nextBlobUrl;
