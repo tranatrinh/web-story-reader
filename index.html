@@ -13,14 +13,16 @@
         .btn-play { background-color: #4CAF50; }
         .btn-stop { background-color: #f44336; }
         .btn-pip { background-color: #2196F3; }
+        .btn-config { background-color: #ff9800; }
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 6px; font-size: 14px; max-width: 100%; }
         
-        #storyContainer { width: 100%; height: 52vh; background-color: #1a1a1a; color: #9e9e9e; font-size: 17px; line-height: 1.65; padding: 14px; border: 1px solid #333; border-radius: 10px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
+        #storyContainer { width: 100%; height: 50vh; background-color: #1a1a1a; color: #9e9e9e; font-size: 17px; line-height: 1.65; padding: 14px; border: 1px solid #333; border-radius: 10px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
         #storyContainer p { margin: 0 0 10px 0; padding: 8px 10px; border-radius: 8px; transition: background-color 0.15s, color 0.15s; cursor: pointer; border-left: 3px solid transparent; }
         #storyContainer p.active-chunk { background-color: rgba(76, 175, 80, 0.22); color: #ffffff; font-weight: 600; border-left: 3px solid #4CAF50; }
         
-        #pipVideo { width: 100%; height: 145px; background: #000; border-radius: 8px; object-fit: cover; }
+        #pipVideo { width: 100%; height: 130px; background: #000; border-radius: 8px; object-fit: cover; }
         #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 4px; font-weight: 600; }
+        #server-indicator { font-size: 12px; color: #8bc34a; width: 100%; word-break: break-all; background: #222; padding: 4px 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -29,11 +31,6 @@
         <input type="file" id="fileInput" accept=".txt,.epub" onclick="this.value=null;">
         
         <select id="chapterSelect" style="display: none; width: 100%;" onchange="onChapterChange()"></select>
-
-        <select id="voiceSelect" onchange="onVoiceChange()">
-            <option value="edge" selected>🎙️ Hoài My (AI)</option>
-            <option value="google">⚡ Chị Google (Siêu mượt)</option>
-        </select>
 
         <select id="speedSelect" onchange="updateSpeed()">
             <option value="0.8">0.8x</option>
@@ -45,8 +42,11 @@
         </select>
 
         <button class="btn-play" onclick="startTTS(0)">▶ Đọc</button>
-        <button class="btn-pip" onclick="togglePiP()">🔲 Bật PiP</button>
+        <button class="btn-pip" onclick="togglePiP()">🔲 PiP</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
+        <button class="btn-config" onclick="changeServerUrl()">🔗 Đổi Link Server</button>
+        
+        <div id="server-indicator">Server: Đang tải...</div>
         <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
@@ -55,13 +55,33 @@
     <video id="pipVideo" controls playsinline muted></video>
 
     <script>
-        const SERVER_URL = "https://comparing-tobacco-elvis-allied.trycloudflare.com/tts";
+        // Tự động lấy link từ bộ nhớ trình duyệt, nếu chưa có thì dùng mặc định localhost
+        let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
+        
+        function getApiUrl() {
+            return SERVER_BASE.replace(/\/$/, "") + "/tts";
+        }
+
+        function updateServerIndicator() {
+            document.getElementById('server-indicator').textContent = "Server: " + getApiUrl();
+            localStorage.setItem("my_tts_server_url", SERVER_BASE);
+        }
+
+        function changeServerUrl() {
+            let newUrl = prompt("Nhập đường dẫn Cloudflare Tunnel mới (Ví dụ: https://xxxx.trycloudflare.com):", SERVER_BASE);
+            if (newUrl) {
+                SERVER_BASE = newUrl.trim();
+                updateServerIndicator();
+                alert("Đã cập nhật link server thành công!");
+            }
+        }
+
+        updateServerIndicator();
 
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
         const chapterSelect = document.getElementById('chapterSelect');
-        const voiceSelect = document.getElementById('voiceSelect');
         const speedSelect = document.getElementById('speedSelect');
         const pipVideo = document.getElementById('pipVideo');
 
@@ -70,7 +90,6 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // 2 thẻ Audio thay phiên nhau để nối câu 0ms
         const players = [new Audio(), new Audio()];
         players.forEach(p => {
             p.playsInline = true;
@@ -79,23 +98,20 @@
 
         let isPlaying = false;
         let playSessionId = 0;
-        let audioCache = {};    // index -> Promise<blobUrl>
-        let resolvedUrls = {};  // index -> blobUrl
+        let audioCache = {};
+        let resolvedUrls = {};
         let workerRunning = false;
         let canvasStreamInitialized = false;
 
-        // --- 1. QUÉT TÊN CHƯƠNG TRỰC TIẾP TỪ CHỮ "CHƯƠNG..." TRONG TRANG ---
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
 
         function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
-            // Ưu tiên 1: Quét trong 10 dòng đầu tiên của trang xem có dòng nào chứa "Chương X..." không
             for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
                 const line = paragraphs[i].trim();
                 if (CHAPTER_REGEX.test(line)) {
                     return line.substring(0, 65);
                 }
             }
-            // Ưu tiên 2: Quét thẻ h1, h2, h3 trong trang (bỏ qua chữ Unknown)
             if (htmlDoc) {
                 const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
                 for (let h of headings) {
@@ -105,7 +121,6 @@
                     }
                 }
             }
-            // Ưu tiên 3: Lấy dòng đầu tiên của trang
             if (paragraphs.length > 0) {
                 return paragraphs[0].substring(0, 60);
             }
@@ -128,7 +143,6 @@
             return { title, paragraphs };
         }
 
-        // Lọc bỏ các dòng không có chữ/số và cắt câu ở độ dài tối ưu (200 ký tự) để đọc nhanh như Chị Google
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
             const cleanLines = [];
@@ -141,8 +155,6 @@
                 }
             }
 
-            // Nếu dòng 0 là tên chương ngắn ("Chương 78: Bộ xương"), giữ nguyên nhưng các câu văn dài bên dưới
-            // được chia ở mức 220 ký tự để tạo âm thanh dưới 0.4 giây
             const finalChunks = [];
             const MAX_LEN = 220;
 
@@ -170,7 +182,6 @@
             return finalChunks;
         }
 
-        // --- 2. ĐỌC FILE (.TXT / .EPUB) ---
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -273,17 +284,6 @@
             }
         }
 
-        function onVoiceChange() {
-            const wasPlaying = isPlaying;
-            const curIdx = currentChunkIndex;
-            stopTTS();
-            if (wasPlaying) {
-                startTTS(curIdx);
-            } else {
-                startBackgroundWorker(0, playSessionId);
-            }
-        }
-
         function renderChapter(index) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
@@ -298,7 +298,6 @@
             storyContainer.scrollTop = 0;
 
             clearAudioCache();
-            // Tải ngầm sẵn 3 câu đầu ngay khi vừa mở chương
             startBackgroundWorker(0, playSessionId);
         }
 
@@ -306,7 +305,6 @@
             startTTS(index);
         }
 
-        // --- 3. HÀNG ĐỢI ĐƠN KÊNH TUYỆT ĐỐI (KHÔNG BAO GIỜ BẮN 2 REQUEST CÙNG LÚC) ---
         function clearAudioCache() {
             audioCache = {};
             for (let key in resolvedUrls) {
@@ -316,14 +314,13 @@
         }
 
         async function fetchAudioSingle(text, session) {
-            const engine = voiceSelect.value;
             for (let attempt = 0; attempt < 3; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 try {
-                    const response = await fetch(SERVER_URL, {
+                    const response = await fetch(getApiUrl(), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: text, engine: engine })
+                        body: JSON.stringify({ text: text })
                     });
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
@@ -366,7 +363,6 @@
             }
         }
 
-        // Worker chỉ chạy đúng 1 luồng duy nhất: Đợi tải xong câu N mới tải câu N+1
         async function startBackgroundWorker(startIdx, session) {
             if (workerRunning) return;
             workerRunning = true;
@@ -374,7 +370,7 @@
             try {
                 while (session === playSessionId) {
                     const base = isPlaying ? currentChunkIndex : startIdx;
-                    const lookahead = isPlaying ? 8 : 2; // Khi đang đọc, tải trước 8 câu liên tiếp
+                    const lookahead = isPlaying ? 8 : 2;
                     const limit = Math.min(chunks.length - 1, base + lookahead);
 
                     let target = -1;
@@ -398,14 +394,12 @@
             }
         }
 
-        // --- 4. BỘ PHÁT LIỀN MẠCH ---
         async function startTTS(startIndex = 0) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
             }
 
-            // Giữ nguyên cache đã tải sẵn nếu cùng phiên chọn chương
             playSessionId++;
             const currentSession = playSessionId;
             workerRunning = false;
@@ -435,10 +429,9 @@
             const firstIdx = currentChunkIndex;
             highlightParagraph(firstIdx);
 
-            // Nếu câu đầu tiên ngắn (ví dụ "Chương 78: Bộ xương"), nạp sẵn câu 0 và câu 1 trước khi phát
             if (chunks[firstIdx] && chunks[firstIdx].length < 90 && firstIdx + 1 < chunks.length) {
                 if (!resolvedUrls[firstIdx] || !resolvedUrls[firstIdx + 1]) {
-                    status.textContent = `⚡ Đang chuẩn bị giọng đọc...`;
+                    status.textContent = `⚡ Đang chuẩn bị giọng đọc AI...`;
                 }
                 try {
                     await ensureChunkPromise(firstIdx, session);
@@ -457,7 +450,7 @@
                 highlightParagraph(idx);
 
                 if (!resolvedUrls[idx]) {
-                    status.textContent = `⏳ Đang tải (${idx + 1}/${chunks.length})...`;
+                    status.textContent = `⏳ Đang tải giọng đọc (${idx + 1}/${chunks.length})...`;
                 }
 
                 let audioUrl;
@@ -472,12 +465,10 @@
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // Nếu câu kế tiếp đã có sẵn trong RAM thì nạp vào thẻ chờ ngay
                 if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
                     preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
                 }
 
-                // Kích hoạt worker tải ngầm các câu tiếp theo (1-by-1)
                 startBackgroundWorker(idx + 1, session);
 
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
@@ -570,7 +561,6 @@
             status.textContent = "⏹ Đã dừng đọc.";
         }
 
-        // --- 5. CANVAS PIP ---
         function initCanvasPiP() {
             if (canvasStreamInitialized) {
                 pipVideo.play().catch(() => {});
@@ -622,7 +612,7 @@
                     await pipVideo.requestPictureInPicture();
                 }
             } catch (err) {
-                alert("Hãy bấm nút 'Đọc' trước rồi bấm Bật PiP nhé!");
+                alert("Hãy bấm nút 'Đọc' trước rồi bấm PiP nhé!");
             }
         }
     </script>
