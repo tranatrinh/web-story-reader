@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Final Background Play</title>
+    <title>Local Tunnel Story Reader - True Background Play</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -42,12 +42,21 @@
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
 
+    <!-- Thẻ Audio phần cứng giúp duy trì chạy nền trên iOS -->
+    <audio id="bgAudio" playsinline></audio>
+    <!-- Luồng âm thanh tĩnh vô hình giữ cho Safari luôn thức giấc -->
+    <audio id="silentAudio" loop style="display:none;">
+        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAAAAAA==" type="audio/wav">
+    </audio>
+
     <script>
         const fileInput = document.getElementById('fileInput'); 
         const storyText = document.getElementById('storyText'); 
         const status = document.getElementById('status'); 
         const chapterSelect = document.getElementById('chapterSelect');
         const speedSelect = document.getElementById('speedSelect');
+        const bgAudio = document.getElementById('bgAudio');
+        const silentAudio = document.getElementById('silentAudio');
 
         let chapters = [];
         let currentChapterIndex = 0;
@@ -135,20 +144,23 @@
             }
         }
 
-        // --- HỆ THỐNG WEB AUDIO API & CHẠY NGẦM ---
-        let audioCtx = null;
+        // --- HỆ THỐNG DUAL AUDIO HARDWARE (CHẠY NGẦM MÀN HÌNH KHÓA & ẨN APP) ---
+        let audioA = new Audio();
+        let audioB = new Audio();
+        let activeAudio = audioA;
+        let nextAudio = audioB;
+
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
-        let audioBuffers = []; 
-        let currentSourceNode = null;
+        let nextBlobUrl = null;
 
         function splitTextForAPI(text) {
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
             let currentLimit = 300; 
-            let maxLimit = 600; // Giới hạn tối đa 600 ký tự để siêu tốc và không lỗi
+            let maxLimit = 600;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -169,7 +181,7 @@
             return result.filter(ch => ch.length > 0);
         }
 
-        async function fetchAudioBuffer(text, retries = 3) {
+        async function getAudioBlob(text, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch("https://comparing-tobacco-elvis-allied.trycloudflare.com/tts", {
@@ -178,8 +190,8 @@
                         body: JSON.stringify({ text: text })
                     });
                     if (!response.ok) throw new Error("Server error");
-                    const arrayBuffer = await response.arrayBuffer();
-                    return await audioCtx.decodeAudioData(arrayBuffer);
+                    const blob = await response.blob();
+                    return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
                     await new Promise(r => setTimeout(r, 600));
@@ -187,145 +199,52 @@
             }
         }
 
-        async function triggerParallelPrefetch() {
-            if (!isPlaying) return;
-            let promises = [];
-            let lookAhead = 6;
-
-            for (let i = currentChunkIndex; i <= Math.min(currentChunkIndex + lookAhead, chunks.length - 1); i++) {
-                if (!audioBuffers[i] && !audioBuffers.fetchingFlags?.[i]) {
-                    if (!audioBuffers.fetchingFlags) audioBuffers.fetchingFlags = {};
-                    audioBuffers.fetchingFlags[i] = true;
-
-                    promises.push(
-                        fetchAudioBuffer(chunks[i]).then(buf => {
-                            audioBuffers[i] = buf;
-                            delete audioBuffers.fetchingFlags[i];
-                        }).catch(() => {
-                            if(audioBuffers.fetchingFlags) delete audioBuffers.fetchingFlags[i];
-                        })
-                    );
-                }
-            }
-            if (promises.length > 0) {
-                await Promise.allSettled(promises);
-            }
-        }
-
         function updateSpeed() {
-            if (currentSourceNode && currentSourceNode.playbackRate) {
-                currentSourceNode.playbackRate.value = parseFloat(speedSelect.value);
-            }
+            const rate = parseFloat(speedSelect.value);
+            audioA.playbackRate = rate;
+            audioB.playbackRate = rate;
         }
 
-        async function startTTS() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                await audioCtx.resume();
-            }
+        async function startTTS() { 
+            const text = storyText.value.trim(); 
+            if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
-            const text = storyText.value.trim();
-            if (!text) { alert("Không có nội dung để đọc!"); return; }
-
-            chunks = splitTextForAPI(text);
+            chunks = splitTextForAPI(text); 
             if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
 
             currentChunkIndex = 0;
             isPlaying = true;
-            audioBuffers = new Array(chunks.length).fill(null);
+            nextBlobUrl = null;
+            
+            // Kích hoạt luồng âm thanh vô hình để giữ nền iOS luôn thức
+            try {
+                silentAudio.play().catch(() => {});
+            } catch(e) {}
+
+            // Mở khóa audio trên iOS Safari
+            audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            await audioA.play().catch(() => {});
 
             status.textContent = `⏳ Đang tải đoạn đầu tiên...`;
-
             try {
-                // Tải duy nhất đoạn đầu để phát tức thì 0 delay
-                audioBuffers[0] = await fetchAudioBuffer(chunks[0]);
+                const firstUrl = await getAudioBlob(chunks[0]);
+                if (!isPlaying) return;
 
-                playSequence();
-                triggerParallelPrefetch();
+                if (chunks.length > 1) {
+                    getAudioBlob(chunks[1]).then(url => { nextBlobUrl = url; }).catch(() => {});
+                }
+
+                playCurrentChunk(firstUrl);
             } catch (err) {
                 status.textContent = `⚠️ Lỗi kết nối server nhà. Đang thử lại...`;
                 setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
             }
-        }
+        } 
 
-        async function playSequence() {
+        async function playCurrentChunk(url) {
             if (!isPlaying) return;
 
-            if (currentChunkIndex >= chunks.length) {
-                if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển chương tiếp theo...";
-                    currentChapterIndex++;
-                    chapterSelect.value = currentChapterIndex;
-                    loadSelectedChapter();
-                    setTimeout(() => { if (isPlaying) startTTS(); }, 100);
-                } else {
-                    status.textContent = "✅ Đã đọc hết truyện.";
-                    isPlaying = false;
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.playbackState = "none";
-                    }
-                }
-                return;
-            }
-
-            let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
-            status.textContent = `🔊 Đang đọc (Hoài My Neural): ${currentTitle}`;
-
-            // Kích hoạt Media Session để chạy ngầm khi khóa màn hình điện thoại
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: currentTitle,
-                    artist: "Web Story Reader",
-                    album: "Đọc truyện Hoài My Neural"
-                });
-                navigator.mediaSession.playbackState = "playing";
-                navigator.mediaSession.setActionHandler('play', () => {
-                    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-                });
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    stopTTS();
-                });
-            }
-
-            while (isPlaying && !audioBuffers[currentChunkIndex]) {
-                status.textContent = `⏳ Đang đồng bộ phần ${currentChunkIndex + 1}/${chunks.length}...`;
-                triggerParallelPrefetch();
-                await new Promise(r => setTimeout(r, 150));
-            }
-
-            if (!isPlaying) return;
-
-            let buffer = audioBuffers[currentChunkIndex];
-            audioBuffers[currentChunkIndex] = null; 
-
-            currentSourceNode = audioCtx.createBufferSource();
-            currentSourceNode.buffer = buffer;
-            currentSourceNode.playbackRate.value = parseFloat(speedSelect.value);
-            currentSourceNode.connect(audioCtx.destination);
-
-            currentSourceNode.onended = () => {
-                if (!isPlaying) return;
-                currentChunkIndex++;
-                playSequence(); 
-            };
-
-            currentSourceNode.start(0);
-            triggerParallelPrefetch();
-        }
-
-        function stopTTS() {
-            isPlaying = false;
-            if (currentSourceNode) {
-                try { currentSourceNode.stop(); } catch(e){}
-            }
-            audioBuffers = [];
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "none";
-            }
-            status.textContent = "⏹ Đã dừng đọc.";
-        }
-    </script>
-</body>
-</html>
+            activeAudio.src = url;
+            activeAudio.playbackRate = parseFloat(speedSelect.value);
+            
+            let
