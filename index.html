@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Indexed Sync</title>
+    <title>Local Tunnel Story Reader - Zero Latency Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -16,10 +16,10 @@
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 6px; font-size: 14px; max-width: 100%; }
         
         #storyContainer { width: 100%; height: 52vh; background-color: #1a1a1a; color: #9e9e9e; font-size: 17px; line-height: 1.65; padding: 14px; border: 1px solid #333; border-radius: 10px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
-        #storyContainer p { margin: 0 0 12px 0; padding: 8px 10px; border-radius: 8px; transition: background-color 0.2s, color 0.2s; cursor: pointer; border-left: 3px solid transparent; }
+        #storyContainer p { margin: 0 0 10px 0; padding: 8px 10px; border-radius: 8px; transition: background-color 0.15s, color 0.15s; cursor: pointer; border-left: 3px solid transparent; }
         #storyContainer p.active-chunk { background-color: rgba(76, 175, 80, 0.22); color: #ffffff; font-weight: 600; border-left: 3px solid #4CAF50; }
         
-        #pipVideo { width: 100%; height: 150px; background: #000; border-radius: 8px; object-fit: cover; }
+        #pipVideo { width: 100%; height: 145px; background: #000; border-radius: 8px; object-fit: cover; }
         #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 4px; font-weight: 600; }
     </style>
 </head>
@@ -59,21 +59,24 @@
         const speedSelect = document.getElementById('speedSelect');
         const pipVideo = document.getElementById('pipVideo');
 
-        let chapters = []; // Mỗi chapter: { title: string, paragraphs: string[] }
+        let chapters = [];
         let currentChapterIndex = 0;
-        let chunks = []; // Mảng đoạn văn của chương hiện tại (khớp 1-1 với thẻ <p>)
+        let chunks = [];
         let currentChunkIndex = 0;
 
-        // Quản lý Audio đơn nhất & Bộ đệm theo Index (Chống nhảy cóc 100%)
+        // Trình phát chính + Bộ giải mã trước (Pre-decoder) giúp chuyển đoạn 0ms
         const player = new Audio();
         player.playsInline = true;
+        const preloader = new Audio();
+        preloader.preload = "auto";
+
         let isPlaying = false;
-        let playSessionId = 0; // Khóa phiên chống đè bất đồng bộ
+        let playSessionId = 0;
         let audioCache = {};   // Map: index -> Promise<blobUrl>
-        let resolvedUrls = {}; // Map: index -> blobUrl (để thu hồi bộ nhớ)
+        let resolvedUrls = {}; // Map: index -> blobUrl
         let canvasStreamInitialized = false;
 
-        // --- 1. BÓC TÁCH ĐOẠN VĂN CHUẨN TỪ HTML CỦA EPUB ---
+        // --- 1. BÓC TÁCH ĐOẠN VĂN NGẮN GỌN ĐỂ TẢI SIÊU TỐC ---
         function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
@@ -84,9 +87,7 @@
                 title = hTag.textContent.replace(/\s+/g, ' ').trim();
             }
 
-            // Thay thế thẻ <br> bằng ký tự xuống dòng để không bị dính chữ
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-            // Đảm bảo kết thúc mỗi thẻ block đều có ký tự xuống dòng
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
                 el.appendChild(doc.createTextNode("\n"));
             });
@@ -96,7 +97,6 @@
             return { title: title.substring(0, 60), paragraphs };
         }
 
-        // Chia văn bản thô thành các đoạn vừa phải, giữ nguyên thứ tự 1-1
         function processRawTextToChunks(rawText, chapterTitle) {
             const rawLines = rawText.split(/\r?\n/);
             const cleanLines = [];
@@ -108,22 +108,23 @@
                 }
             }
 
-            // Nếu dòng đầu tiên chưa có tiêu đề chương thì chèn tiêu đề vào làm đoạn 0
             if (chapterTitle && cleanLines.length > 0 && !cleanLines[0].toLowerCase().includes(chapterTitle.toLowerCase().substring(0, 15))) {
                 cleanLines.unshift(chapterTitle);
             }
 
-            // Tách các đoạn quá dài (> 500 ký tự) theo dấu chấm câu để server TTS không bị timeout,
-            // NHƯNG tách ngay từ bước tạo mảng hiển thị để DOM và Audio luôn khớp 1-1!
+            // Cắt các đoạn ở ngưỡng ~240 ký tự (tối ưu tốc độ phản hồi TTS nhanh gấp đôi)
+            // Cắt ngay từ lúc tạo mảng hiển thị để DOM và Audio luôn khớp 1-1 tuyệt đối!
             const finalChunks = [];
+            const MAX_LEN = 250;
+
             for (let para of cleanLines) {
-                if (para.length <= 500) {
+                if (para.length <= MAX_LEN) {
                     finalChunks.push(para);
                 } else {
                     const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
                     let currentBuf = "";
                     for (let s of sentences) {
-                        if ((currentBuf + " " + s).trim().length > 450) {
+                        if ((currentBuf + " " + s).trim().length > MAX_LEN) {
                             if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
                             currentBuf = s;
                         } else {
@@ -136,7 +137,7 @@
             return finalChunks;
         }
 
-        // --- 2. XỬ LÝ CHỌN FILE (.TXT / .EPUB) ---
+        // --- 2. XỬ LÝ CHỌN FILE ---
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -173,7 +174,7 @@
                 } else if (file.name.toLowerCase().endsWith('.epub')) {
                     const zip = await JSZip.loadAsync(file);
                     const containerFile = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
-                    if (!containerFile) throw new Error("File EPUB không hợp lệ (thiếu container.xml)");
+                    if (!containerFile) throw new Error("File EPUB không hợp lệ");
 
                     const containerXml = await containerFile.async("text");
                     const parser = new DOMParser();
@@ -228,7 +229,6 @@
             }
         });
 
-        // --- 3. HIỂN THỊ CHƯƠNG LÊN MÀN HÌNH ---
         function onChapterChange() {
             const wasPlaying = isPlaying;
             stopTTS();
@@ -243,7 +243,6 @@
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            // Mảng chunks dùng để đọc TTS chính là mảng dựng giao diện <p> -> Khớp 100%
             chunks = chap.paragraphs;
             currentChunkIndex = 0;
 
@@ -251,14 +250,16 @@
                 `<p id="para-${idx}" onclick="jumpToChunk(${idx})">${text}</p>`
             ).join('');
             storyContainer.scrollTop = 0;
+
+            // Tải ngầm sẵn đoạn 0 ngay khi vừa hiển thị chương để bấm "Đọc" là phát ngay 0ms!
+            getChunkAudioPromise(0, playSessionId).catch(() => {});
         }
 
-        // Cho phép người dùng bấm trực tiếp vào bất kỳ đoạn nào để đọc từ đoạn đó
         function jumpToChunk(index) {
             startTTS(index);
         }
 
-        // --- 4. BỘ ĐỆM TẢI TRƯỚC THEO CHỈ SỐ (INDEXED PREFETCH) ---
+        // --- 3. BỘ ĐỆM TẢI TRƯỚC KHÔNG NGHẼN BĂNG THÔNG ---
         function clearAudioCache() {
             audioCache = {};
             for (let key in resolvedUrls) {
@@ -283,12 +284,11 @@
                 } catch (err) {
                     if (session !== playSessionId) throw err;
                     if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, 700));
+                    await new Promise(r => setTimeout(r, 400));
                 }
             }
         }
 
-        // Lấy hoặc tải đoạn âm thanh tại đúng vị trí index
         function getChunkAudioPromise(index, session) {
             if (index >= chunks.length) return null;
             if (!audioCache[index]) {
@@ -298,31 +298,51 @@
                     }
                     return url;
                 }).catch(err => {
-                    delete audioCache[index]; // Xóa để có thể thử lại nếu lỗi mạng
+                    delete audioCache[index];
                     throw err;
                 });
             }
             return audioCache[index];
         }
 
-        // --- 5. TRÌNH PHÁT ĐỒNG BỘ TUYỆT ĐỐI ---
+        // Tải tuần tự các đoạn kế tiếp sau khi đoạn chính đã phát (Chống nghẽn server)
+        async function prefetchNextChunks(currentIndex, session) {
+            for (let offset = 1; offset <= 3; offset++) {
+                const targetIdx = currentIndex + offset;
+                if (targetIdx >= chunks.length || session !== playSessionId || !isPlaying) break;
+                try {
+                    const url = await getChunkAudioPromise(targetIdx, session);
+                    // Nếu là đoạn kế tiếp ngay sát (currentIndex + 1), nạp sẵn vào bộ giải mã âm thanh
+                    if (offset === 1 && url && session === playSessionId) {
+                        preloader.src = url;
+                        preloader.load();
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // --- 4. TRÌNH PHÁT SIÊU TỐC ĐỒNG BỘ 1-1 ---
         async function startTTS(startIndex = 0) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
             }
 
-            // Tăng khóa phiên để hủy mọi tiến trình ngầm cũ
+            // Nếu bấm đọc từ đoạn 0 và đoạn 0 đã được tải sẵn lúc mở chương thì giữ nguyên cache
+            const keepPreloadedZero = (startIndex === 0 && audioCache[0]);
+
             playSessionId++;
             const currentSession = playSessionId;
 
             player.pause();
-            clearAudioCache();
+            if (!keepPreloadedZero) {
+                clearAudioCache();
+            }
 
             currentChunkIndex = startIndex;
             isPlaying = true;
 
-            // Mở khóa Audio iOS ngay trong thao tác chạm
+            // Mở khóa Audio iOS tức thì
             player.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             player.play().catch(() => {});
 
@@ -335,32 +355,34 @@
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
 
-                // 1. Highlight & Cuộn tới đúng đoạn văn bản đang chuẩn bị đọc
+                // 1. Highlight ngay đoạn chuẩn bị đọc
                 highlightParagraph(idx);
-                status.textContent = `⏳ Đang tải (${idx + 1}/${chunks.length})...`;
 
-                // 2. Kích hoạt tải ngầm trước 2 đoạn tiếp theo (idx + 1 và idx + 2)
-                if (idx + 1 < chunks.length) getChunkAudioPromise(idx + 1, session).catch(() => {});
-                if (idx + 2 < chunks.length) getChunkAudioPromise(idx + 2, session).catch(() => {});
+                // 2. ƯU TIÊN TUYỆT ĐỐI: Chỉ tải đoạn hiện tại (idx) trước để không bị chia băng thông
+                if (!resolvedUrls[idx]) {
+                    status.textContent = `⚡ Đang nạp nhanh đoạn ${idx + 1}/${chunks.length}...`;
+                }
 
-                // 3. Đợi đoạn hiện tại (idx) sẵn sàng
                 let audioUrl;
                 try {
                     audioUrl = await getChunkAudioPromise(idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Mạng chập chờn, đang thử lại đoạn ${idx + 1}...`;
-                    await new Promise(r => setTimeout(r, 1500));
-                    continue; // Thử lại đúng đoạn idx này, không nhảy cóc!
+                    status.textContent = `⚠️ Đang kết nối lại đoạn ${idx + 1}...`;
+                    await new Promise(r => setTimeout(r, 800));
+                    continue;
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // 4. Phát âm thanh và đợi đến khi đọc xong hoàn toàn đoạn idx
+                // 3. NGAY KHI CÓ AUDIO ĐOẠN HIỆN TẠI -> Bắt đầu tải ngầm tuần tự 3 đoạn kế tiếp
+                prefetchNextChunks(idx, session);
+
+                // 4. Phát đoạn hiện tại ngay lập tức
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
                 await playSingleAudio(audioUrl, session);
 
-                // Thu hồi bộ nhớ của đoạn vừa đọc xong
+                // Giải phóng RAM đoạn vừa đọc xong
                 if (resolvedUrls[idx]) {
                     URL.revokeObjectURL(resolvedUrls[idx]);
                     delete resolvedUrls[idx];
@@ -369,14 +391,12 @@
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // 5. Chỉ tăng đúng 1 đơn vị khi đã phát xong
                 currentChunkIndex++;
             }
 
-            // Chuyển chương tự động khi đọc hết mảng chunks
             if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
                 if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển sang chương tiếp theo...";
+                    status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     renderChapter(currentChapterIndex);
@@ -433,7 +453,7 @@
         }
 
         function stopTTS() {
-            playSessionId++; // Hủy ngay lập tức vòng lặp playLoop đang chạy
+            playSessionId++;
             isPlaying = false;
             player.onended = null;
             player.onerror = null;
@@ -443,7 +463,7 @@
             status.textContent = "⏹ Đã dừng đọc.";
         }
 
-        // --- 6. CANVAS VIDEO STREAM CHO PIP CHẠY NGẦM TRÊN IOS ---
+        // --- 5. CANVAS VIDEO STREAM CHO PIP CHẠY NGẦM TRÊN IOS ---
         function initCanvasPiP() {
             if (canvasStreamInitialized) {
                 pipVideo.play().catch(() => {});
@@ -488,7 +508,6 @@
                 if (document.pictureInPictureElement) {
                     await document.exitPictureInPicture();
                 } else if (pipVideo.webkitSupportsPresentationMode) {
-                    // Chuẩn riêng của iOS Safari
                     pipVideo.webkitSetPresentationMode(
                         pipVideo.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture"
                     );
