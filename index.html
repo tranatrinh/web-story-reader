@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Clean UI</title>
+    <title>Local Tunnel Story Reader - Native PiP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -14,13 +14,10 @@
         .btn-stop { background-color: #f44336; }
         .btn-pip { background-color: #2196F3; }
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 5px; font-size: 14px; }
+        textarea { width: 100%; height: 45vh; background-color: #1e1e1e; color: #f5f5f5; font-size: 16px; line-height: 1.5; padding: 12px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; resize: none; margin-bottom: 10px; }
         
-        /* Khung chứa văn bản kích thước chuẩn, không bị đè */
-        textarea { width: 100%; height: 50vh; background-color: #1e1e1e; color: #f5f5f5; font-size: 16px; line-height: 1.5; padding: 12px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; resize: none; margin-bottom: 10px; }
-        
-        /* Ẩn hoàn toàn khung video đen trên giao diện chính nhưng vẫn giữ chức năng PiP hoạt động ngầm */
-        #pipVideo { width: 1px; height: 1px; opacity: 0; position: absolute; pointer-events: none; }
-        
+        /* Hiển thị khung video trực tiếp để bấm PiP chuẩn trên iOS */
+        #pipVideo { width: 100%; height: 180px; background: #000; border-radius: 8px; object-fit: cover; }
         #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 5px; font-weight: bold;}
     </style>
 </head>
@@ -43,15 +40,15 @@
         </select>
 
         <button class="btn-play" onclick="startTTS()">▶ Đọc</button>
-        <button class="btn-pip" onclick="togglePiP()">🔲 PiP</button>
+        <button class="btn-pip" onclick="togglePiP()">🔲 Bật PiP</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
         <div id="status">Sẵn sàng! Hãy chọn file truyện.</div>
     </div>
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
     
-    <!-- Thẻ Video ẩn để kích hoạt PiP chạy ngầm bất diệt trên iOS -->
-    <video id="pipVideo" playsinline></video>
+    <!-- Thẻ Video có hiển thị hình ảnh động để iOS cấp quyền chạy PiP nền -->
+    <video id="pipVideo" controls playsinline muted></video>
 
     <script>
         const fileInput = document.getElementById('fileInput'); 
@@ -64,7 +61,6 @@
         let chapters = [];
         let currentChapterIndex = 0;
 
-        // --- ĐỌC VÀ TÁCH CHƯƠNG FILE ---
         fileInput.addEventListener('change', async (e) => { 
             const file = e.target.files[0]; 
             if (!file) return; 
@@ -147,18 +143,44 @@
             }
         }
 
-        let videoA = document.createElement('video');
-        let videoB = document.createElement('video');
-        videoA.playsInline = true;
-        videoB.playsInline = true;
-        
-        let activeVideo = videoA;
-        let nextVideo = videoB;
+        let audioA = new Audio();
+        let audioB = new Audio();
+        let activeAudio = audioA;
+        let nextAudio = audioB;
 
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
         let nextBlobUrl = null;
+        let canvasCtx = null;
+
+        // Tạo khung hình động canvas để thẻ video luôn có tín hiệu video chạy ngầm
+        function setupCanvasStream() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 200;
+            canvasCtx = canvas.getContext('2d');
+            
+            function draw() {
+                if (!isPlaying) return;
+                canvasCtx.fillStyle = '#111';
+                canvasCtx.fillRect(0, 0, 400, 200);
+                canvasCtx.fillStyle = '#ffeb3b';
+                canvasCtx.font = 'bold 20px sans-serif';
+                canvasCtx.fillText("Đang đọc truyện...", 20, 70);
+                canvasCtx.fillStyle = '#fff';
+                canvasCtx.font = '14px sans-serif';
+                let title = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "";
+                canvasCtx.fillText(title.substring(0, 35), 20, 110);
+                canvasCtx.fillText(`Phần: ${currentChunkIndex + 1} / ${chunks.length}`, 20, 140);
+                requestAnimationFrame(draw);
+            }
+            draw();
+            
+            const stream = canvas.captureStream(30);
+            pipVideo.srcObject = stream;
+            pipVideo.play().catch(()=>{});
+        }
 
         function splitTextForAPI(text) {
             const lines = text.split(/\r?\n/);
@@ -206,9 +228,8 @@
 
         function updateSpeed() {
             const rate = parseFloat(speedSelect.value);
-            videoA.playbackRate = rate;
-            videoB.playbackRate = rate;
-            pipVideo.playbackRate = rate;
+            audioA.playbackRate = rate;
+            audioB.playbackRate = rate;
         }
 
         async function togglePiP() {
@@ -234,8 +255,10 @@
             isPlaying = true;
             nextBlobUrl = null;
             
-            pipVideo.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-            await pipVideo.play().catch(() => {});
+            setupCanvasStream();
+
+            audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            await audioA.play().catch(() => {});
 
             status.textContent = `⏳ Đang tải đoạn đầu...`;
             try {
@@ -256,31 +279,27 @@
         async function playCurrentChunk(url) {
             if (!isPlaying) return;
 
-            activeVideo.src = url;
-            activeVideo.playbackRate = parseFloat(speedSelect.value);
+            activeAudio.src = url;
+            activeAudio.playbackRate = parseFloat(speedSelect.value);
             
-            pipVideo.src = url;
-            pipVideo.playbackRate = parseFloat(speedSelect.value);
-
             let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
             status.textContent = `🔊 ${currentTitle}`;
 
             if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
-                nextVideo.src = nextBlobUrl;
-                nextVideo.playbackRate = parseFloat(speedSelect.value);
-                nextVideo.load();
+                nextAudio.src = nextBlobUrl;
+                nextAudio.playbackRate = parseFloat(speedSelect.value);
+                nextAudio.load();
             }
 
             try {
-                await pipVideo.play();
-                await activeVideo.play();
+                await activeAudio.play();
             } catch (e) {}
 
             if (!nextBlobUrl && currentChunkIndex + 2 < chunks.length) {
                 getAudioBlob(chunks[currentChunkIndex + 2]).then(u => { nextBlobUrl = u; }).catch(() => {});
             }
 
-            activeVideo.onended = async () => {
+            activeAudio.onended = async () => {
                 URL.revokeObjectURL(url);
                 currentChunkIndex++;
 
@@ -288,15 +307,12 @@
 
                 if (currentChunkIndex < chunks.length) {
                     if (nextBlobUrl) {
-                        let temp = activeVideo;
-                        activeVideo = nextVideo;
-                        nextVideo = temp;
+                        let temp = activeAudio;
+                        activeAudio = nextAudio;
+                        nextAudio = temp;
                         
                         let currentUrlToPlay = nextBlobUrl;
                         nextBlobUrl = null;
-
-                        pipVideo.src = currentUrlToPlay;
-                        pipVideo.play().catch(()=>{});
 
                         if (currentChunkIndex + 1 < chunks.length) {
                             getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
@@ -307,9 +323,6 @@
                         status.textContent = `⏳ Đang tải phần tiếp theo...`;
                         try {
                             const freshUrl = await getAudioBlob(chunks[currentChunkIndex]);
-                            pipVideo.src = freshUrl;
-                            pipVideo.play().catch(()=>{});
-
                             if (currentChunkIndex + 1 < chunks.length) {
                                 getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
                             }
@@ -336,10 +349,10 @@
 
         function stopTTS() { 
             isPlaying = false;
-            activeVideo.pause();
-            nextVideo.pause();
-            pipVideo.pause();
-            pipVideo.src = "";
+            audioA.pause();
+            audioB.pause();
+            audioA.src = "";
+            audioB.src = "";
             nextBlobUrl = null;
             status.textContent = "⏹ Đã dừng đọc."; 
         }
