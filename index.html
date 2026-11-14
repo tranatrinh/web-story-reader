@@ -16,8 +16,9 @@
         <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">
             🎧 Local AI Story Reader
         </h1>
-        <div id="connection-status" class="text-xs px-3 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            Đang kết nối Server...
+        <!-- Khung trạng thái: Bấm vào đây để thay đổi link Cloudflare Tunnel nhanh trên điện thoại -->
+        <div id="connection-status" class="text-xs px-3 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 cursor-pointer hover:bg-amber-500/30 transition" title="Chạm để đổi link Server Tunnel">
+            ● Chạm để cập nhật Link Server
         </div>
     </header>
 
@@ -61,37 +62,36 @@
         </div>
     </main>
 
-    <!-- JavaScript Xử Lý Tự Động Đồng Bộ Link & Đọc Truyện -->
+    <!-- JavaScript Xử Lý Đồng Bộ Link & Đọc Truyện -->
     <script>
-        let SERVER_URL = "http://localhost:5000"; // Mặc định local
+        let SERVER_URL = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
 
-        // 1. Hàm tự động lấy đường dẫn Server Tunnel mới nhất từ API cục bộ
-        async function initServerUrl() {
+        // Cập nhật giao diện trạng thái ban đầu
+        function updateStatusUI() {
             const statusBadge = document.getElementById("connection-status");
             const serverInfo = document.getElementById("current-server-info");
-
-            try {
-                // Gọi tới API /get_latest_url trên server local của bạn
-                let response = await fetch('/get_latest_url');
-                let data = await response.json();
-                
-                if (data.status === "success" && data.url) {
-                    SERVER_URL = data.url;
-                    statusBadge.textContent = "● Đã kết nối Cloudflare Tunnel";
-                    statusBadge.className = "text-xs px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
-                } else {
-                    throw new Error("Chưa có link tunnel");
-                }
-            } catch (e) {
-                // Nếu không gọi trực tiếp được (do chạy file HTML độc lập), lấy link từ localStorage hoặc fallback local
-                SERVER_URL = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
-                statusBadge.textContent = "● Dùng Link Lưu Sẵn";
-                statusBadge.className = "text-xs px-3 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30";
-            }
-
+            
             serverInfo.textContent = "Server: " + SERVER_URL;
-            localStorage.setItem("my_tts_server_url", SERVER_URL);
+            if (SERVER_URL.includes("trycloudflare.com")) {
+                statusBadge.textContent = "● Đã kết nối Cloudflare";
+                statusBadge.className = "text-xs px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-pointer hover:bg-emerald-500/30 transition";
+            } else {
+                statusBadge.textContent = "● Chạm để đổi Link Server";
+                statusBadge.className = "text-xs px-3 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 cursor-pointer hover:bg-amber-500/30 transition";
+            }
         }
+
+        // Tính năng bấm vào nhãn trạng thái để thay đổi link Cloudflare Tunnel trực tiếp trên điện thoại
+        document.getElementById("connection-status").addEventListener("click", function() {
+            let current = localStorage.getItem("my_tts_server_url") || "https://";
+            let newUrl = prompt("Nhập đường dẫn Cloudflare Tunnel mới (Ví dụ: https://xxxx.trycloudflare.com):", current);
+            if (newUrl) {
+                SERVER_URL = newUrl.trim().replace(/\/$/, "");
+                localStorage.setItem("my_tts_server_url", SERVER_URL);
+                updateStatusUI();
+                alert("Đã lưu đường dẫn server mới thành công!");
+            }
+        });
 
         // 2. Xử lý mở và phân tích file (TXT hoặc EPUB)
         document.getElementById('file-input').addEventListener('change', async function(event) {
@@ -149,11 +149,10 @@
             audioStatus.textContent = "Trạng thái: Đang tổng hợp giọng nói AI (Vui lòng đợi)...";
             
             try {
-                // Gửi request POST tới API /tts của server (tự động thông qua Cloudflare Tunnel hoặc Local)
-                let response = await fetch(`${SERVER_URL.replace(/\/$/, "")}/tts`, {
+                let response = await fetch(`${SERVER_URL}/tts`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text.substring(0, 3000) }) // Cắt gọn để test nhanh
+                    body: JSON.stringify({ text: text.substring(0, 3000) }) // Giới hạn ký tự mỗi lần đọc
                 });
 
                 if (!response.ok) throw new Error("Lỗi phản hồi từ server TTS.");
@@ -165,14 +164,14 @@
                 audioPlayer.play();
                 audioStatus.textContent = "Trạng thái: Đang phát âm thanh.";
             } catch (err) {
-                alert("Không thể kết nối đến TTS Server: " + err.message);
+                alert("Không thể kết nối đến TTS Server: " + err.message + "\n\n(Hãy chắc chắn bạn đã chạm vào góc trên bên phải để cập nhật đúng Link Cloudflare Tunnel mới nhất!)");
                 audioStatus.textContent = "Trạng thái: Lỗi kết nối server!";
             }
         });
 
-        // Khởi chạy kiểm tra link server ngay khi mở trang
+        // Khởi chạy khi tải trang
         window.onload = function() {
-            initServerUrl();
+            updateStatusUI();
         };
     </script>
 </body>
