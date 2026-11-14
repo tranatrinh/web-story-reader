@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Perfect Final</title>
+    <title>Local Tunnel Story Reader - Complete Final</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -207,23 +207,26 @@
             pipVideo.play().catch(()=>{});
         }
 
-        // --- TÁCH CHƯƠNG VÀ TIÊU ĐỀ AN TOÀN KHÔNG BỊ MẤT CHỮ ---
+        // --- TÁCH CHƯƠNG VÀ GOM NHÓM ĐOẠN VĂN AN TOÀN 100% KHÔNG SÓT CHỮ ---
         function splitTextForAPI(text) {
             let currentTitle = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "Chương mới";
             
             const lines = text.split(/\r?\n/);
             const result = [];
             
-            // Xướng tên tiêu đề chương trước ở đoạn đầu tiên
+            // Đưa tên chương vào đọc ở đoạn đầu tiên
             result.push(currentTitle);
 
             let currentChunk = "";
-            let currentLimit = 250; 
-            let maxLimit = 500;
+            let currentLimit = 300; 
+            let maxLimit = 600;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
                 if (!trimmed) return;
+
+                // Bỏ qua dòng nếu trùng với tiêu đề chương để tránh đọc lặp
+                if (trimmed === currentTitle) return;
 
                 if ((currentChunk + "\n" + trimmed).length > currentLimit) {
                     if (currentChunk) {
@@ -236,7 +239,10 @@
                 }
             });
 
-            if (currentChunk) result.push(currentChunk.trim());
+            if (currentChunk) {
+                result.push(currentChunk.trim());
+            }
+
             return result.filter(ch => ch.length > 0);
         }
 
