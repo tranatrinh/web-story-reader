@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Perfect Paragraph Sync</title>
+    <title>Local Tunnel Story Reader - Perfect Sync 1-1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -162,23 +162,17 @@
             } 
         }); 
 
-        // --- TÁCH ĐOẠN THEO KHỐI VĂN BẢN PHẲNG (CHỐNG LỆCH 100%) ---
+        // --- HÀM TÁCH ĐOẠN KHỚP 1-1 TUYỆT ĐỐI ---
         function splitTextForAPI(text) {
-            let currentTitle = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "Chương mới";
-            
-            const result = [];
-            result.push(currentTitle);
-
             let paragraphs = text.split(/\r?\n\s*\r?\n/);
             if (paragraphs.length <= 1) {
-                paragraphs = text.split(/(?<=[.?!;…])\s+/);
+                paragraphs = text.split(/\r?\n/);
             }
 
+            const result = [];
             paragraphs.forEach(para => {
                 let cleaned = para.replace(/\r?\n/g, ' ').trim();
                 if (!cleaned) return;
-                if (cleaned === currentTitle) return;
-
                 result.push(cleaned);
             });
 
@@ -315,7 +309,7 @@
             let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
             status.textContent = `🔊 ${currentTitle}`;
 
-            // --- QUÉT CHỮ & CUỘN MÀN HÌNH KHỚP 1-1 TUYỆT ĐỐI ---
+            // --- HIGHLIGHT ĐOẠN VĂN KHỚP CHÍNH XÁC 1-1 ---
             document.querySelectorAll('#storyContainer p').forEach(p => {
                 p.style.backgroundColor = 'transparent';
                 p.style.color = '#aaa';
@@ -328,7 +322,7 @@
                 activePara.style.fontWeight = 'bold';
                 activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            // ----------------------------------------------------
+            // ----------------------------------------------
 
             if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
                 nextAudio.src = nextBlobUrl;
