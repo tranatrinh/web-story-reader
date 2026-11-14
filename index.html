@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Perfect Sync 1-1</title>
+    <title>Local Tunnel Story Reader - Ultimate Dom Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -162,32 +162,30 @@
             } 
         }); 
 
-        // --- HÀM TÁCH ĐOẠN KHỚP 1-1 TUYỆT ĐỐI ---
-        function splitTextForAPI(text) {
-            let paragraphs = text.split(/\r?\n\s*\r?\n/);
-            if (paragraphs.length <= 1) {
-                paragraphs = text.split(/\r?\n/);
-            }
-
-            const result = [];
-            paragraphs.forEach(para => {
-                let cleaned = para.replace(/\r?\n/g, ' ').trim();
-                if (!cleaned) return;
-                result.push(cleaned);
-            });
-
-            return result.filter(ch => ch.length > 0);
-        }
-
+        // --- ĐỒNG BỘ NGUỒN DOM TUYỆT ĐỐI 1-1 ---
         function loadSelectedChapter() {
             currentChapterIndex = parseInt(chapterSelect.value);
             if(chapters[currentChapterIndex]) {
-                chunks = splitTextForAPI(chapters[currentChapterIndex].content);
-                storyContainer.innerHTML = chunks.map((chunk, idx) => 
+                let rawText = chapters[currentChapterIndex].content;
+                let paragraphs = rawText.split(/\r?\n/);
+                let cleanParagraphs = paragraphs
+                    .map(p => p.replace(/\r?\n/g, ' ').trim())
+                    .filter(p => p.length > 0);
+
+                storyContainer.innerHTML = cleanParagraphs.map((chunk, idx) => 
                     `<p id="para-${idx}">${chunk}</p>`
                 ).join('');
                 storyContainer.scrollTop = 0;
             }
+        }
+
+        function splitTextForAPI(text) {
+            const pElements = storyContainer.querySelectorAll('p');
+            const result = [];
+            pElements.forEach(p => {
+                result.push(p.textContent.trim());
+            });
+            return result.filter(ch => ch.length > 0);
         }
 
         let audioA = new Audio();
@@ -268,6 +266,7 @@
             const activeChapterText = chapters[currentChapterIndex] ? chapters[currentChapterIndex].content : "";
             if (!activeChapterText) { alert("Không có nội dung để đọc! Vui lòng chọn file truyện trước."); return; } 
 
+            // Lấy trực tiếp mảng chunks đồng bộ hoàn toàn từ DOM hiển thị
             chunks = splitTextForAPI(activeChapterText); 
             if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
 
@@ -309,7 +308,7 @@
             let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
             status.textContent = `🔊 ${currentTitle}`;
 
-            // --- HIGHLIGHT ĐOẠN VĂN KHỚP CHÍNH XÁC 1-1 ---
+            // --- HIGHLIGHT ĐOẠN VĂN DỰA TRÊN INDEX DOM CHUẨN XÁC 1-1 ---
             document.querySelectorAll('#storyContainer p').forEach(p => {
                 p.style.backgroundColor = 'transparent';
                 p.style.color = '#aaa';
@@ -322,7 +321,7 @@
                 activePara.style.fontWeight = 'bold';
                 activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            // ----------------------------------------------
+            // -----------------------------------------------------------
 
             if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
                 nextAudio.src = nextBlobUrl;
