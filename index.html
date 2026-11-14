@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - HoaiMyNeural</title>
+    <title>Local Tunnel Story Reader - HoaiMyNeural</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -136,7 +136,7 @@
             }
         }
 
-        // --- HỆ THỐNG PHÁT DUAL AUDIO GIỮ NGUYÊN HOÀI MY NEURAL ---
+        // --- HỆ THỐNG DUAL AUDIO & CẤP SỐ NHÂN ---
         let audioA = new Audio();
         let audioB = new Audio();
         let activeAudio = audioA;
@@ -151,7 +151,7 @@
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
-            let currentLimit = 100; // Cấp số nhân khởi đầu 100 chữ
+            let currentLimit = 100; // Đoạn đầu 100 chữ tạo siêu tốc phản hồi lập tức
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -160,7 +160,7 @@
                 if ((currentChunk + "\n" + trimmed).length > currentLimit) {
                     if (currentChunk) {
                         result.push(currentChunk.trim());
-                        if (currentLimit < 1200) currentLimit *= 2;
+                        if (currentLimit < 1200) currentLimit *= 2; // Tăng trưởng cấp số nhân
                     }
                     currentChunk = trimmed;
                 } else {
@@ -175,7 +175,7 @@
         async function getAudioBlob(text, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
-                    const response = await fetch("https://story-reader-tts.tranatrinh.workers.dev", {
+                    const response = await fetch("https://comparing-tobacco-elvis-allied.trycloudflare.com/tts", {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -184,7 +184,7 @@
                         body: JSON.stringify({ text: text })
                     });
                     
-                    if (!response.ok) throw new Error("Worker bận");
+                    if (!response.ok) throw new Error("Server local bận");
                     
                     const blob = await response.blob();
                     return URL.createObjectURL(blob);
@@ -212,10 +212,11 @@
             isPlaying = true;
             nextBlobUrl = null;
             
+            // Mở khóa audio trên iOS Safari
             audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await audioA.play().catch(() => {});
 
-            status.textContent = `⏳ Đang tải giọng Hoài My Neural...`;
+            status.textContent = `⏳ Đang tải đoạn đầu (Hoài My Neural)...`;
             try {
                 const firstUrl = await getAudioBlob(chunks[0]);
                 if (!isPlaying) return;
@@ -226,7 +227,7 @@
 
                 playCurrentChunk(firstUrl);
             } catch (err) {
-                status.textContent = `⚠️ Lỗi kết nối. Đang thử lại...`;
+                status.textContent = `⚠️ Lỗi kết nối server nhà. Đang thử lại...`;
                 setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
             }
         } 
@@ -281,7 +282,7 @@
                             }
                             playCurrentChunk(freshUrl);
                         } catch (e) {
-                            status.textContent = `⚠️ Đang tải lại phần ${currentChunkIndex + 1}...`;
+                            status.textContent = `⚠️ Mất kết nối, đang thử lại phần ${currentChunkIndex + 1}...`;
                             setTimeout(() => { playCurrentChunk(url); }, 2000);
                         }
                     }
