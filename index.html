@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloudflare Edge Story Reader - Dual Audio</title>
+    <title>Web Story Reader - Instant Reader</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -52,6 +52,8 @@
 
         let chapters = [];
         let currentChapterIndex = 0;
+        let synth = window.speechSynthesis;
+        let currentUtterance = null;
 
         // --- ĐỌC VÀ TÁCH CHƯƠNG FILE ---
         fileInput.addEventListener('change', async (e) => { 
@@ -122,7 +124,7 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 loadSelectedChapter();
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
+                status.textContent = `✅ Đã tải xong ${chapters.length} chương! Bấm 'Đọc truyện' để phát ngay lập tức.`; 
             } catch (err) { 
                 status.textContent = `❌ Lỗi đọc file.`; 
             } 
@@ -136,185 +138,76 @@
             }
         }
 
-        // --- HỆ THỐNG DUAL-AUDIO VÀ CHỐNG TREO ---
-        let audioA = new Audio();
-        let audioB = new Audio();
-        let activeAudio = audioA;
-        let nextAudio = audioB;
-
-        let isPlaying = false;
-        let chunks = [];
-        let currentChunkIndex = 0;
-        let nextBlobUrl = null;
-
-        function splitTextForAPI(text) {
-            const lines = text.split(/\r?\n/);
-            const result = [];
-            let currentChunk = "";
-            let currentLimit = 100; // Đoạn đầu nhỏ 100 chữ để phản hồi lập tức
-
-            lines.forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
-
-                if ((currentChunk + "\n" + trimmed).length > currentLimit) {
-                    if (currentChunk) {
-                        result.push(currentChunk.trim());
-                        if (currentLimit < 1000) currentLimit *= 2;
-                    }
-                    currentChunk = trimmed;
-                } else {
-                    currentChunk += (currentChunk ? "\n" : "") + trimmed;
-                }
-            });
-
-            if (currentChunk) result.push(currentChunk.trim());
-            return result.filter(ch => ch.length > 0);
-        }
-
-        async function getAudioBlob(text, retries = 3) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 12000); // Timeout 12 giây chống kẹt
-
-                    const response = await fetch("https://story-reader-tts.tranatrinh.workers.dev", {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'audio/mp3'
-                        },
-                        body: JSON.stringify({ text: text }),
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-
-                    if (!response.ok) throw new Error("Worker bận");
-                    
-                    const blob = await response.blob();
-                    return URL.createObjectURL(blob);
-                } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 800));
-                }
-            }
-        }
-
+        // --- HỆ THỐNG ĐỌC TỨC THÌ BẰNG NATIVE SPEECH SYNTHESIS ---
         function updateSpeed() {
-            const rate = parseFloat(speedSelect.value);
-            audioA.playbackRate = rate;
-            audioB.playbackRate = rate;
+            if (currentUtterance && synth.speaking) {
+                currentUtterance.rate = parseFloat(speedSelect.value);
+                // Khởi động lại để cập nhật tốc độ mượt mà
+                let textToResume = storyText.value;
+                synth.cancel();
+                // Tạm thời lưu ý tốc độ
+            }
         }
 
-        async function startTTS() { 
-            const text = storyText.value.trim(); 
-            if (!text) { alert("Không có nội dung để đọc!"); return; } 
-
-            chunks = splitTextForAPI(text); 
-            if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
-
-            currentChunkIndex = 0;
-            isPlaying = true;
-            nextBlobUrl = null;
-            
-            // Mở khóa audio trên iOS Safari
-            audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-            await audioA.play().catch(() => {});
-
-            status.textContent = `⏳ Đang tải đoạn đầu (Hoài My Neural)...`;
-            try {
-                const firstUrl = await getAudioBlob(chunks[0]);
-                if (!isPlaying) return;
-
-                if (chunks.length > 1) {
-                    getAudioBlob(chunks[1]).then(url => { nextBlobUrl = url; }).catch(() => {});
-                }
-
-                playCurrentChunk(firstUrl);
-            } catch (err) {
-                status.textContent = `⚠️ Lỗi kết nối Worker. Đang thử lại...`;
-                setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
-            }
-        } 
-
-        async function playCurrentChunk(url) {
-            if (!isPlaying) return;
-
-            activeAudio.src = url;
-            activeAudio.playbackRate = parseFloat(speedSelect.value);
-            status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
-
-            if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
-                nextAudio.src = nextBlobUrl;
-                nextAudio.playbackRate = parseFloat(speedSelect.value);
-                nextAudio.load();
+        function startTTS() {
+            if (!synth) {
+                alert("Trình duyệt không hỗ trợ đọc văn bản!");
+                return;
             }
 
-            try {
-                await activeAudio.play();
-            } catch (e) {}
+            synth.cancel();
 
-            if (!nextBlobUrl && currentChunkIndex + 2 < chunks.length) {
-                getAudioBlob(chunks[currentChunkIndex + 2]).then(u => { nextBlobUrl = u; }).catch(() => {});
+            const text = storyText.value.trim();
+            if (!text) {
+                alert("Không có nội dung để đọc!");
+                return;
             }
 
-            activeAudio.onended = async () => {
-                URL.revokeObjectURL(url);
-                currentChunkIndex++;
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.lang = 'vi-VN';
+            currentUtterance.rate = parseFloat(speedSelect.value);
 
-                if (!isPlaying) return;
+            // Tự động tìm và gán giọng tiếng Việt chất lượng cao có sẵn trên thiết bị
+            let voices = synth.getVoices();
+            let viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN') || v.name.toLowerCase().includes('vietnam'));
+            if (viVoice) {
+                currentUtterance.voice = viVoice;
+            }
 
-                if (currentChunkIndex < chunks.length) {
-                    if (nextBlobUrl) {
-                        let temp = activeAudio;
-                        activeAudio = nextAudio;
-                        nextAudio = temp;
-                        
-                        let currentUrlToPlay = nextBlobUrl;
-                        nextBlobUrl = null;
+            currentUtterance.onstart = () => {
+                status.textContent = `🔊 Đang đọc: ${chapters[currentChapterIndex].title}`;
+            };
 
-                        if (currentChunkIndex + 1 < chunks.length) {
-                            getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
-                        }
-
-                        playCurrentChunk(currentUrlToPlay);
-                    } else {
-                        status.textContent = `⏳ Đang đồng bộ phần ${currentChunkIndex + 1}/${chunks.length}...`;
-                        try {
-                            const freshUrl = await getAudioBlob(chunks[currentChunkIndex]);
-                            if (currentChunkIndex + 1 < chunks.length) {
-                                getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
-                            }
-                            playCurrentChunk(freshUrl);
-                        } catch (e) {
-                            status.textContent = `⚠️ Mất kết nối, đang thử lại phần ${currentChunkIndex + 1}...`;
-                            setTimeout(() => { playCurrentChunk(url); }, 2000);
-                        }
-                    }
+            currentUtterance.onend = () => {
+                if (currentChapterIndex < chapters.length - 1) {
+                    status.textContent = "⏭ Đang chuyển chương tiếp theo...";
+                    currentChapterIndex++;
+                    chapterSelect.value = currentChapterIndex;
+                    loadSelectedChapter();
+                    setTimeout(() => { startTTS(); }, 500);
                 } else {
-                    if (currentChapterIndex < chapters.length - 1) {
-                        status.textContent = "⏭ Đang chuyển chương tiếp theo...";
-                        currentChapterIndex++;
-                        chapterSelect.value = currentChapterIndex;
-                        loadSelectedChapter();
-                        setTimeout(() => { if (isPlaying) startTTS(); }, 300);
-                    } else {
-                        status.textContent = "✅ Đã đọc hết truyện.";
-                        isPlaying = false;
-                    }
+                    status.textContent = "✅ Đã đọc hết truyện.";
                 }
             };
+
+            currentUtterance.onerror = () => {
+                status.textContent = "❌ Lỗi trình phát âm thanh.";
+            };
+
+            // Bấm vào là phát liền lập tức 0 độ trễ, không phụ thuộc server hay mạng
+            synth.speak(currentUtterance);
         }
 
-        function stopTTS() { 
-            isPlaying = false;
-            audioA.pause();
-            audioB.pause();
-            audioA.src = "";
-            audioB.src = "";
-            nextBlobUrl = null;
-            status.textContent = "⏹ Đã dừng đọc."; 
+        function stopTTS() {
+            if (synth) {
+                synth.cancel();
+            }
+            status.textContent = "⏹ Đã dừng đọc.";
+        }
+
+        // Nạp trước danh sách giọng nói của trình duyệt
+        if (synth && synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = () => synth.getVoices();
         }
     </script>
 </body>
