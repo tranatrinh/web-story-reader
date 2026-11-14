@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Web Audio API (Zero Delay)</title>
+    <title>Local Tunnel Story Reader - Perfect Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -121,7 +121,7 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 loadSelectedChapter();
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương! Bấm 'Đọc truyện' để phát ngay.`; 
+                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
             } catch (err) { 
                 status.textContent = `❌ Lỗi đọc file.`; 
             } 
@@ -135,19 +135,20 @@
             }
         }
 
-        // --- HỆ THỐNG WEB AUDIO API (ZERO DELAY) ---
+        // --- HỆ THỐNG HÀNG ĐỢI TUẦN TỰ (QUEUE CHỐNG LẶP/NHẢY CÓC) ---
         let audioCtx = null;
         let isPlaying = false;
         let chunks = [];
         let currentChunkIndex = 0;
-        let audioBuffersCache = {}; // Lưu trữ các AudioBuffer đã giải mã sẵn
+        let audioBuffers = []; // Mảng chứa AudioBuffer theo đúng thứ tự
+        let isFetchingQueue = false;
         let currentSourceNode = null;
 
         function splitTextForAPI(text) {
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
-            let currentLimit = 150; // Đoạn khởi đầu tối ưu
+            let currentLimit = 150;
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -179,14 +180,24 @@
             return await audioCtx.decodeAudioData(arrayBuffer);
         }
 
-        async function prefetchChunks(startIndex) {
-            // Tải ngầm trước 3 đoạn tiếp theo vào bộ nhớ
-            for (let i = startIndex; i < Math.min(startIndex + 3, chunks.length); i++) {
-                if (!audioBuffersCache[i]) {
-                    try {
-                        audioBuffersCache[i] = await fetchAudioBuffer(chunks[i]);
-                    } catch (e) {}
+        async function backgroundPrefetch() {
+            if (isFetchingQueue) return;
+            isFetchingQueue = true;
+
+            try {
+                for (let i = 0; i < chunks.length; i++) {
+                    if (!isPlaying) break;
+                    // Nếu đoạn này chưa được tải và chưa vượt quá quá xa đoạn đang phát
+                    if (!audioBuffers[i] && i <= currentChunkIndex + 3) {
+                        try {
+                            audioBuffers[i] = await fetchAudioBuffer(chunks[i]);
+                        } catch (e) {
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
+                    }
                 }
+            } finally {
+                isFetchingQueue = false;
             }
         }
 
@@ -212,25 +223,25 @@
 
             currentChunkIndex = 0;
             isPlaying = true;
-            audioBuffersCache = {};
+            audioBuffers = new Array(chunks.length).fill(null);
 
-            status.textContent = `⏳ Đang tải và giải mã âm thanh...`;
+            status.textContent = `⏳ Đang tải đoạn đầu tiên...`;
 
             try {
-                // Tải trước đoạn 0 và đoạn 1
-                audioBuffersCache[0] = await fetchAudioBuffer(chunks[0]);
-                if (chunks.length > 1) {
-                    prefetchChunks(1);
-                }
+                // Tải trực tiếp đoạn 0 trước
+                audioBuffers[0] = await fetchAudioBuffer(chunks[0]);
+                
+                // Chạy nền tải các đoạn tiếp theo
+                backgroundPrefetch();
 
-                playNextBufferNode();
+                playSequence();
             } catch (err) {
                 status.textContent = `⚠️ Lỗi kết nối server nhà. Đang thử lại...`;
                 setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
             }
         }
 
-        async function playNextBufferNode() {
+        async function playSequence() {
             if (!isPlaying) return;
 
             if (currentChunkIndex >= chunks.length) {
@@ -247,39 +258,35 @@
                 return;
             }
 
-            // Nếu đoạn hiện tại chưa có trong cache, tải gấp
-            if (!audioBuffersCache[currentChunkIndex]) {
+            status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
+
+            // Chờ đến khi đoạn hiện tại sẵn sàng trong mảng
+            while (isPlaying && !audioBuffers[currentChunkIndex]) {
                 status.textContent = `⏳ Đang đồng bộ phần ${currentChunkIndex + 1}/${chunks.length}...`;
-                try {
-                    audioBuffersCache[currentChunkIndex] = await fetchAudioBuffer(chunks[currentChunkIndex]);
-                } catch (e) {
-                    setTimeout(() => { playNextBufferNode(); }, 1000);
-                    return;
-                }
+                backgroundPrefetch();
+                await new Promise(r => setTimeout(r, 500));
             }
 
             if (!isPlaying) return;
 
-            let buffer = audioBuffersCache[currentChunkIndex];
-            delete audioBuffersCache[currentChunkIndex]; // Giải phóng RAM ngay sau khi lấy
+            let buffer = audioBuffers[currentChunkIndex];
+            audioBuffers[currentChunkIndex] = null; // Giải phóng ô nhớ sau khi lấy
 
             currentSourceNode = audioCtx.createBufferSource();
             currentSourceNode.buffer = buffer;
             currentSourceNode.playbackRate.value = parseFloat(speedSelect.value);
             currentSourceNode.connect(audioCtx.destination);
 
-            status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
-
             currentSourceNode.onended = () => {
                 if (!isPlaying) return;
                 currentChunkIndex++;
-                playNextBufferNode(); // Phát tiếp đoạn kế tiếp ngay lập tức 0 delay
+                playSequence(); // Gọi tiếp đoạn kế tiếp theo đúng số thứ tự
             };
 
             currentSourceNode.start(0);
 
-            // Kích hoạt tải ngầm các đoạn tiếp theo phía sau
-            prefetchChunks(currentChunkIndex + 1);
+            // Kích hoạt nạp ngầm tiếp
+            backgroundPrefetch();
         }
 
         function stopTTS() {
@@ -287,7 +294,7 @@
             if (currentSourceNode) {
                 try { currentSourceNode.stop(); } catch(e){}
             }
-            audioBuffersCache = {};
+            audioBuffers = [];
             status.textContent = "⏹ Đã dừng đọc.";
         }
     </script>
