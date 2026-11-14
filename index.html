@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Story Reader - Microsoft Edge HoaiMyNeural</title>
+    <title>Cloudflare Edge Story Reader - HoaiMyNeural</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -147,9 +147,7 @@
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
-            
-            // Định mức ký tự tăng dần theo cấp số nhân cho các đoạn đầu tiên: 100 -> 200 -> 400 -> 800 -> 1500 (giới hạn trần để mượt mà)
-            let currentLimit = 100; 
+            let currentLimit = 100; // Đoạn đầu khởi điểm 100 chữ để phản hồi siêu tốc
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -158,8 +156,7 @@
                 if ((currentChunk + "\n" + trimmed).length > currentLimit) {
                     if (currentChunk) {
                         result.push(currentChunk.trim());
-                        // Tăng dần định mức cho đoạn tiếp theo theo cấp số nhân
-                        if (currentLimit < 1500) currentLimit *= 2;
+                        if (currentLimit < 1200) currentLimit *= 2; // Tăng trưởng cấp số nhân đến 1200 ký tự
                     }
                     currentChunk = trimmed;
                 } else {
@@ -174,7 +171,7 @@
         async function getAudioBlob(text, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
-                    const response = await fetch("https://story-reader-api.onrender.com/tts", {
+                    const response = await fetch("https://story-reader-tts.tranatrinh.workers.dev", {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -183,13 +180,13 @@
                         body: JSON.stringify({ text: text })
                     });
                     
-                    if (!response.ok) throw new Error("Server bận");
+                    if (!response.ok) throw new Error("Worker bận");
                     
                     const blob = await response.blob();
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
         }
@@ -230,7 +227,7 @@
         } 
 
         async function playSequence() {
-            status.textContent = `⏳ Đang tải đoạn mở đầu siêu tốc (Hoài My)...`;
+            status.textContent = `⏳ Đang tải đoạn đầu (Hoài My Neural)...`;
             if (!audioCache[currentChunkIndex]) {
                 audioCache[currentChunkIndex] = await getAudioBlob(chunks[currentChunkIndex]);
             }
@@ -244,12 +241,11 @@
                     
                     if (!isPlaying) break;
 
-                    // Tải ngầm các phần tiếp theo dưới nền
                     prefetchAhead(currentChunkIndex);
 
                     globalAudio.src = currentUrl;
                     globalAudio.playbackRate = parseFloat(speedSelect.value);
-                    status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (Phần ${currentChunkIndex + 1}/${chunks.length})`;
+                    status.textContent = `🔊 Đang đọc (Hoài My Neural): ${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
                     
                     await new Promise((resolve, reject) => {
                         globalAudio.onended = resolve;
@@ -262,7 +258,7 @@
 
                 } catch (err) {
                     status.textContent = `⚠️ Đang tải lại phần ${currentChunkIndex + 1}...`;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
 
