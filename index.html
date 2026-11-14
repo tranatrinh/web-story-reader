@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Ultimate Dom Sync</title>
+    <title>Local Tunnel Story Reader - Absolute Final Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -60,6 +60,7 @@
 
         let chapters = [];
         let currentChapterIndex = 0;
+        let chunks = []; // Biến toàn cục lưu danh sách đoạn văn chuẩn 1-1
 
         fileInput.addEventListener('change', async (e) => { 
             const file = e.target.files[0]; 
@@ -162,30 +163,31 @@
             } 
         }); 
 
-        // --- ĐỒNG BỘ NGUỒN DOM TUYỆT ĐỐI 1-1 ---
+        // --- HÀM TÁCH MẢNG CHUẨN XÁC DÙNG CHUNG CHO CẢ AUDIO VÀ GIAO DIỆN ---
+        function parseChunksFromText(text) {
+            let lines = text.split(/\r?\n/);
+            let result = [];
+            lines.forEach(line => {
+                let cleaned = line.replace(/\r?\n/g, ' ').trim();
+                if (cleaned.length > 0) {
+                    result.push(cleaned);
+                }
+            });
+            return result;
+        }
+
         function loadSelectedChapter() {
             currentChapterIndex = parseInt(chapterSelect.value);
             if(chapters[currentChapterIndex]) {
-                let rawText = chapters[currentChapterIndex].content;
-                let paragraphs = rawText.split(/\r?\n/);
-                let cleanParagraphs = paragraphs
-                    .map(p => p.replace(/\r?\n/g, ' ').trim())
-                    .filter(p => p.length > 0);
-
-                storyContainer.innerHTML = cleanParagraphs.map((chunk, idx) => 
+                // Tạo sẵn mảng chunks dùng chung
+                chunks = parseChunksFromText(chapters[currentChapterIndex].content);
+                
+                // Đổ ra giao diện với id khớp 100% với index của mảng chunks
+                storyContainer.innerHTML = chunks.map((chunk, idx) => 
                     `<p id="para-${idx}">${chunk}</p>`
                 ).join('');
                 storyContainer.scrollTop = 0;
             }
-        }
-
-        function splitTextForAPI(text) {
-            const pElements = storyContainer.querySelectorAll('p');
-            const result = [];
-            pElements.forEach(p => {
-                result.push(p.textContent.trim());
-            });
-            return result.filter(ch => ch.length > 0);
         }
 
         let audioA = new Audio();
@@ -194,7 +196,6 @@
         let nextAudio = audioB;
 
         let isPlaying = false;
-        let chunks = [];
         let currentChunkIndex = 0;
         let nextBlobUrl = null;
         let canvasCtx = null;
@@ -263,12 +264,10 @@
         }
 
         async function startTTS() { 
-            const activeChapterText = chapters[currentChapterIndex] ? chapters[currentChapterIndex].content : "";
-            if (!activeChapterText) { alert("Không có nội dung để đọc! Vui lòng chọn file truyện trước."); return; } 
-
-            // Lấy trực tiếp mảng chunks đồng bộ hoàn toàn từ DOM hiển thị
-            chunks = splitTextForAPI(activeChapterText); 
-            if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
+            if (chunks.length === 0 && chapters[currentChapterIndex]) {
+                loadSelectedChapter();
+            }
+            if (chunks.length === 0) { alert("Không có nội dung để đọc! Vui lòng chọn file truyện trước."); return; } 
 
             currentChunkIndex = 0;
             isPlaying = true;
@@ -308,7 +307,7 @@
             let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
             status.textContent = `🔊 ${currentTitle}`;
 
-            // --- HIGHLIGHT ĐOẠN VĂN DỰA TRÊN INDEX DOM CHUẨN XÁC 1-1 ---
+            // --- HIGHLIGHT ĐOẠN VĂN ĐẢM BẢO KHỚP CHÍNH XÁC 100% ---
             document.querySelectorAll('#storyContainer p').forEach(p => {
                 p.style.backgroundColor = 'transparent';
                 p.style.color = '#aaa';
@@ -321,7 +320,7 @@
                 activePara.style.fontWeight = 'bold';
                 activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            // -----------------------------------------------------------
+            // ----------------------------------------------------
 
             if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
                 nextAudio.src = nextBlobUrl;
