@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - PiP Mode</title>
+    <title>Local Tunnel Story Reader - Clean UI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
-        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #333;}
-        button { background-color: #3a3a3a; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;}
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; background: #1e1e1e; padding: 12px; border-radius: 8px; border: 1px solid #333;}
+        button { background-color: #3a3a3a; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold;}
         button:hover { opacity: 0.8; }
         .btn-play { background-color: #4CAF50; }
         .btn-stop { background-color: #f44336; }
         .btn-pip { background-color: #2196F3; }
-        select, input[type="file"] { padding: 10px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 5px; font-size: 14px; }
-        textarea { width: 100%
-        textarea { width: 100%; height: 55vh; background-color: #1e1e1e; color: #f5f5f5; font-size: 18px; line-height: 1.6; padding: 15px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; resize: none; }
-        /* Video hiển thị nhỏ để ép chế độ PiP */
-        #pipVideo { width: 100%; max-height: 120px; background: #000; border-radius: 8px; margin-top: 10px; }
-        #status { font-size: 14px; color: #ffeb3b; width: 100%; margin-top: 10px; font-weight: bold;}
+        select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 5px; font-size: 14px; }
+        
+        /* Khung chứa văn bản kích thước chuẩn, không bị đè */
+        textarea { width: 100%; height: 50vh; background-color: #1e1e1e; color: #f5f5f5; font-size: 16px; line-height: 1.5; padding: 12px; border: 1px solid #333; border-radius: 8px; box-sizing: border-box; resize: none; margin-bottom: 10px; }
+        
+        /* Ẩn hoàn toàn khung video đen trên giao diện chính nhưng vẫn giữ chức năng PiP hoạt động ngầm */
+        #pipVideo { width: 1px; height: 1px; opacity: 0; position: absolute; pointer-events: none; }
+        
+        #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 5px; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -39,16 +42,16 @@
             <option value="2.0">Nhanh gấp đôi (2.0x)</option>
         </select>
 
-        <button class="btn-play" onclick="startTTS()">▶ Đọc truyện</button>
-        <button class="btn-pip" onclick="togglePiP()">🔲 Bật PiP</button>
+        <button class="btn-play" onclick="startTTS()">▶ Đọc</button>
+        <button class="btn-pip" onclick="togglePiP()">🔲 PiP</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
-        <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
+        <div id="status">Sẵn sàng! Hãy chọn file truyện.</div>
     </div>
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
     
-    <!-- Thẻ Video HTML5 để ép chạy chế độ Picture-in-Picture -->
-    <video id="pipVideo" controls playsinline></video>
+    <!-- Thẻ Video ẩn để kích hoạt PiP chạy ngầm bất diệt trên iOS -->
+    <video id="pipVideo" playsinline></video>
 
     <script>
         const fileInput = document.getElementById('fileInput'); 
@@ -65,7 +68,7 @@
         fileInput.addEventListener('change', async (e) => { 
             const file = e.target.files[0]; 
             if (!file) return; 
-            status.textContent = `⏳ Đang phân tích file: ${file.name}...`; 
+            status.textContent = `⏳ Đang phân tích file...`; 
             storyText.value = ""; 
             chapters = [];
             chapterSelect.style.display = "none";
@@ -130,7 +133,7 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 loadSelectedChapter();
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương! Bấm 'Đọc truyện'.`; 
+                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
             } catch (err) { 
                 status.textContent = `❌ Lỗi đọc file.`; 
             } 
@@ -144,7 +147,6 @@
             }
         }
 
-        // --- HỆ THỐNG DUAL VIDEO PIP (CHẠY NGẦM BẤT DIỆT TRÊN IOS) ---
         let videoA = document.createElement('video');
         let videoB = document.createElement('video');
         videoA.playsInline = true;
@@ -190,4 +192,157 @@
                     const response = await fetch("https://comparing-tobacco-elvis-allied.trycloudflare.com/tts", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!response.ok) throw new Error("Server error");
+                    const blob = await response.blob();
+                    return URL.createObjectURL(blob);
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, 600));
+                }
+            }
+        }
+
+        function updateSpeed() {
+            const rate = parseFloat(speedSelect.value);
+            videoA.playbackRate = rate;
+            videoB.playbackRate = rate;
+            pipVideo.playbackRate = rate;
+        }
+
+        async function togglePiP() {
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else {
+                    await pipVideo.requestPictureInPicture();
+                }
+            } catch (err) {
+                alert("Hãy bấm nút 'Đọc' trước khi bật PiP nhé!");
+            }
+        }
+
+        async function startTTS() { 
+            const text = storyText.value.trim(); 
+            if (!text) { alert("Không có nội dung để đọc!"); return; } 
+
+            chunks = splitTextForAPI(text); 
+            if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
+
+            currentChunkIndex = 0;
+            isPlaying = true;
+            nextBlobUrl = null;
+            
+            pipVideo.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            await pipVideo.play().catch(() => {});
+
+            status.textContent = `⏳ Đang tải đoạn đầu...`;
+            try {
+                const firstUrl = await getAudioBlob(chunks[0]);
+                if (!isPlaying) return;
+
+                if (chunks.length > 1) {
+                    getAudioBlob(chunks[1]).then(url => { nextBlobUrl = url; }).catch(() => {});
+                }
+
+                playCurrentChunk(firstUrl);
+            } catch (err) {
+                status.textContent = `⚠️ Lỗi kết nối server nhà.`;
+                setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
+            }
+        } 
+
+        async function playCurrentChunk(url) {
+            if (!isPlaying) return;
+
+            activeVideo.src = url;
+            activeVideo.playbackRate = parseFloat(speedSelect.value);
+            
+            pipVideo.src = url;
+            pipVideo.playbackRate = parseFloat(speedSelect.value);
+
+            let currentTitle = `${chapters[currentChapterIndex].title} (${currentChunkIndex + 1}/${chunks.length})`;
+            status.textContent = `🔊 ${currentTitle}`;
+
+            if (nextBlobUrl && currentChunkIndex + 1 < chunks.length) {
+                nextVideo.src = nextBlobUrl;
+                nextVideo.playbackRate = parseFloat(speedSelect.value);
+                nextVideo.load();
+            }
+
+            try {
+                await pipVideo.play();
+                await activeVideo.play();
+            } catch (e) {}
+
+            if (!nextBlobUrl && currentChunkIndex + 2 < chunks.length) {
+                getAudioBlob(chunks[currentChunkIndex + 2]).then(u => { nextBlobUrl = u; }).catch(() => {});
+            }
+
+            activeVideo.onended = async () => {
+                URL.revokeObjectURL(url);
+                currentChunkIndex++;
+
+                if (!isPlaying) return;
+
+                if (currentChunkIndex < chunks.length) {
+                    if (nextBlobUrl) {
+                        let temp = activeVideo;
+                        activeVideo = nextVideo;
+                        nextVideo = temp;
+                        
+                        let currentUrlToPlay = nextBlobUrl;
+                        nextBlobUrl = null;
+
+                        pipVideo.src = currentUrlToPlay;
+                        pipVideo.play().catch(()=>{});
+
+                        if (currentChunkIndex + 1 < chunks.length) {
+                            getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
+                        }
+
+                        playCurrentChunk(currentUrlToPlay);
+                    } else {
+                        status.textContent = `⏳ Đang tải phần tiếp theo...`;
+                        try {
+                            const freshUrl = await getAudioBlob(chunks[currentChunkIndex]);
+                            pipVideo.src = freshUrl;
+                            pipVideo.play().catch(()=>{});
+
+                            if (currentChunkIndex + 1 < chunks.length) {
+                                getAudioBlob(chunks[currentChunkIndex + 1]).then(u => { nextBlobUrl = u; }).catch(() => {});
+                            }
+                            playCurrentChunk(freshUrl);
+                        } catch (e) {
+                            status.textContent = `⚠️ Thử lại phần ${currentChunkIndex + 1}...`;
+                            setTimeout(() => { playCurrentChunk(url); }, 2000);
+                        }
+                    }
+                } else {
+                    if (currentChapterIndex < chapters.length - 1) {
+                        status.textContent = "⏭ Đang chuyển chương...";
+                        currentChapterIndex++;
+                        chapterSelect.value = currentChapterIndex;
+                        loadSelectedChapter();
+                        setTimeout(() => { if (isPlaying) startTTS(); }, 100);
+                    } else {
+                        status.textContent = "✅ Đã đọc hết truyện.";
+                        isPlaying = false;
+                    }
+                }
+            };
+        }
+
+        function stopTTS() { 
+            isPlaying = false;
+            activeVideo.pause();
+            nextVideo.pause();
+            pipVideo.pause();
+            pipVideo.src = "";
+            nextBlobUrl = null;
+            status.textContent = "⏹ Đã dừng đọc."; 
+        }
+    </script>
+</body>
+</html>
