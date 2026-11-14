@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Pro Streaming Engine</title>
+    <title>Local Tunnel Story Reader - Smooth Stream</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -30,13 +30,18 @@
         
         <select id="chapterSelect" style="display: none; width: 100%;" onchange="onChapterChange()"></select>
 
+        <select id="voiceSelect" onchange="onVoiceChange()">
+            <option value="edge" selected>🎙️ Hoài My (AI)</option>
+            <option value="google">⚡ Chị Google (Siêu mượt)</option>
+        </select>
+
         <select id="speedSelect" onchange="updateSpeed()">
-            <option value="0.8">Chậm (0.8x)</option>
-            <option value="1.0" selected>Bình thường (1.0x)</option>
-            <option value="1.25">Hơi nhanh (1.25x)</option>
-            <option value="1.5">Nhanh (1.5x)</option>
-            <option value="1.75">Rất nhanh (1.75x)</option>
-            <option value="2.0">Nhanh gấp đôi (2.0x)</option>
+            <option value="0.8">0.8x</option>
+            <option value="1.0" selected>1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="1.75">1.75x</option>
+            <option value="2.0">2.0x</option>
         </select>
 
         <button class="btn-play" onclick="startTTS(0)">▶ Đọc</button>
@@ -56,6 +61,7 @@
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
         const chapterSelect = document.getElementById('chapterSelect');
+        const voiceSelect = document.getElementById('voiceSelect');
         const speedSelect = document.getElementById('speedSelect');
         const pipVideo = document.getElementById('pipVideo');
 
@@ -64,7 +70,7 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // Dual-Slot Audio Engine (Chuyển đoạn 0ms)
+        // 2 thẻ Audio thay phiên nhau để nối câu 0ms
         const players = [new Audio(), new Audio()];
         players.forEach(p => {
             p.playsInline = true;
@@ -75,15 +81,35 @@
         let playSessionId = 0;
         let audioCache = {};    // index -> Promise<blobUrl>
         let resolvedUrls = {};  // index -> blobUrl
-        let isPrefetching = false;
-        const PREFETCH_AHEAD = 6; // Luôn tải trước 6 đoạn trong RAM
+        let workerRunning = false;
         let canvasStreamInitialized = false;
 
-        // --- 1. XỬ LÝ VĂN BẢN CHUẨN XÁC ---
-        function isInvalidTitle(str) {
-            if (!str) return true;
-            const s = str.trim().toLowerCase();
-            return s === "" || s === "unknown" || s === "untitled" || s === "chương mới";
+        // --- 1. QUÉT TÊN CHƯƠNG TRỰC TIẾP TỪ CHỮ "CHƯƠNG..." TRONG TRANG ---
+        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
+
+        function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
+            // Ưu tiên 1: Quét trong 10 dòng đầu tiên của trang xem có dòng nào chứa "Chương X..." không
+            for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
+                const line = paragraphs[i].trim();
+                if (CHAPTER_REGEX.test(line)) {
+                    return line.substring(0, 65);
+                }
+            }
+            // Ưu tiên 2: Quét thẻ h1, h2, h3 trong trang (bỏ qua chữ Unknown)
+            if (htmlDoc) {
+                const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
+                for (let h of headings) {
+                    const t = h.textContent.replace(/\s+/g, ' ').trim();
+                    if (t && !/^(unknown|untitled|chương mới|mục lục)$/i.test(t)) {
+                        return t.substring(0, 65);
+                    }
+                }
+            }
+            // Ưu tiên 3: Lấy dòng đầu tiên của trang
+            if (paragraphs.length > 0) {
+                return paragraphs[0].substring(0, 60);
+            }
+            return fallbackTitle;
         }
 
         function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
@@ -97,35 +123,28 @@
 
             const rawText = doc.body ? doc.body.textContent : doc.textContent;
             const paragraphs = processRawTextToChunks(rawText);
+            const title = detectChapterTitleFromParagraphs(paragraphs, doc, fallbackTitle);
 
-            let title = "";
-            const heading = doc.querySelector("h1, h2, h3");
-            if (heading && !isInvalidTitle(heading.textContent)) {
-                title = heading.textContent.replace(/\s+/g, ' ').trim();
-            }
-            if (isInvalidTitle(title) && paragraphs.length > 0) {
-                title = paragraphs[0];
-            }
-            if (isInvalidTitle(title)) {
-                title = fallbackTitle;
-            }
-
-            return { title: title.substring(0, 55), paragraphs };
+            return { title, paragraphs };
         }
 
+        // Lọc bỏ các dòng không có chữ/số và cắt câu ở độ dài tối ưu (200 ký tự) để đọc nhanh như Chị Google
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
             const cleanLines = [];
+            const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown") {
+                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown" && validCharRegex.test(trimmed)) {
                     cleanLines.push(trimmed);
                 }
             }
 
+            // Nếu dòng 0 là tên chương ngắn ("Chương 78: Bộ xương"), giữ nguyên nhưng các câu văn dài bên dưới
+            // được chia ở mức 220 ký tự để tạo âm thanh dưới 0.4 giây
             const finalChunks = [];
-            const MAX_LEN = 280;
+            const MAX_LEN = 220;
 
             for (let para of cleanLines) {
                 if (para.length <= MAX_LEN) {
@@ -135,19 +154,23 @@
                     let currentBuf = "";
                     for (let s of sentences) {
                         if ((currentBuf + " " + s).trim().length > MAX_LEN) {
-                            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+                            if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
+                                finalChunks.push(currentBuf.trim());
+                            }
                             currentBuf = s;
                         } else {
                             currentBuf = (currentBuf + " " + s).trim();
                         }
                     }
-                    if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+                    if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
+                        finalChunks.push(currentBuf.trim());
+                    }
                 }
             }
             return finalChunks;
         }
 
-        // --- 2. LOAD FILE (.TXT / .EPUB) ---
+        // --- 2. ĐỌC FILE (.TXT / .EPUB) ---
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -162,21 +185,21 @@
             try {
                 if (file.name.toLowerCase().endsWith('.txt')) {
                     const text = await file.text();
-                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s+\d+)/im);
+                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s*[\dIVXLCDM]+)/im);
 
                     if (splits.length <= 1) {
                         const paras = processRawTextToChunks(text);
                         chapters.push({
-                            title: paras[0] ? paras[0].substring(0, 50) : "Toàn bộ nội dung",
+                            title: detectChapterTitleFromParagraphs(paras, null, "Toàn bộ nội dung"),
                             paragraphs: paras
                         });
                     } else {
-                        splits.forEach((content) => {
+                        splits.forEach((content, idx) => {
                             if (content.trim()) {
                                 const paras = processRawTextToChunks(content);
                                 if (paras.length > 0) {
                                     chapters.push({
-                                        title: paras[0].substring(0, 55),
+                                        title: detectChapterTitleFromParagraphs(paras, null, `Chương ${idx + 1}`),
                                         paragraphs: paras
                                     });
                                 }
@@ -234,7 +257,7 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 renderChapter(0);
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương! Bấm "Đọc" hoặc chạm vào đoạn bất kỳ.`;
+                status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "Đọc" hoặc chạm vào câu bất kỳ.`;
             } catch (err) {
                 console.error(err);
                 status.textContent = `❌ Lỗi đọc file: ${err.message}`;
@@ -247,6 +270,17 @@
             renderChapter(parseInt(chapterSelect.value));
             if (wasPlaying) {
                 startTTS(0);
+            }
+        }
+
+        function onVoiceChange() {
+            const wasPlaying = isPlaying;
+            const curIdx = currentChunkIndex;
+            stopTTS();
+            if (wasPlaying) {
+                startTTS(curIdx);
+            } else {
+                startBackgroundWorker(0, playSessionId);
             }
         }
 
@@ -263,55 +297,54 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            // Khi vừa chọn chương, âm thầm tải tuần tự 2 đoạn đầu (0 và 1)
             clearAudioCache();
-            runSequentialPrefetch(0, playSessionId);
+            // Tải ngầm sẵn 3 câu đầu ngay khi vừa mở chương
+            startBackgroundWorker(0, playSessionId);
         }
 
         function jumpToChunk(index) {
             startTTS(index);
         }
 
-        // --- 3. KIẾN TRÚC HÀNG ĐỢI TẢI TUẦN TỰ ĐƠN KÊNH (CHỐNG NGHẼN TUNNEL 100%) ---
+        // --- 3. HÀNG ĐỢI ĐƠN KÊNH TUYỆT ĐỐI (KHÔNG BAO GIỜ BẮN 2 REQUEST CÙNG LÚC) ---
         function clearAudioCache() {
             audioCache = {};
             for (let key in resolvedUrls) {
                 URL.revokeObjectURL(resolvedUrls[key]);
             }
             resolvedUrls = {};
-            isPrefetching = false;
         }
 
-        async function fetchAudioFromServer(text, session, retries = 3) {
-            for (let i = 0; i < retries; i++) {
+        async function fetchAudioSingle(text, session) {
+            const engine = voiceSelect.value;
+            for (let attempt = 0; attempt < 3; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 try {
                     const response = await fetch(SERVER_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: text })
+                        body: JSON.stringify({ text: text, engine: engine })
                     });
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
-                    if (blob.size < 100) throw new Error("Empty audio");
+                    if (blob.size < 16) throw new Error("Empty blob");
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (session !== playSessionId) throw err;
-                    if (i === retries - 1) throw err;
-                    await new Promise(r => setTimeout(r, 400));
+                    if (attempt === 2) throw err;
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
         }
 
-        function getChunkAudioPromise(index, session) {
+        function ensureChunkPromise(index, session) {
             if (index >= chunks.length) return null;
             if (!audioCache[index]) {
-                audioCache[index] = fetchAudioFromServer(chunks[index], session).then(url => {
+                audioCache[index] = fetchAudioSingle(chunks[index], session).then(url => {
                     if (session === playSessionId) {
                         resolvedUrls[index] = url;
-                        // Ngay khi đoạn kế tiếp (currentChunkIndex + 1) tải xong -> Nạp sẵn vào thẻ Audio chờ!
                         if (isPlaying && index === currentChunkIndex + 1) {
-                            preloadSlot(index, url);
+                            preloadAudioSlot(index, url);
                         }
                     }
                     return url;
@@ -323,7 +356,7 @@
             return audioCache[index];
         }
 
-        function preloadSlot(index, url) {
+        function preloadAudioSlot(index, url) {
             const slot = players[index % 2];
             if (slot.dataset.loadedIdx !== String(index)) {
                 slot.src = url;
@@ -333,49 +366,49 @@
             }
         }
 
-        // Luồng Worker chạy ngầm tải lần lượt từng đoạn một (1-by-1) để không bao giờ nghẽn cổ chai server
-        async function runSequentialPrefetch(baseIndex, session) {
-            if (isPrefetching) return;
-            isPrefetching = true;
+        // Worker chỉ chạy đúng 1 luồng duy nhất: Đợi tải xong câu N mới tải câu N+1
+        async function startBackgroundWorker(startIdx, session) {
+            if (workerRunning) return;
+            workerRunning = true;
 
             try {
                 while (session === playSessionId) {
-                    const anchor = isPlaying ? currentChunkIndex : baseIndex;
-                    const maxTarget = Math.min(chunks.length - 1, anchor + (isPlaying ? PREFETCH_AHEAD : 1));
+                    const base = isPlaying ? currentChunkIndex : startIdx;
+                    const lookahead = isPlaying ? 8 : 2; // Khi đang đọc, tải trước 8 câu liên tiếp
+                    const limit = Math.min(chunks.length - 1, base + lookahead);
 
-                    let nextToFetch = -1;
-                    for (let i = anchor; i <= maxTarget; i++) {
+                    let target = -1;
+                    for (let i = base; i <= limit; i++) {
                         if (!audioCache[i]) {
-                            nextToFetch = i;
+                            target = i;
                             break;
                         }
                     }
 
-                    if (nextToFetch === -1) break; // Đã tải đủ cửa sổ đệm
+                    if (target === -1) break;
 
                     try {
-                        await getChunkAudioPromise(nextToFetch, session);
+                        await ensureChunkPromise(target, session);
                     } catch (e) {
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise(r => setTimeout(r, 400));
                     }
                 }
             } finally {
-                if (session === playSessionId) {
-                    isPrefetching = false;
-                }
+                workerRunning = false;
             }
         }
 
-        // --- 4. TRÌNH PHÁT PRE-BUFFERED (CHỐNG KHỰNG ĐOẠN 2 TUYỆT ĐỐI) ---
+        // --- 4. BỘ PHÁT LIỀN MẠCH ---
         async function startTTS(startIndex = 0) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
             }
 
+            // Giữ nguyên cache đã tải sẵn nếu cùng phiên chọn chương
             playSessionId++;
             const currentSession = playSessionId;
-            isPrefetching = false;
+            workerRunning = false;
 
             players.forEach(p => {
                 p.onended = null;
@@ -387,7 +420,6 @@
             currentChunkIndex = startIndex;
             isPlaying = true;
 
-            // Mở khóa đồng thời cả 2 thẻ Audio trên iOS
             const silentWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             players.forEach(p => {
                 if (!p.src) p.src = silentWav;
@@ -400,21 +432,20 @@
         }
 
         async function playLoop(session) {
-            // BÍ QUYẾT CỦA CÁC APP LỚN: Nếu đoạn mở đầu quá ngắn (< 80 ký tự, ví dụ tên Chương),
-            // đợi nạp xong cả đoạn 0 VÀ đoạn 1 rồi mới bắt đầu phát -> Không bao giờ bị khựng ở đoạn 2!
             const firstIdx = currentChunkIndex;
             highlightParagraph(firstIdx);
 
-            if (chunks[firstIdx] && chunks[firstIdx].length < 80 && firstIdx + 1 < chunks.length) {
+            // Nếu câu đầu tiên ngắn (ví dụ "Chương 78: Bộ xương"), nạp sẵn câu 0 và câu 1 trước khi phát
+            if (chunks[firstIdx] && chunks[firstIdx].length < 90 && firstIdx + 1 < chunks.length) {
                 if (!resolvedUrls[firstIdx] || !resolvedUrls[firstIdx + 1]) {
-                    status.textContent = `⚡ Đang nạp đệm mở đầu...`;
+                    status.textContent = `⚡ Đang chuẩn bị giọng đọc...`;
                 }
                 try {
-                    await getChunkAudioPromise(firstIdx, session);
+                    await ensureChunkPromise(firstIdx, session);
                     if (session !== playSessionId || !isPlaying) return;
-                    const secondUrl = await getChunkAudioPromise(firstIdx + 1, session);
+                    const url1 = await ensureChunkPromise(firstIdx + 1, session);
                     if (session === playSessionId && isPlaying) {
-                        preloadSlot(firstIdx + 1, secondUrl);
+                        preloadAudioSlot(firstIdx + 1, url1);
                     }
                 } catch (e) {}
             }
@@ -423,16 +454,7 @@
                 const idx = currentChunkIndex;
                 const activePlayer = players[idx % 2];
 
-                // 1. Highlight đoạn hiện tại
                 highlightParagraph(idx);
-
-                // 2. Nếu đoạn kế tiếp (idx + 1) đã có trong RAM, nạp sẵn vào thẻ chờ ngay
-                if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
-                    preloadSlot(idx + 1, resolvedUrls[idx + 1]);
-                }
-
-                // 3. Kích hoạt Worker tải tuần tự các đoạn tiếp theo
-                runSequentialPrefetch(idx, session);
 
                 if (!resolvedUrls[idx]) {
                     status.textContent = `⏳ Đang tải (${idx + 1}/${chunks.length})...`;
@@ -440,25 +462,28 @@
 
                 let audioUrl;
                 try {
-                    audioUrl = await getChunkAudioPromise(idx, session);
+                    audioUrl = await ensureChunkPromise(idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang thử lại đoạn ${idx + 1}...`;
-                    await new Promise(r => setTimeout(r, 700));
+                    status.textContent = `⚠️ Đang kết nối lại câu ${idx + 1}...`;
+                    await new Promise(r => setTimeout(r, 600));
                     continue;
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // Đảm bảo sau khi đợi tải xong đoạn idx, kích hoạt lại worker tải đoạn idx+1 ngay
-                runSequentialPrefetch(idx, session);
+                // Nếu câu kế tiếp đã có sẵn trong RAM thì nạp vào thẻ chờ ngay
+                if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
+                    preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
+                }
 
-                // 4. Phát âm thanh trên slot hiện tại
+                // Kích hoạt worker tải ngầm các câu tiếp theo (1-by-1)
+                startBackgroundWorker(idx + 1, session);
+
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
                 await playOnSlot(activePlayer, idx, audioUrl, session);
 
-                // Dọn RAM các đoạn cũ đã qua (giữ lại đoạn vừa đọc phòng khi mạng lag)
-                const oldIdx = idx - 1;
+                const oldIdx = idx - 2;
                 if (oldIdx >= 0 && resolvedUrls[oldIdx]) {
                     URL.revokeObjectURL(resolvedUrls[oldIdx]);
                     delete resolvedUrls[oldIdx];
@@ -535,18 +560,17 @@
         function stopTTS() {
             playSessionId++;
             isPlaying = false;
-            isPrefetching = false;
+            workerRunning = false;
             players.forEach(p => {
                 p.onended = null;
                 p.onerror = null;
                 p.pause();
                 p.dataset.loadedIdx = "";
             });
-            clearAudioCache();
             status.textContent = "⏹ Đã dừng đọc.";
         }
 
-        // --- 5. CANVAS PIP STREAM ---
+        // --- 5. CANVAS PIP ---
         function initCanvasPiP() {
             if (canvasStreamInitialized) {
                 pipVideo.play().catch(() => {});
