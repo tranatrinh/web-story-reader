@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Seamless Chapters</title>
+    <title>Local Tunnel Story Reader - Instant Start</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
@@ -37,7 +37,7 @@
 
         <button class="btn-play" onclick="startTTS()">▶ Đọc truyện</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
-        <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt atau .epub).</div>
+        <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
     </div>
 
     <textarea id="storyText" placeholder="Nội dung truyện sẽ hiển thị ở đây..."></textarea>
@@ -121,7 +121,11 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 loadSelectedChapter();
-                status.textContent = `✅ Đã tải xong ${chapters.length} chương!`; 
+                
+                // TỰ ĐỘNG TẢI NGẦM LUÔN ĐOẠN ĐẦU TIÊN NGAY KHI VỪA CHỌN FILE XONG
+                status.textContent = `⏳ Đang chuẩn bị sẵn sàng đoạn đầu...`;
+                prepareFirstChunk();
+
             } catch (err) { 
                 status.textContent = `❌ Lỗi đọc file.`; 
             } 
@@ -132,10 +136,11 @@
             if(chapters[currentChapterIndex]) {
                 storyText.value = chapters[currentChapterIndex].content;
                 storyText.scrollTop = 0;
+                prepareFirstChunk(); // Tải lại đoạn đầu nếu đổi chương
             }
         }
 
-        // --- HỆ THỐNG DUAL AUDIO & TẢI NGẦM CHƯƠNG TIẾP THEO ---
+        // --- HỆ THỐNG DUAL AUDIO & TẢI TRƯỚC (PRE-FETCH) ĐOẠN ĐẦU ---
         let audioA = new Audio();
         let audioB = new Audio();
         let activeAudio = audioA;
@@ -145,13 +150,14 @@
         let chunks = [];
         let currentChunkIndex = 0;
         let nextBlobUrl = null;
-        let preloadedNextChapterChunks = null;
+        let preloadedFirstUrl = null;
+        let preloadedChunksList = [];
 
         function splitTextForAPI(text) {
             const lines = text.split(/\r?\n/);
             const result = [];
             let currentChunk = "";
-            let currentLimit = 100; // Khởi đầu 100 chữ tạo siêu tốc phản hồi
+            let currentLimit = 100; // Đoạn đầu 100 chữ tạo cực nhanh
 
             lines.forEach(line => {
                 const trimmed = line.trim();
@@ -195,6 +201,24 @@
             }
         }
 
+        async function prepareFirstChunk() {
+            const text = storyText.value.trim();
+            if (!text) return;
+            preloadedChunksList = splitTextForAPI(text);
+            if (preloadedChunksList.length === 0) return;
+
+            status.textContent = `⏳ Đang tải ngầm đoạn đầu tiên...`;
+            try {
+                preloadedFirstUrl = await getAudioBlob(preloadedChunksList[0]);
+                if (preloadedChunksList.length > 1) {
+                    getAudioBlob(preloadedChunksList[1]).then(u => { nextBlobUrl = u; }).catch(() => {});
+                }
+                status.textContent = `✅ Đã sẵn sàng! Bấm 'Đọc truyện' để phát tức thì.`;
+            } catch(e) {
+                status.textContent = `✅ Đã tải xong file! Bấm 'Đọc truyện' để bắt đầu.`;
+            }
+        }
+
         function updateSpeed() {
             const rate = parseFloat(speedSelect.value);
             audioA.playbackRate = rate;
@@ -205,54 +229,32 @@
             const text = storyText.value.trim(); 
             if (!text) { alert("Không có nội dung để đọc!"); return; } 
 
-            chunks = splitTextForAPI(text); 
+            chunks = preloadedChunksList.length > 0 ? preloadedChunksList : splitTextForAPI(text); 
             if (chunks.length === 0) { alert("Văn bản không hợp lệ!"); return; }
 
             currentChunkIndex = 0;
             isPlaying = true;
-            nextBlobUrl = null;
-            preloadedNextChapterChunks = null;
             
+            // Mở khóa audio trên iOS Safari
             audioA.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             await audioA.play().catch(() => {});
 
-            status.textContent = `⏳ Đang tải đoạn đầu (Hoài My Neural)...`;
-            try {
-                const firstUrl = await getAudioBlob(chunks[0]);
-                if (!isPlaying) return;
+            status.textContent = `🔊 Đang phát (Hoài My Neural)...`;
 
-                if (chunks.length > 1) {
-                    getAudioBlob(chunks[1]).then(url => { nextBlobUrl = url; }).catch(() => {});
+            let firstUrl = preloadedFirstUrl;
+            preloadedFirstUrl = null; // Dùng xong xóa cache để giải phóng bộ nhớ
+
+            if (!firstUrl) {
+                status.textContent = `⏳ Đang tải đoạn đầu...`;
+                firstUrl = await getAudioBlob(chunks[0]);
+                if (chunks.length > 1 && !nextBlobUrl) {
+                    getAudioBlob(chunks[1]).then(u => { nextBlobUrl = u; }).catch(() => {});
                 }
-
-                // Kích hoạt chuẩn bị sẵn dữ liệu chương kế tiếp dưới nền nếu còn chương
-                if (currentChapterIndex < chapters.length - 1) {
-                    preloadNextChapter();
-                }
-
-                playCurrentChunk(firstUrl);
-            } catch (err) {
-                status.textContent = `⚠️ Lỗi kết nối server nhà. Đang thử lại...`;
-                setTimeout(() => { if (isPlaying) startTTS(); }, 1500);
             }
+
+            if (!isPlaying) return;
+            playCurrentChunk(firstUrl);
         } 
-
-        // Hàm chuẩn bị sẵn chương tiếp theo
-        async function preloadNextChapter() {
-            if (currentChapterIndex + 1 < chapters.length) {
-                let nextChapText = chapters[currentChapterIndex + 1].content;
-                let nextChunks = splitTextForAPI(nextChapText);
-                if (nextChunks.length > 0) {
-                    try {
-                        let firstNextUrl = await getAudioBlob(nextChunks[0]);
-                        preloadedNextChapterChunks = {
-                            chunks: nextChunks,
-                            firstUrl: firstNextUrl
-                        };
-                    } catch(e) {}
-                }
-            }
-        }
 
         async function playCurrentChunk(url) {
             if (!isPlaying) return;
@@ -273,11 +275,6 @@
 
             if (!nextBlobUrl && currentChunkIndex + 2 < chunks.length) {
                 getAudioBlob(chunks[currentChunkIndex + 2]).then(u => { nextBlobUrl = u; }).catch(() => {});
-            }
-
-            // Khi còn khoảng 3 đoạn cuối của chương hiện tại, tiến hành nạp ngầm chương tiếp theo nếu chưa nạp
-            if (currentChunkIndex >= chunks.length - 3 && !preloadedNextChapterChunks && currentChapterIndex < chapters.length - 1) {
-                preloadNextChapter();
             }
 
             activeAudio.onended = async () => {
@@ -301,7 +298,7 @@
 
                         playCurrentChunk(currentUrlToPlay);
                     } else {
-                        status.textContent = `⏳ Đang đồng bộ phần ${currentChunkIndex + 1}/${chunks.length}...`;
+                        status.textContent = `⏳ Đang tải phần tiếp theo...`;
                         try {
                             const freshUrl = await getAudioBlob(chunks[currentChunkIndex]);
                             if (currentChunkIndex + 1 < chunks.length) {
@@ -309,35 +306,17 @@
                             }
                             playCurrentChunk(freshUrl);
                         } catch (e) {
-                            status.textContent = `⚠️ Mất kết nối, đang thử lại phần ${currentChunkIndex + 1}...`;
+                            status.textContent = `⚠️ Đang thử lại phần ${currentChunkIndex + 1}...`;
                             setTimeout(() => { playCurrentChunk(url); }, 2000);
                         }
                     }
                 } else {
-                    // --- CHUYỂN CHƯƠNG TỨC THÌ KHÔNG DELAY ---
                     if (currentChapterIndex < chapters.length - 1) {
                         status.textContent = "⏭ Đang chuyển chương tiếp theo...";
                         currentChapterIndex++;
                         chapterSelect.value = currentChapterIndex;
                         loadSelectedChapter();
-
-                        if (preloadedNextChapterChunks) {
-                            chunks = preloadedNextChapterChunks.chunks;
-                            let firstChapUrl = preloadedNextChapterChunks.firstUrl;
-                            currentChunkIndex = 0;
-                            nextBlobUrl = null;
-                            preloadedNextChapterChunks = null;
-
-                            if (chunks.length > 1) {
-                                getAudioBlob(chunks[1]).then(u => { nextBlobUrl = u; }).catch(() => {});
-                            }
-                            if (currentChapterIndex < chapters.length - 1) {
-                                preloadNextChapter();
-                            }
-                            playCurrentChunk(firstChapUrl);
-                        } else {
-                            setTimeout(() => { if (isPlaying) startTTS(); }, 100);
-                        }
+                        setTimeout(() => { if (isPlaying) startTTS(); }, 100);
                     } else {
                         status.textContent = "✅ Đã đọc hết truyện.";
                         isPlaying = false;
@@ -353,7 +332,7 @@
             audioA.src = "";
             audioB.src = "";
             nextBlobUrl = null;
-            preloadedNextChapterChunks = null;
+            preloadedFirstUrl = null;
             status.textContent = "⏹ Đã dừng đọc."; 
         }
     </script>
