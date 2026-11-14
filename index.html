@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Perfect 1-1 Sync</title>
+    <title>Local Tunnel Story Reader - Perfect Paragraph Sync</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -162,21 +162,24 @@
             } 
         }); 
 
-        // --- TÁCH ĐOẠN 1-1 CHUẨN XÁC TUYỆT ĐỐI ---
+        // --- TÁCH ĐOẠN THEO KHỐI VĂN BẢN PHẲNG (CHỐNG LỆCH 100%) ---
         function splitTextForAPI(text) {
             let currentTitle = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "Chương mới";
             
-            const lines = text.split(/\r?\n/);
             const result = [];
-            
             result.push(currentTitle);
 
-            lines.forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
-                if (trimmed === currentTitle) return;
+            let paragraphs = text.split(/\r?\n\s*\r?\n/);
+            if (paragraphs.length <= 1) {
+                paragraphs = text.split(/(?<=[.?!;…])\s+/);
+            }
 
-                result.push(trimmed);
+            paragraphs.forEach(para => {
+                let cleaned = para.replace(/\r?\n/g, ' ').trim();
+                if (!cleaned) return;
+                if (cleaned === currentTitle) return;
+
+                result.push(cleaned);
             });
 
             return result.filter(ch => ch.length > 0);
