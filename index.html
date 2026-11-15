@@ -130,8 +130,10 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
 
+            doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
+                if (el.tagName === "DIV" && el.querySelector("p, div, h1, h2, h3, h4, li, blockquote")) return;
                 el.appendChild(doc.createTextNode("\n"));
             });
 
@@ -144,21 +146,31 @@
 
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
-            const cleanLines = [];
+            const mergedLines = [];
             const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
+            const endPunctRegex = /[.?!;:…)"'”’»\]]$/;
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown" && validCharRegex.test(trimmed)) {
-                    cleanLines.push(trimmed);
+                if (trimmed.length === 0 || trimmed.toLowerCase() === "unknown" || !validCharRegex.test(trimmed)) {
+                    continue;
                 }
+
+                if (mergedLines.length > 0) {
+                    let prev = mergedLines[mergedLines.length - 1];
+                    if (!endPunctRegex.test(prev) && !CHAPTER_REGEX.test(trimmed) && !CHAPTER_REGEX.test(prev)) {
+                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
+                        continue;
+                    }
+                }
+                mergedLines.push(trimmed);
             }
 
             const finalChunks = [];
             const MAX_LEN = 700;
             let currentBuf = "";
 
-            for (let para of cleanLines) {
+            for (let para of mergedLines) {
                 if (para.length > MAX_LEN) {
                     if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
                         finalChunks.push(currentBuf.trim());
