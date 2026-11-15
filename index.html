@@ -2,43 +2,182 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local AI Story Reader - Trình Đọc Truyện Giọng Đọc AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Local AI Story Reader</title>
     <script src="https://cloudflare.com"></script>
-    <script src="https://tailwindcss.com"></script>
     <style>
-        body { background-color: #090d16; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        #storyContainer p { margin: 0 0 10px 0; padding: 10px 12px; border-radius: 8px; transition: background-color 0.15s, color 0.15s; cursor: pointer; border-left: 3px solid transparent; }
-        #storyContainer p.active-chunk { background-color: rgba(16, 185, 129, 0.2); color: #ffffff; font-weight: 600; border-left: 3px solid #10b981; }
-        #pipVideo { width: 100%; height: 130px; background: #000; border-radius: 8px; object-fit: cover; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 14px;
+            background-color: #090d16;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 820px;
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 100vh;
+        }
+        .card {
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 17px;
+            color: #34d399;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-blue { background-color: #2563eb; }
+        .btn-green { background-color: #059669; flex: 1; }
+        .btn-sky { background-color: #0284c7; }
+        .btn-red { background-color: #e11d48; }
+        select {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        #chapterSelect {
+            width: 100%;
+            margin-top: 10px;
+            display: none;
+        }
+        #file-name {
+            font-size: 13px;
+            color: #94a3b8;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 180px;
+        }
+        #server-indicator {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            background: #020617;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #1e293b;
+            word-break: break-all;
+            cursor: pointer;
+        }
+        #storyContainer {
+            flex: 1;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.65;
+            color: #cbd5e1;
+        }
+        #storyContainer p {
+            margin: 0 0 10px 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            transition: background-color 0.15s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+        #storyContainer p.active-chunk {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #ffffff;
+            font-weight: 600;
+            border-left: 3px solid #10b981;
+        }
+        #status {
+            font-size: 13px;
+            color: #fcd34d;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        #pipVideo {
+            width: 100%;
+            height: 95px;
+            background: #000;
+            border-radius: 8px;
+            object-fit: cover;
+            display: block;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col p-4 md:p-6 max-w-4xl mx-auto gap-4">
+<body>
 
-    <!-- Header -->
-    <header class="bg-slate-900/90 border border-slate-800 rounded-xl px-5 py-3.5 flex justify-between items-center shadow-md">
-        <h1 class="text-base md:text-lg font-bold text-emerald-400 flex items-center gap-2">
-            🎧 Local AI Story Reader
-        </h1>
-        <div id="connection-status" onclick="changeServerUrl()" class="text-xs px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-pointer hover:bg-emerald-500/30 transition shadow-inner font-medium" title="Chạm để đổi link Server Tunnel">
-            ● Local Server
+    <header class="card">
+        <h1>🎧 AI Story Reader</h1>
+        <div id="connection-status" class="badge" onclick="changeServerUrl()">
+            ⚙ Đổi Link Server
         </div>
     </header>
 
-    <!-- Toolbar -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-md">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <label class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg cursor-pointer transition flex items-center gap-2 shadow text-sm">
-                📂 Mở file TXT / EPUB
-                <input type="file" id="fileInput" accept=".txt,.epub" class="hidden" onclick="this.value=null;">
+    <div class="card">
+        <div class="row">
+            <label class="btn btn-blue">
+                📂 Mở TXT / EPUB
+                <input type="file" id="fileInput" accept=".txt,.epub" style="display:none;" onclick="this.value=null;">
             </label>
-            <span id="file-name" class="text-xs md:text-sm text-slate-400 italic truncate max-w-[200px]">Chưa chọn file nào</span>
+            <span id="file-name">Chưa chọn file nào</span>
         </div>
 
-        <select id="chapterSelect" class="w-full bg-slate-800 text-slate-200 border border-slate-700 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500" style="display: none;" onchange="onChapterChange()"></select>
+        <select id="chapterSelect" onchange="onChapterChange()"></select>
 
-        <div class="flex flex-wrap items-center gap-2 pt-1">
-            <select id="speedSelect" onchange="updateSpeed()" class="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="controls">
+            <select id="speedSelect" onchange="updateSpeed()">
                 <option value="0.8">0.8x</option>
                 <option value="1.0" selected>1.0x</option>
                 <option value="1.25">1.25x</option>
@@ -47,71 +186,54 @@
                 <option value="2.0">2.0x</option>
             </select>
 
-            <button class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg transition shadow text-sm" onclick="startTTS(currentChunkIndex)">▶ Đọc</button>
-            <button class="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-3 rounded-lg transition shadow text-sm" onclick="togglePiP()">🔲 PiP</button>
-            <button class="bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2 px-3 rounded-lg transition shadow text-sm" onclick="stopTTS()">■ Dừng</button>
+            <button class="btn btn-green" onclick="startTTS(currentChunkIndex)">▶ Đọc</button>
+            <button class="btn btn-sky" onclick="togglePiP()">🔲 PiP</button>
+            <button class="btn btn-red" onclick="stopTTS()">■ Dừng</button>
         </div>
         
-        <div id="server-indicator" class="text-[11px] text-slate-400 truncate bg-slate-950/60 px-3 py-1.5 rounded border border-slate-800/80">Server: Đang tải...</div>
+        <div id="server-indicator" onclick="changeServerUrl()">Server: Đang tải...</div>
     </div>
 
-    <!-- Nội dung truyện -->
-    <div id="storyContainer" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 md:p-6 flex-1 overflow-y-auto max-h-[420px] text-slate-300 text-sm md:text-base leading-relaxed shadow-inner">
-        Vui lòng mở file văn bản (.txt) hoặc sách điện tử (.epub) để bắt đầu đọc truyện với giọng đọc AI chất lượng cao...
+    <div id="storyContainer" class="card">
+        Vui lòng mở file văn bản (.txt) hoặc sách điện tử (.epub) để bắt đầu đọc truyện...
     </div>
     
-    <!-- Trạng thái & PiP -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col gap-2 shadow-md">
-        <div id="status" class="text-xs text-amber-300 font-semibold px-1">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
-        <video id="pipVideo" controls playsinline muted class="w-full h-24 bg-black rounded-lg object-cover"></video>
+    <div class="card">
+        <div id="status">Sẵn sàng! Hãy chọn file truyện (.txt hoặc .epub).</div>
+        <video id="pipVideo" controls playsinline muted></video>
     </div>
 
     <script>
         // --- 1. QUẢN LÝ URL SERVER ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
-        const MAX_CHUNK_CHARS = 700; // Độ dài mỗi đoạn đọc (~700 ký tự, gom nhiều câu ngắn thành 1 đoạn dài)
+        const MAX_CHUNK_CHARS = 700;
 
         function getApiUrl() {
             return SERVER_BASE.replace(/\/$/, "") + "/tts";
         }
 
         function updateServerIndicator() {
-            document.getElementById('server-indicator').textContent = "Server: " + getApiUrl();
+            document.getElementById('server-indicator').textContent = "Server (Chạm để đổi): " + getApiUrl();
             localStorage.setItem("my_tts_server_url", SERVER_BASE);
             
             const statusBadge = document.getElementById("connection-status");
             if (SERVER_BASE.includes("trycloudflare.com")) {
-                statusBadge.textContent = "● Đã kết nối Cloudflare";
+                statusBadge.textContent = "● Cloudflare OK";
             } else {
-                statusBadge.textContent = "● Local Server";
+                statusBadge.textContent = "⚙ Đổi Link Server";
             }
         }
 
-        async function autoFetchTunnelUrl() {
-            try {
-                const res = await fetch(SERVER_BASE.replace(/\/$/, "") + "/get_latest_url");
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === "success" && data.url && data.url.startsWith("http")) {
-                        SERVER_BASE = data.url;
-                        updateServerIndicator();
-                    }
-                }
-            } catch (e) {}
-        }
-
         function changeServerUrl() {
-            let newUrl = prompt("Nhập đường dẫn Server / Cloudflare Tunnel mới:", SERVER_BASE);
-            if (newUrl) {
+            let newUrl = prompt("Dán link Cloudflare Tunnel (ví dụ: https://trycloudflare.com):", SERVER_BASE);
+            if (newUrl && newUrl.trim()) {
                 SERVER_BASE = newUrl.trim();
                 updateServerIndicator();
                 clearAudioCache();
-                alert("Đã cập nhật link server thành công!");
             }
         }
 
         updateServerIndicator();
-        autoFetchTunnelUrl();
 
         // --- 2. BIẾN HỆ THỐNG ---
         const fileInput = document.getElementById('fileInput');
@@ -135,10 +257,10 @@
         let activePlayerIdx = 0;
         let isPlaying = false;
         let playSessionId = 0;
-        let audioCache = {};      // index -> Promise<blobUrl>
-        let resolvedUrls = {};    // index -> blobUrl
+        let audioCache = {};
+        let resolvedUrls = {};
         let canvasStreamInitialized = false;
-        let pipText = "Local AI Story Reader";
+        let pipText = "AI Story Reader";
 
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
 
@@ -157,7 +279,6 @@
                 const p = rawP.replace(/\s+/g, " ").trim();
                 if (!p) continue;
 
-                // Nếu đoạn đơn lẻ dài hơn maxLen thì tách theo dấu câu rồi gom lại
                 if (p.length > maxLen) {
                     if (buffer) {
                         result.push(buffer);
@@ -176,23 +297,3 @@
                     }
                 } else {
                     if ((buffer + "\n" + p).trim().length <= maxLen) {
-                        buffer = buffer ? (buffer + "\n" + p) : p;
-                    } else {
-                        if (buffer) result.push(buffer);
-                        buffer = p;
-                    }
-                }
-            }
-            if (buffer) result.push(buffer);
-            return result;
-        }
-
-        function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
-            for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
-                const line = paragraphs[i].trim();
-                if (CHAPTER_REGEX.test(line)) return line.substring(0, 65);
-            }
-            if (htmlDoc) {
-                const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
-                for (let h of headings) {
-                    const t = h.textContent.replace(/\s+/g, ' ').trim();
