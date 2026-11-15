@@ -55,7 +55,6 @@
     <video id="pipVideo" controls playsinline muted></video>
 
     <script>
-        // Tự động lấy link từ bộ nhớ trình duyệt, nếu chưa có thì dùng mặc định localhost
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
         
         function getApiUrl() {
@@ -156,14 +155,16 @@
             }
 
             const finalChunks = [];
-            const MAX_LEN = 220;
+            const MAX_LEN = 700;
+            let currentBuf = "";
 
             for (let para of cleanLines) {
-                if (para.length <= MAX_LEN) {
-                    finalChunks.push(para);
-                } else {
+                if (para.length > MAX_LEN) {
+                    if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
+                        finalChunks.push(currentBuf.trim());
+                        currentBuf = "";
+                    }
                     const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
-                    let currentBuf = "";
                     for (let s of sentences) {
                         if ((currentBuf + " " + s).trim().length > MAX_LEN) {
                             if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
@@ -174,10 +175,20 @@
                             currentBuf = (currentBuf + " " + s).trim();
                         }
                     }
-                    if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
-                        finalChunks.push(currentBuf.trim());
+                } else {
+                    if ((currentBuf + " " + para).trim().length > MAX_LEN) {
+                        if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
+                            finalChunks.push(currentBuf.trim());
+                        }
+                        currentBuf = para;
+                    } else {
+                        currentBuf = (currentBuf + " " + para).trim();
                     }
                 }
+            }
+
+            if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
+                finalChunks.push(currentBuf.trim());
             }
             return finalChunks;
         }
@@ -370,7 +381,7 @@
             try {
                 while (session === playSessionId) {
                     const base = isPlaying ? currentChunkIndex : startIdx;
-                    const lookahead = isPlaying ? 8 : 2;
+                    const lookahead = isPlaying ? 4 : 2;
                     const limit = Math.min(chunks.length - 1, base + lookahead);
 
                     let target = -1;
