@@ -71,6 +71,7 @@
             if (newUrl) {
                 SERVER_BASE = newUrl.trim();
                 updateServerIndicator();
+                clearAudioCache();
                 alert("Đã cập nhật link server thành công!");
             }
         }
@@ -99,9 +100,7 @@
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
-        let nextChapterCache = {};
-        let nextChapterUrls = {};
-        let nextChapterPrefetchStarted = false;
+        let nextChapterPrefetch = null; // Bộ đệm riêng biệt cho chương kế tiếp: { chapterIdx, chunks, audioCache, resolvedUrls }
         let workerRunning = false;
         let canvasStreamInitialized = false;
 
@@ -133,7 +132,6 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
 
-            doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
                 el.appendChild(doc.createTextNode("\n"));
@@ -148,23 +146,29 @@
 
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
-            const mergedLines = [];
+            const cleanLines = [];
             const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-            const endPunctRegex = /[.?!;…:»”"']$/;
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (trimmed.length === 0 || trimmed.toLowerCase() === "unknown" || !validCharRegex.test(trimmed)) {
-                    continue;
+                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown" && validCharRegex.test(trimmed)) {
+                    cleanLines.push(trimmed);
                 }
+            }
+
+            // Nối thông minh các dòng bị ngắt lửng giữa câu (chưa có dấu kết thúc câu)
+            const mergedLines = [];
+            for (let line of cleanLines) {
                 if (mergedLines.length > 0) {
                     const prev = mergedLines[mergedLines.length - 1];
-                    if (!endPunctRegex.test(prev) && !CHAPTER_REGEX.test(trimmed) && !CHAPTER_REGEX.test(prev)) {
-                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
+                    const isPrevIncomplete = !/[.?!;:…”"']$/.test(prev);
+                    const isCurrContinuation = /^[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/.test(line);
+                    if (isPrevIncomplete || isCurrContinuation) {
+                        mergedLines[mergedLines.length - 1] = prev + " " + line;
                         continue;
                     }
                 }
-                mergedLines.push(trimmed);
+                mergedLines.push(line);
             }
 
             const finalChunks = [];
@@ -211,6 +215,7 @@
             if (!file) return;
 
             stopTTS();
+            clearAllCaches();
             status.textContent = `⏳ Đang phân tích file: ${file.name}...`;
             storyContainer.innerHTML = "Đang tải nội dung...";
             chapters = [];
@@ -291,8 +296,8 @@
 
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
-                renderChapter(0, false);
-                status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "Đọc" hoặc chạm vào câu bất kỳ.`;
+                renderChapter(0);
+                status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "Đọc" hoặc chạm vào đoạn bất kỳ.`;
             } catch (err) {
                 console.error(err);
                 status.textContent = `❌ Lỗi đọc file: ${err.message}`;
@@ -302,13 +307,13 @@
         function onChapterChange() {
             const wasPlaying = isPlaying;
             stopTTS();
-            renderChapter(parseInt(chapterSelect.value), false);
+            renderChapter(parseInt(chapterSelect.value));
             if (wasPlaying) {
                 startTTS(0);
             }
         }
 
-        function renderChapter(index, inheritNextCache = false) {
+        function renderChapter(index) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
@@ -321,7 +326,19 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            clearAudioCache(inheritNextCache);
+            // Dọn bộ nhớ đệm chương cũ, nhưng nếu đã tải trước đúng chương này thì kế thừa luôn!
+            for (let key in resolvedUrls) {
+                URL.revokeObjectURL(resolvedUrls[key]);
+            }
+            audioCache = {};
+            resolvedUrls = {};
+
+            if (nextChapterPrefetch && nextChapterPrefetch.chapterIdx === index) {
+                audioCache = nextChapterPrefetch.audioCache;
+                resolvedUrls = nextChapterPrefetch.resolvedUrls;
+            }
+            nextChapterPrefetch = null;
+
             startBackgroundWorker(0, playSessionId);
         }
 
@@ -329,27 +346,26 @@
             startTTS(index);
         }
 
-        function clearAudioCache(inheritNextCache = false) {
+        function clearAudioCache() {
+            audioCache = {};
             for (let key in resolvedUrls) {
                 URL.revokeObjectURL(resolvedUrls[key]);
             }
-            if (inheritNextCache) {
-                audioCache = { ...nextChapterCache };
-                resolvedUrls = { ...nextChapterUrls };
-            } else {
-                for (let key in nextChapterUrls) {
-                    URL.revokeObjectURL(nextChapterUrls[key]);
+            resolvedUrls = {};
+        }
+
+        function clearAllCaches() {
+            clearAudioCache();
+            if (nextChapterPrefetch && nextChapterPrefetch.resolvedUrls) {
+                for (let key in nextChapterPrefetch.resolvedUrls) {
+                    URL.revokeObjectURL(nextChapterPrefetch.resolvedUrls[key]);
                 }
-                audioCache = {};
-                resolvedUrls = {};
             }
-            nextChapterCache = {};
-            nextChapterUrls = {};
-            nextChapterPrefetchStarted = false;
+            nextChapterPrefetch = null;
         }
 
         async function fetchAudioSingle(text, session) {
-            for (let attempt = 0; attempt < 3; attempt++) {
+            for (let attempt = 0; attempt < 2; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 try {
                     const response = await fetch(getApiUrl(), {
@@ -359,18 +375,18 @@
                     });
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
-                    if (blob.size < 16) throw new Error("Empty blob");
+                    if (blob.size < 32) throw new Error("Empty audio");
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (session !== playSessionId) throw err;
-                    if (attempt === 2) throw err;
-                    await new Promise(r => setTimeout(r, 500));
+                    if (attempt === 1) throw err;
+                    await new Promise(r => setTimeout(r, 400));
                 }
             }
         }
 
         function ensureChunkPromise(index, session) {
-            if (index >= chunks.length) return null;
+            if (index < 0 || index >= chunks.length) return null;
             if (!audioCache[index]) {
                 audioCache[index] = fetchAudioSingle(chunks[index], session).then(url => {
                     if (session === playSessionId) {
@@ -388,26 +404,31 @@
             return audioCache[index];
         }
 
-        function prefetchNextChapter(session) {
-            if (nextChapterPrefetchStarted) return;
-            const nextChapIdx = currentChapterIndex + 1;
+        // Tải trước riêng biệt 2 đoạn đầu của chương kế tiếp (không đụng chạm vào audioCache hiện tại)
+        function prefetchNextChapter(nextChapIdx, session) {
             if (nextChapIdx >= chapters.length) return;
+            if (nextChapterPrefetch && nextChapterPrefetch.chapterIdx === nextChapIdx) return;
 
-            nextChapterPrefetchStarted = true;
-            const nextParas = chapters[nextChapIdx].paragraphs || [];
-            const count = Math.min(2, nextParas.length);
+            const nextChunks = chapters[nextChapIdx].paragraphs;
+            if (!nextChunks || nextChunks.length === 0) return;
 
+            nextChapterPrefetch = {
+                chapterIdx: nextChapIdx,
+                audioCache: {},
+                resolvedUrls: {}
+            };
+
+            const box = nextChapterPrefetch;
+            const count = Math.min(2, nextChunks.length);
             for (let i = 0; i < count; i++) {
-                if (!nextChapterCache[i]) {
-                    nextChapterCache[i] = fetchAudioSingle(nextParas[i], session).then(url => {
-                        if (session === playSessionId) {
-                            nextChapterUrls[i] = url;
-                        }
-                        return url;
-                    }).catch(() => {
-                        delete nextChapterCache[i];
-                    });
-                }
+                box.audioCache[i] = fetchAudioSingle(nextChunks[i], session).then(url => {
+                    if (session === playSessionId && nextChapterPrefetch === box) {
+                        box.resolvedUrls[i] = url;
+                    }
+                    return url;
+                }).catch(err => {
+                    delete box.audioCache[i];
+                });
             }
         }
 
@@ -428,7 +449,7 @@
             try {
                 while (session === playSessionId) {
                     const base = isPlaying ? currentChunkIndex : startIdx;
-                    const lookahead = isPlaying ? 4 : 2;
+                    const lookahead = isPlaying ? 3 : 1;
                     const limit = Math.min(chunks.length - 1, base + lookahead);
 
                     let target = -1;
@@ -440,8 +461,9 @@
                     }
 
                     if (target === -1) {
-                        if (isPlaying && base >= chunks.length - 2) {
-                            prefetchNextChapter(session);
+                        // Khi đã tải xong đến cuối chương hiện tại, tự động nạp trước chương sau
+                        if (isPlaying && base >= chunks.length - 2 && currentChapterIndex + 1 < chapters.length) {
+                            prefetchNextChapter(currentChapterIndex + 1, session);
                         }
                         break;
                     }
@@ -457,7 +479,7 @@
             }
         }
 
-        async function startTTS(startIndex = 0, inheritNextCache = false) {
+        async function startTTS(startIndex = 0) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
@@ -489,32 +511,11 @@
         }
 
         async function playLoop(session) {
-            const firstIdx = currentChunkIndex;
-            highlightParagraph(firstIdx);
-
-            if (chunks[firstIdx] && chunks[firstIdx].length < 90 && firstIdx + 1 < chunks.length) {
-                if (!resolvedUrls[firstIdx] || !resolvedUrls[firstIdx + 1]) {
-                    status.textContent = `⚡ Đang chuẩn bị giọng đọc AI...`;
-                }
-                try {
-                    await ensureChunkPromise(firstIdx, session);
-                    if (session !== playSessionId || !isPlaying) return;
-                    const url1 = await ensureChunkPromise(firstIdx + 1, session);
-                    if (session === playSessionId && isPlaying) {
-                        preloadAudioSlot(firstIdx + 1, url1);
-                    }
-                } catch (e) {}
-            }
-
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
                 const activePlayer = players[idx % 2];
 
                 highlightParagraph(idx);
-
-                if (idx >= chunks.length - 2) {
-                    prefetchNextChapter(session);
-                }
 
                 if (!resolvedUrls[idx]) {
                     status.textContent = `⏳ Đang tải giọng đọc (${idx + 1}/${chunks.length})...`;
@@ -525,18 +526,23 @@
                     audioUrl = await ensureChunkPromise(idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang kết nối lại câu ${idx + 1}...`;
-                    await new Promise(r => setTimeout(r, 600));
+                    status.textContent = `⚠️ Bỏ qua đoạn lỗi (${idx + 1}/${chunks.length})...`;
+                    await new Promise(r => setTimeout(r, 400));
+                    currentChunkIndex++;
                     continue;
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
-                    preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
+                if (idx + 1 < chunks.length) {
+                    if (resolvedUrls[idx + 1]) {
+                        preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
+                    }
+                    startBackgroundWorker(idx + 1, session);
+                } else if (currentChapterIndex + 1 < chapters.length) {
+                    // Đang đọc đoạn cuối cùng của chương -> nạp sẵn chương kế tiếp
+                    prefetchNextChapter(currentChapterIndex + 1, session);
                 }
-
-                startBackgroundWorker(idx + 1, session);
 
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
                 await playOnSlot(activePlayer, idx, audioUrl, session);
@@ -558,8 +564,8 @@
                     status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex, true);
-                    startTTS(0, true);
+                    renderChapter(currentChapterIndex);
+                    startTTS(0);
                 } else {
                     status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
                     isPlaying = false;
