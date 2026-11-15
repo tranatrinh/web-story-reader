@@ -99,6 +99,9 @@
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
+        let nextChapterCache = {};
+        let nextChapterUrls = {};
+        let nextChapterPrefetchStarted = false;
         let workerRunning = false;
         let canvasStreamInitialized = false;
 
@@ -121,7 +124,7 @@
                 }
             }
             if (paragraphs.length > 0) {
-                return paragraphs[0].substring(0, 60);
+                return paragraphs.at(0).substring(0, 60);
             }
             return fallbackTitle;
         }
@@ -133,7 +136,6 @@
             doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
-                if (el.tagName === "DIV" && el.querySelector("p, div, h1, h2, h3, h4, li, blockquote")) return;
                 el.appendChild(doc.createTextNode("\n"));
             });
 
@@ -148,16 +150,15 @@
             const rawLines = rawText.split(/\r?\n/);
             const mergedLines = [];
             const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-            const endPunctRegex = /[.?!;:…)"'”’»\]]$/;
+            const endPunctRegex = /[.?!;…:»”"']$/;
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
                 if (trimmed.length === 0 || trimmed.toLowerCase() === "unknown" || !validCharRegex.test(trimmed)) {
                     continue;
                 }
-
                 if (mergedLines.length > 0) {
-                    let prev = mergedLines[mergedLines.length - 1];
+                    const prev = mergedLines[mergedLines.length - 1];
                     if (!endPunctRegex.test(prev) && !CHAPTER_REGEX.test(trimmed) && !CHAPTER_REGEX.test(prev)) {
                         mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
                         continue;
@@ -206,7 +207,7 @@
         }
 
         fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+            const file = e.target.files.item(0);
             if (!file) return;
 
             stopTTS();
@@ -290,7 +291,7 @@
 
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
-                renderChapter(0);
+                renderChapter(0, false);
                 status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "Đọc" hoặc chạm vào câu bất kỳ.`;
             } catch (err) {
                 console.error(err);
@@ -301,13 +302,13 @@
         function onChapterChange() {
             const wasPlaying = isPlaying;
             stopTTS();
-            renderChapter(parseInt(chapterSelect.value));
+            renderChapter(parseInt(chapterSelect.value), false);
             if (wasPlaying) {
                 startTTS(0);
             }
         }
 
-        function renderChapter(index) {
+        function renderChapter(index, inheritNextCache = false) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
@@ -320,7 +321,7 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            clearAudioCache();
+            clearAudioCache(inheritNextCache);
             startBackgroundWorker(0, playSessionId);
         }
 
@@ -328,12 +329,23 @@
             startTTS(index);
         }
 
-        function clearAudioCache() {
-            audioCache = {};
+        function clearAudioCache(inheritNextCache = false) {
             for (let key in resolvedUrls) {
                 URL.revokeObjectURL(resolvedUrls[key]);
             }
-            resolvedUrls = {};
+            if (inheritNextCache) {
+                audioCache = { ...nextChapterCache };
+                resolvedUrls = { ...nextChapterUrls };
+            } else {
+                for (let key in nextChapterUrls) {
+                    URL.revokeObjectURL(nextChapterUrls[key]);
+                }
+                audioCache = {};
+                resolvedUrls = {};
+            }
+            nextChapterCache = {};
+            nextChapterUrls = {};
+            nextChapterPrefetchStarted = false;
         }
 
         async function fetchAudioSingle(text, session) {
@@ -376,6 +388,29 @@
             return audioCache[index];
         }
 
+        function prefetchNextChapter(session) {
+            if (nextChapterPrefetchStarted) return;
+            const nextChapIdx = currentChapterIndex + 1;
+            if (nextChapIdx >= chapters.length) return;
+
+            nextChapterPrefetchStarted = true;
+            const nextParas = chapters[nextChapIdx].paragraphs || [];
+            const count = Math.min(2, nextParas.length);
+
+            for (let i = 0; i < count; i++) {
+                if (!nextChapterCache[i]) {
+                    nextChapterCache[i] = fetchAudioSingle(nextParas[i], session).then(url => {
+                        if (session === playSessionId) {
+                            nextChapterUrls[i] = url;
+                        }
+                        return url;
+                    }).catch(() => {
+                        delete nextChapterCache[i];
+                    });
+                }
+            }
+        }
+
         function preloadAudioSlot(index, url) {
             const slot = players[index % 2];
             if (slot.dataset.loadedIdx !== String(index)) {
@@ -404,7 +439,12 @@
                         }
                     }
 
-                    if (target === -1) break;
+                    if (target === -1) {
+                        if (isPlaying && base >= chunks.length - 2) {
+                            prefetchNextChapter(session);
+                        }
+                        break;
+                    }
 
                     try {
                         await ensureChunkPromise(target, session);
@@ -417,7 +457,7 @@
             }
         }
 
-        async function startTTS(startIndex = 0) {
+        async function startTTS(startIndex = 0, inheritNextCache = false) {
             if (chunks.length === 0) {
                 alert("Vui lòng chọn file truyện trước!");
                 return;
@@ -472,6 +512,10 @@
 
                 highlightParagraph(idx);
 
+                if (idx >= chunks.length - 2) {
+                    prefetchNextChapter(session);
+                }
+
                 if (!resolvedUrls[idx]) {
                     status.textContent = `⏳ Đang tải giọng đọc (${idx + 1}/${chunks.length})...`;
                 }
@@ -514,8 +558,8 @@
                     status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex);
-                    startTTS(0);
+                    renderChapter(currentChapterIndex, true);
+                    startTTS(0, true);
                 } else {
                     status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
                     isPlaying = false;
