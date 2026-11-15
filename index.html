@@ -12,15 +12,13 @@
         button:active { opacity: 0.7; }
         .btn-play { background-color: #4CAF50; }
         .btn-stop { background-color: #f44336; }
-        .btn-pip { background-color: #2196F3; }
         .btn-config { background-color: #ff9800; }
         select, input[type="file"] { padding: 8px; background-color: #2d2d2d; color: white; border: 1px solid #555; border-radius: 6px; font-size: 14px; max-width: 100%; }
         
-        #storyContainer { width: 100%; height: 50vh; background-color: #1a1a1a; color: #9e9e9e; font-size: 17px; line-height: 1.65; padding: 14px; border: 1px solid #333; border-radius: 10px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
+        #storyContainer { width: 100%; height: 68vh; background-color: #1a1a1a; color: #9e9e9e; font-size: 17px; line-height: 1.65; padding: 14px; border: 1px solid #333; border-radius: 10px; box-sizing: border-box; overflow-y: auto; margin-bottom: 10px; }
         #storyContainer p { margin: 0 0 10px 0; padding: 8px 10px; border-radius: 8px; transition: background-color 0.15s, color 0.15s; cursor: pointer; border-left: 3px solid transparent; }
         #storyContainer p.active-chunk { background-color: rgba(76, 175, 80, 0.22); color: #ffffff; font-weight: 600; border-left: 3px solid #4CAF50; }
         
-        #pipVideo { width: 100%; height: 130px; background: #000; border-radius: 8px; object-fit: cover; }
         #status { font-size: 13px; color: #ffeb3b; width: 100%; margin-top: 4px; font-weight: 600; }
         #server-indicator { font-size: 12px; color: #8bc34a; width: 100%; word-break: break-all; background: #222; padding: 4px 8px; border-radius: 4px; }
     </style>
@@ -41,8 +39,7 @@
             <option value="2.0">2.0x</option>
         </select>
 
-        <button class="btn-play" onclick="startTTS(0)">▶ Đọc</button>
-        <button class="btn-pip" onclick="togglePiP()">🔲 PiP</button>
+        <button class="btn-play" onclick="startTTS(currentChunkIndex)">▶ Đọc</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
         <button class="btn-config" onclick="changeServerUrl()">🔗 Đổi Link Server</button>
         
@@ -51,8 +48,6 @@
     </div>
 
     <div id="storyContainer">Nội dung truyện sẽ hiển thị ở đây sau khi bạn chọn file...</div>
-    
-    <video id="pipVideo" controls playsinline muted></video>
 
     <script>
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
@@ -82,39 +77,110 @@
         const status = document.getElementById('status');
         const chapterSelect = document.getElementById('chapterSelect');
         const speedSelect = document.getElementById('speedSelect');
-        const pipVideo = document.getElementById('pipVideo');
 
         let chapters = [];
+        let bookTitle = "Truyện Audio AI";
         let currentChapterIndex = 0;
         let chunks = [];
         let currentChunkIndex = 0;
 
+        // 2 kênh phát TTS luân phiên + 1 kênh giữ nhịp chạy nền (Silent Keep-Alive) cho iOS/Android
         const players = [new Audio(), new Audio()];
         players.forEach(p => {
             p.playsInline = true;
             p.preload = "auto";
         });
 
+        const keepAliveAudio = new Audio();
+        keepAliveAudio.playsInline = true;
+        keepAliveAudio.loop = true;
+        keepAliveAudio.volume = 0.01;
+
+        function createSilentWavUrl(durationSec = 2) {
+            const sampleRate = 8000;
+            const numSamples = sampleRate * durationSec;
+            const dataSize = numSamples * 2;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+            const writeStr = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, dataSize, true);
+            return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+        }
+        keepAliveAudio.src = createSilentWavUrl(3);
+
         let isPlaying = false;
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
-        let activeControllers = [];
+        let activeControllers = {};
         let workerRunning = false;
-        let canvasStreamInitialized = false;
+        let wakeLock = null;
 
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
 
-        function abortAllPendingRequests() {
-            while (activeControllers.length > 0) {
-                const ctrl = activeControllers.pop();
-                try { ctrl.abort(); } catch (e) {}
+        // --- MEDIA SESSION API (ĐIỀU KHIỂN NGOÀI MÀN HÌNH KHÓA & CHẠY NỀN NHƯ YOUTUBE) ---
+        function updateMediaSessionMetadata() {
+            if (!('mediaSession' in navigator)) return;
+            const chapTitle = chapters.at(currentChapterIndex)?.title || "Đang đọc truyện";
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `${chapTitle} (${currentChunkIndex + 1}/${chunks.length})`,
+                artist: bookTitle,
+                album: "Local AI Story Reader"
+            });
+            navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+        }
+
+        function setupMediaSessionHandlers() {
+            if (!('mediaSession' in navigator)) return;
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (!isPlaying && chunks.length > 0) startTTS(currentChunkIndex);
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                stopTTS();
+            });
+            navigator.mediaSession.setActionHandler('stop', () => {
+                stopTTS();
+            });
+            navigator.mediaSession.setActionHandler('previoustrack', () => {
+                if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1));
+            });
+            navigator.mediaSession.setActionHandler('nexttrack', () => {
+                if (chunks.length > 0) startTTS(Math.min(chunks.length - 1, currentChunkIndex + 1));
+            });
+        }
+        setupMediaSessionHandlers();
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => { wakeLock = null; });
+                }
+            } catch (e) {}
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release().catch(() => {});
+                wakeLock = null;
             }
         }
 
         function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
             for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
-                const line = paragraphs[i].trim();
+                const line = paragraphs.at(i).trim();
                 if (CHAPTER_REGEX.test(line)) {
                     return line.substring(0, 65);
                 }
@@ -129,7 +195,7 @@
                 }
             }
             if (paragraphs.length > 0) {
-                return paragraphs[0].substring(0, 60);
+                return paragraphs.at(0).substring(0, 60);
             }
             return fallbackTitle;
         }
@@ -140,7 +206,6 @@
 
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
-                if (el.tagName === "DIV" && el.querySelector("p, div, h1, h2, h3, h4, li, blockquote")) return;
                 el.appendChild(doc.createTextNode("\n"));
             });
 
@@ -163,28 +228,11 @@
                 }
             }
 
-            // Nối thông minh các dòng bị ngắt ngang câu
-            const mergedParas = [];
-            for (let line of cleanLines) {
-                if (mergedParas.length === 0) {
-                    mergedParas.push(line);
-                } else {
-                    const prev = mergedParas[mergedParas.length - 1];
-                    const isPrevEnded = /[.!?…:;”"']$/.test(prev);
-                    const isCurrHeading = CHAPTER_REGEX.test(line);
-                    if (!isPrevEnded && !isCurrHeading) {
-                        mergedParas[mergedParas.length - 1] = prev + " " + line;
-                    } else {
-                        mergedParas.push(line);
-                    }
-                }
-            }
-
             const finalChunks = [];
-            const MAX_LEN = 400; // Tối ưu 400 ký tự cho máy server yếu
+            const MAX_LEN = 400;
             let currentBuf = "";
 
-            for (let para of mergedParas) {
+            for (let para of cleanLines) {
                 if (para.length > MAX_LEN) {
                     if (currentBuf.trim() && validCharRegex.test(currentBuf)) {
                         finalChunks.push(currentBuf.trim());
@@ -220,10 +268,11 @@
         }
 
         fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+            const file = e.target.files.item(0);
             if (!file) return;
 
             stopTTS();
+            bookTitle = file.name.replace(/\.(txt|epub)$/i, "");
             status.textContent = `⏳ Đang phân tích file: ${file.name}...`;
             storyContainer.innerHTML = "Đang tải nội dung...";
             chapters = [];
@@ -277,7 +326,7 @@
 
                     const spineItems = opfDoc.querySelectorAll("spine > itemref");
                     for (let i = 0; i < spineItems.length; i++) {
-                        const idref = spineItems[i].getAttribute("idref");
+                        const idref = spineItems.item(i).getAttribute("idref");
                         const href = manifest[idref];
                         if (href) {
                             const filePath = basePath + decodeURIComponent(href);
@@ -305,7 +354,7 @@
                 chapterSelect.style.display = "block";
                 chapterSelect.value = 0;
                 renderChapter(0);
-                status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "▶ Đọc" hoặc chạm vào đoạn bất kỳ.`;
+                status.textContent = `✅ Đã tải ${chapters.length} chương! Bấm "▶ Đọc" (tự chạy nền khi thoát app).`;
             } catch (err) {
                 console.error(err);
                 status.textContent = `❌ Lỗi đọc file: ${err.message}`;
@@ -323,7 +372,7 @@
 
         function renderChapter(index) {
             currentChapterIndex = index;
-            const chap = chapters[currentChapterIndex];
+            const chap = chapters.at(currentChapterIndex);
             if (!chap) return;
 
             chunks = chap.paragraphs;
@@ -334,12 +383,18 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            // Bấm mới gọi: Không tự gọi ngầm khi chưa bấm Đọc
             clearAudioCache();
         }
 
         function jumpToChunk(index) {
             startTTS(index);
+        }
+
+        function abortAllPendingRequests() {
+            for (let key in activeControllers) {
+                try { activeControllers[key].abort(); } catch (e) {}
+            }
+            activeControllers = {};
         }
 
         function clearAudioCache() {
@@ -351,11 +406,11 @@
             resolvedUrls = {};
         }
 
-        async function fetchAudioSingle(text, session) {
+        async function fetchAudioSingle(text, index, session) {
             for (let attempt = 0; attempt < 2; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 const controller = new AbortController();
-                activeControllers.push(controller);
+                activeControllers[index] = controller;
                 try {
                     const response = await fetch(getApiUrl(), {
                         method: 'POST',
@@ -365,9 +420,11 @@
                     });
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
-                    if (blob.size < 50) throw new Error("Empty blob");
+                    if (blob.size < 16) throw new Error("Empty blob");
+                    delete activeControllers[index];
                     return URL.createObjectURL(blob);
                 } catch (err) {
+                    delete activeControllers[index];
                     if (err.name === 'AbortError' || session !== playSessionId) throw new Error("Cancelled");
                     if (attempt === 1) throw err;
                     await new Promise(r => setTimeout(r, 400));
@@ -376,9 +433,9 @@
         }
 
         function ensureChunkPromise(index, session) {
-            if (index >= chunks.length) return null;
+            if (index < 0 || index >= chunks.length) return null;
             if (!audioCache[index]) {
-                audioCache[index] = fetchAudioSingle(chunks[index], session).then(url => {
+                audioCache[index] = fetchAudioSingle(chunks.at(index), index, session).then(url => {
                     if (session === playSessionId) {
                         resolvedUrls[index] = url;
                         if (isPlaying && index === currentChunkIndex + 1) {
@@ -395,7 +452,7 @@
         }
 
         function preloadAudioSlot(index, url) {
-            const slot = players[index % 2];
+            const slot = players.at(index % 2);
             if (slot.dataset.loadedIdx !== String(index)) {
                 slot.src = url;
                 slot.dataset.loadedIdx = String(index);
@@ -405,13 +462,13 @@
         }
 
         async function startBackgroundWorker(startIdx, session) {
-            if (workerRunning) return;
+            if (workerRunning || !isPlaying) return;
             workerRunning = true;
 
             try {
-                while (session === playSessionId && isPlaying) {
+                while (isPlaying && session === playSessionId) {
                     const base = currentChunkIndex;
-                    const lookahead = 3; // Tải trước tối đa 3 đoạn để máy server yếu không quá tải
+                    const lookahead = 3;
                     const limit = Math.min(chunks.length - 1, base + lookahead);
 
                     let target = -1;
@@ -446,7 +503,6 @@
             const currentSession = playSessionId;
             workerRunning = false;
 
-            // Hủy ngay các request tải trước cũ để ưu tiên đoạn vừa bấm
             abortAllPendingRequests();
             for (let key in audioCache) {
                 if (!resolvedUrls[key]) delete audioCache[key];
@@ -462,13 +518,16 @@
             currentChunkIndex = startIndex;
             isPlaying = true;
 
+            // Kích hoạt kênh giữ nhịp chạy nền + mở khóa loa iOS/Android
+            keepAliveAudio.play().catch(() => {});
             const silentWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             players.forEach(p => {
                 if (!p.src) p.src = silentWav;
                 p.play().then(() => p.pause()).catch(() => {});
             });
 
-            initCanvasPiP();
+            requestWakeLock();
+            updateMediaSessionMetadata();
 
             await playLoop(currentSession);
         }
@@ -476,12 +535,13 @@
         async function playLoop(session) {
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
-                const activePlayer = players[idx % 2];
+                const activePlayer = players.at(idx % 2);
 
                 highlightParagraph(idx);
+                updateMediaSessionMetadata();
 
                 if (!resolvedUrls[idx]) {
-                    status.textContent = `⏳ Đang tạo giọng đọc (${idx + 1}/${chunks.length})...`;
+                    status.textContent = `⏳ Đang tải giọng đọc (${idx + 1}/${chunks.length})...`;
                 }
 
                 let audioUrl;
@@ -500,10 +560,9 @@
                     preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
                 }
 
-                // Chỉ bắt đầu tải ngầm các đoạn tiếp theo SAU KHI đoạn hiện tại đã tải xong
                 startBackgroundWorker(idx + 1, session);
 
-                status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${idx + 1}/${chunks.length})`;
+                status.textContent = `🔊 ${chapters.at(currentChapterIndex).title} (${idx + 1}/${chunks.length})`;
                 await playOnSlot(activePlayer, idx, audioUrl, session);
 
                 const oldIdx = idx - 2;
@@ -520,7 +579,7 @@
 
             if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
                 if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển sang chương tiếp theo...";
+                    status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
                     renderChapter(currentChapterIndex);
@@ -529,6 +588,9 @@
                 } else {
                     status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
                     isPlaying = false;
+                    keepAliveAudio.pause();
+                    releaseWakeLock();
+                    updateMediaSessionMetadata();
                 }
             }
         }
@@ -586,68 +648,16 @@
             isPlaying = false;
             workerRunning = false;
             abortAllPendingRequests();
+            keepAliveAudio.pause();
+            releaseWakeLock();
             players.forEach(p => {
                 p.onended = null;
                 p.onerror = null;
                 p.pause();
                 p.dataset.loadedIdx = "";
             });
+            updateMediaSessionMetadata();
             status.textContent = "⏹ Đã dừng đọc.";
-        }
-
-        function initCanvasPiP() {
-            if (canvasStreamInitialized) {
-                pipVideo.play().catch(() => {});
-                return;
-            }
-            canvasStreamInitialized = true;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 180;
-            const ctx = canvas.getContext('2d');
-
-            function drawFrame() {
-                ctx.fillStyle = '#111';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = isPlaying ? '#4CAF50' : '#888';
-                ctx.font = 'bold 20px sans-serif';
-                ctx.fillText(isPlaying ? "🔊 Đang đọc truyện..." : "⏸ Đã tạm dừng", 20, 45);
-
-                ctx.fillStyle = '#ffeb3b';
-                ctx.font = '15px sans-serif';
-                let title = chapters[currentChapterIndex] ? chapters[currentChapterIndex].title : "";
-                ctx.fillText(title.substring(0, 34), 20, 85);
-
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillText(`Đoạn: ${currentChunkIndex + 1} / ${chunks.length}`, 20, 125);
-
-                requestAnimationFrame(drawFrame);
-            }
-            drawFrame();
-
-            const stream = canvas.captureStream(15);
-            pipVideo.srcObject = stream;
-            pipVideo.play().catch(() => {});
-        }
-
-        async function togglePiP() {
-            try {
-                initCanvasPiP();
-                if (document.pictureInPictureElement) {
-                    await document.exitPictureInPicture();
-                } else if (pipVideo.webkitSupportsPresentationMode) {
-                    pipVideo.webkitSetPresentationMode(
-                        pipVideo.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture"
-                    );
-                } else {
-                    await pipVideo.requestPictureInPicture();
-                }
-            } catch (err) {
-                alert("Hãy bấm nút 'Đọc' trước rồi bấm PiP nhé!");
-            }
         }
     </script>
 </body>
