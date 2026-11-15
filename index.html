@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Tunnel Story Reader - Instant Jump</title>
+    <title>Local Tunnel Story Reader - Smooth Stream</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #121212; color: #e0e0e0; padding: 12px; margin: 0; box-sizing: border-box; }
@@ -41,7 +41,7 @@
             <option value="2.0">2.0x</option>
         </select>
 
-        <button class="btn-play" onclick="startTTS(currentChunkIndex)">▶ Đọc</button>
+        <button class="btn-play" onclick="startTTS(0)">▶ Đọc</button>
         <button class="btn-pip" onclick="togglePiP()">🔲 PiP</button>
         <button class="btn-stop" onclick="stopTTS()">■ Dừng</button>
         <button class="btn-config" onclick="changeServerUrl()">🔗 Đổi Link Server</button>
@@ -99,18 +99,18 @@
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
-        let activeAbortControllers = new Set();
+        let activeControllers = [];
         let workerRunning = false;
         let canvasStreamInitialized = false;
 
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
 
-        function abortAllRequests() {
-            activeAbortControllers.forEach(ctrl => {
+        function abortAllPendingFetches() {
+            activeControllers.forEach(ctrl => {
                 try { ctrl.abort(); } catch (e) {}
             });
-            activeAbortControllers.clear();
+            activeControllers = [];
         }
 
         function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
@@ -130,7 +130,7 @@
                 }
             }
             if (paragraphs.length > 0) {
-                return paragraphs.at(0).substring(0, 60);
+                return paragraphs[0].substring(0, 60);
             }
             return fallbackTitle;
         }
@@ -142,7 +142,7 @@
             doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
             doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
             doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
-                if (el.tagName === "DIV" && el.querySelector("p, div")) return;
+                if (el.tagName === "DIV" && el.querySelector("p, div, h1, h2, h3, h4, li, blockquote")) return;
                 el.appendChild(doc.createTextNode("\n"));
             });
 
@@ -155,29 +155,21 @@
 
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
-            const cleanLines = [];
+            const mergedLines = [];
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (trimmed.length > 0 && trimmed.toLowerCase() !== "unknown" && VALID_CHAR_REGEX.test(trimmed)) {
-                    cleanLines.push(trimmed);
+                if (trimmed.length === 0 || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) {
+                    continue;
                 }
-            }
-
-            // Nối các dòng bị ngắt lửng giữa câu
-            const mergedLines = [];
-            for (let line of cleanLines) {
-                if (mergedLines.length === 0) {
-                    mergedLines.push(line);
-                } else {
-                    const prev = mergedLines.at(-1);
-                    const prevEnded = /[.!?…:;”"']$/.test(prev);
-                    if (!prevEnded && !CHAPTER_REGEX.test(line)) {
-                        mergedLines[mergedLines.length - 1] = prev + " " + line;
-                    } else {
-                        mergedLines.push(line);
+                if (mergedLines.length > 0) {
+                    let prev = mergedLines[mergedLines.length - 1];
+                    if (!/[.!?:;…”"'\)]$/.test(prev) && !CHAPTER_REGEX.test(trimmed)) {
+                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
+                        continue;
                     }
                 }
+                mergedLines.push(trimmed);
             }
 
             const finalChunks = [];
@@ -219,28 +211,30 @@
             return finalChunks;
         }
 
-        // Tách nhanh 1-2 câu đầu (~150 ký tự) của đoạn được bấm để phát ngay sau ~1s
-        function splitLeadAndTail(text) {
-            if (!text || text.length <= 180) return { lead: text, tail: "" };
+        function splitFirstInstantPart(text) {
+            if (text.length <= 180) return [text];
             const sentences = text.split(/(?<=[.?!;…”"'])\s+/);
-            let lead = "";
-            let idx = 0;
-            while (idx < sentences.length) {
-                const candidate = (lead + " " + sentences[idx]).trim();
-                if (candidate.length <= 180 || lead === "") {
-                    lead = candidate;
-                    idx++;
-                    if (lead.length >= 90) break;
+            if (sentences.length <= 1) return [text];
+
+            let firstPart = "";
+            let splitIdx = 0;
+            for (let i = 0; i < sentences.length; i++) {
+                if ((firstPart + " " + sentences[i]).trim().length <= 180 || i === 0) {
+                    firstPart = (firstPart + " " + sentences[i]).trim();
+                    splitIdx = i + 1;
                 } else {
                     break;
                 }
             }
-            const tail = sentences.slice(idx).join(" ").trim();
-            return { lead, tail };
+            const restPart = sentences.slice(splitIdx).join(" ").trim();
+            if (restPart && VALID_CHAR_REGEX.test(restPart)) {
+                return [firstPart, restPart];
+            }
+            return [text];
         }
 
         fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files.item(0);
+            const file = e.target.files[0];
             if (!file) return;
 
             stopTTS();
@@ -346,7 +340,7 @@
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            chunks = chap.paragraphs;
+            chunks = [...chap.paragraphs];
             currentChunkIndex = 0;
 
             storyContainer.innerHTML = chunks.map((text, idx) =>
@@ -354,7 +348,6 @@
             ).join('');
             storyContainer.scrollTop = 0;
 
-            // KHÔNG gọi API ngầm ở đây - bấm mới gọi để server luôn rảnh!
             clearAudioCache();
         }
 
@@ -363,7 +356,7 @@
         }
 
         function clearAudioCache() {
-            abortAllRequests();
+            abortAllPendingFetches();
             audioCache = {};
             for (let key in resolvedUrls) {
                 URL.revokeObjectURL(resolvedUrls[key]);
@@ -375,7 +368,7 @@
             for (let attempt = 0; attempt < 2; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 const controller = new AbortController();
-                activeAbortControllers.add(controller);
+                activeControllers.push(controller);
                 try {
                     const response = await fetch(getApiUrl(), {
                         method: 'POST',
@@ -385,20 +378,20 @@
                     });
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
-                    if (blob.size < 100) throw new Error("Empty blob");
+                    if (blob.size < 16) throw new Error("Empty blob");
                     return URL.createObjectURL(blob);
                 } catch (err) {
-                    if (err.name === "AbortError" || session !== playSessionId) throw new Error("Cancelled");
+                    if (session !== playSessionId || err.name === 'AbortError') throw new Error("Cancelled");
                     if (attempt === 1) throw err;
                     await new Promise(r => setTimeout(r, 400));
                 } finally {
-                    activeAbortControllers.delete(controller);
+                    activeControllers = activeControllers.filter(c => c !== controller);
                 }
             }
         }
 
         function ensureChunkPromise(index, session) {
-            if (index < 0 || index >= chunks.length) return null;
+            if (index >= chunks.length) return null;
             if (!audioCache[index]) {
                 audioCache[index] = fetchAudioSingle(chunks[index], session).then(url => {
                     if (session === playSessionId) {
@@ -429,13 +422,13 @@
         }
 
         async function startBackgroundWorker(startIdx, session) {
-            if (workerRunning || !isPlaying) return;
+            if (workerRunning) return;
             workerRunning = true;
 
             try {
-                while (isPlaying && session === playSessionId) {
+                while (session === playSessionId && isPlaying) {
                     const base = currentChunkIndex;
-                    const limit = Math.min(chunks.length - 1, base + 2);
+                    const limit = Math.min(chunks.length - 1, base + 3);
 
                     let target = -1;
                     for (let i = base; i <= limit; i++) {
@@ -451,7 +444,7 @@
                         await ensureChunkPromise(target, session);
                     } catch (e) {
                         if (session !== playSessionId || !isPlaying) break;
-                        await new Promise(r => setTimeout(r, 300));
+                        await new Promise(r => setTimeout(r, 400));
                     }
                 }
             } finally {
@@ -465,11 +458,14 @@
                 return;
             }
 
-            // Hủy toàn bộ request cũ đang chạy để ưu tiên đoạn vừa bấm
             playSessionId++;
             const currentSession = playSessionId;
             workerRunning = false;
-            clearAudioCache();
+
+            abortAllPendingFetches();
+            Object.keys(audioCache).forEach(k => {
+                if (!resolvedUrls[k]) delete audioCache[k];
+            });
 
             players.forEach(p => {
                 p.onended = null;
@@ -477,6 +473,17 @@
                 p.pause();
                 p.dataset.loadedIdx = "";
             });
+
+            if (!resolvedUrls[startIndex] && chunks[startIndex]) {
+                const parts = splitFirstInstantPart(chunks[startIndex]);
+                if (parts.length === 2) {
+                    chunks.splice(startIndex, 1, parts[0], parts[1]);
+                    storyContainer.innerHTML = chunks.map((text, idx) =>
+                        `<p id="para-${idx}" onclick="jumpToChunk(${idx})">${text}</p>`
+                    ).join('');
+                    clearAudioCache();
+                }
+            }
 
             currentChunkIndex = startIndex;
             isPlaying = true;
@@ -493,47 +500,6 @@
         }
 
         async function playLoop(session) {
-            const jumpIdx = currentChunkIndex;
-            highlightParagraph(jumpIdx);
-
-            // Chế độ Instant Jump: tách nhanh 1-2 câu đầu của đoạn vừa bấm để phát ngay sau ~1s
-            if (chunks[jumpIdx] && !resolvedUrls[jumpIdx]) {
-                const { lead, tail } = splitLeadAndTail(chunks[jumpIdx]);
-                if (tail && VALID_CHAR_REGEX.test(lead) && VALID_CHAR_REGEX.test(tail)) {
-                    status.textContent = `⚡ Đang khởi đọc ngay đoạn ${jumpIdx + 1}/${chunks.length}...`;
-                    let tailPromise = null;
-                    try {
-                        const leadUrl = await fetchAudioSingle(lead, session);
-                        if (session !== playSessionId || !isPlaying) {
-                            URL.revokeObjectURL(leadUrl);
-                            return;
-                        }
-                        // Trong lúc phát câu mở đầu, gọi song song phần đuôi của đoạn này
-                        tailPromise = fetchAudioSingle(tail, session);
-                        status.textContent = `🔊 ${chapters[currentChapterIndex].title} (${jumpIdx + 1}/${chunks.length})`;
-                        await playOnSlot(players[jumpIdx % 2], `lead-${jumpIdx}`, leadUrl, session);
-                        URL.revokeObjectURL(leadUrl);
-
-                        if (session !== playSessionId || !isPlaying) return;
-
-                        const tailUrl = await tailPromise;
-                        if (session !== playSessionId || !isPlaying) {
-                            URL.revokeObjectURL(tailUrl);
-                            return;
-                        }
-                        // Kích hoạt tải trước đoạn kế tiếp trong lúc đọc phần đuôi
-                        startBackgroundWorker(jumpIdx + 1, session);
-                        await playOnSlot(players[(jumpIdx + 1) % 2], `tail-${jumpIdx}`, tailUrl, session);
-                        URL.revokeObjectURL(tailUrl);
-
-                        if (session !== playSessionId || !isPlaying) return;
-                        currentChunkIndex = jumpIdx + 1;
-                    } catch (e) {
-                        if (session !== playSessionId || !isPlaying) return;
-                    }
-                }
-            }
-
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
                 const activePlayer = players[idx % 2];
@@ -541,7 +507,7 @@
                 highlightParagraph(idx);
 
                 if (!resolvedUrls[idx]) {
-                    status.textContent = `⏳ Đang tạo giọng đoạn (${idx + 1}/${chunks.length})...`;
+                    status.textContent = `⚡ Đang tạo giọng đoạn (${idx + 1}/${chunks.length})...`;
                 }
 
                 let audioUrl;
@@ -549,7 +515,7 @@
                     audioUrl = await ensureChunkPromise(idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Bỏ qua đoạn lỗi ${idx + 1}, đang chuyển tiếp...`;
+                    status.textContent = `⚠️ Bỏ qua đoạn lỗi (${idx + 1}/${chunks.length})...`;
                     currentChunkIndex++;
                     continue;
                 }
@@ -579,11 +545,12 @@
 
             if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
                 if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển chương mới...";
-                    currentChapterIndex++;
-                    chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex);
+                    status.textContent = "⏭ Đang chuyển chương...";
+                    const nextChap = currentChapterIndex + 1;
+                    chapterSelect.value = nextChap;
+                    renderChapter(nextChap);
                     startTTS(0);
+                    return;
                 } else {
                     status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
                     isPlaying = false;
@@ -591,7 +558,7 @@
             }
         }
 
-        function playOnSlot(playerInstance, slotKey, url, session) {
+        function playOnSlot(playerInstance, idx, url, session) {
             return new Promise((resolve) => {
                 if (session !== playSessionId || !isPlaying) {
                     resolve();
@@ -601,9 +568,9 @@
                 playerInstance.onended = null;
                 playerInstance.onerror = null;
 
-                if (playerInstance.dataset.loadedIdx !== String(slotKey)) {
+                if (playerInstance.dataset.loadedIdx !== String(idx)) {
                     playerInstance.src = url;
-                    playerInstance.dataset.loadedIdx = String(slotKey);
+                    playerInstance.dataset.loadedIdx = String(idx);
                 }
                 playerInstance.playbackRate = parseFloat(speedSelect.value);
 
@@ -643,7 +610,7 @@
             playSessionId++;
             isPlaying = false;
             workerRunning = false;
-            abortAllRequests();
+            abortAllPendingFetches();
             players.forEach(p => {
                 p.onended = null;
                 p.onerror = null;
