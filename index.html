@@ -605,6 +605,7 @@
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
+        let nextChapterCache = {}; // Cache riêng cho chương kế tiếp
         let abortControllers = {};
         let workerRunning = false;
 
@@ -811,11 +812,15 @@
                 URL.revokeObjectURL(resolvedUrls[key]);
             }
             resolvedUrls = {};
+            for (let key in nextChapterCache) {
+                URL.revokeObjectURL(nextChapterCache[key]);
+            }
+            nextChapterCache = {};
         }
 
-        async function fetchAudioSingle(text, index, session) {
+        async function fetchAudioSingle(text, index, session, isNextChap = false) {
             const controller = new AbortController();
-            abortControllers[index] = controller;
+            if (!isNextChap) abortControllers[index] = controller;
 
             for (let attempt = 0; attempt < 2; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
@@ -829,12 +834,12 @@
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
                     if (blob.size < 32) throw new Error("Empty blob");
-                    delete abortControllers[index];
+                    if (!isNextChap) delete abortControllers[index];
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (err.name === "AbortError" || session !== playSessionId) throw err;
                     if (attempt === 1) {
-                        delete abortControllers[index];
+                        if (!isNextChap) delete abortControllers[index];
                         throw err;
                     }
                     if (attempt === 0) {
@@ -889,7 +894,27 @@
                             break;
                         }
                     }
-                    if (target === -1) break;
+
+                    // Nếu đã tới 2 đoạn cuối của chương hiện tại -> Pre-fetch luôn đoạn đầu chương tiếp theo
+                    if (target === -1 && currentChunkIndex >= chunks.length - 2) {
+                        if (currentChapterIndex + 1 < chapters.length) {
+                            const nextChap = chapters[currentChapterIndex + 1];
+                            if (nextChap && nextChap.paragraphs.length > 0 && !nextChapterCache[0]) {
+                                try {
+                                    const nextUrl = await fetchAudioSingle(nextChap.paragraphs[0], 0, session, true);
+                                    if (session === playSessionId) {
+                                        nextChapterCache[0] = nextUrl;
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+
+                    if (target === -1) {
+                        await new Promise(r => setTimeout(r, 600));
+                        continue;
+                    }
+
                     try {
                         await ensureChunkPromise(target, session);
                     } catch (e) {
@@ -938,7 +963,15 @@
                 stopTTS();
                 currentChapterIndex++;
                 chapterSelect.value = currentChapterIndex;
+                
+                // Nếu đã có cache đoạn đầu chương mới từ trước -> Nạp thẳng vào audioCache luôn
                 renderChapter(currentChapterIndex, 0);
+                if (nextChapterCache[0]) {
+                    audioCache[0] = Promise.resolve(nextChapterCache[0]);
+                    resolvedUrls[0] = nextChapterCache[0];
+                    nextChapterCache = {};
+                }
+                saveProgress();
                 startTTS(0);
             }
         }
@@ -1029,7 +1062,13 @@
                     status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
+                    
                     renderChapter(currentChapterIndex, 0);
+                    if (nextChapterCache[0]) {
+                        audioCache[0] = Promise.resolve(nextChapterCache[0]);
+                        resolvedUrls[0] = nextChapterCache[0];
+                        nextChapterCache = {};
+                    }
                     saveProgress();
                     startTTS(0);
                     return;
