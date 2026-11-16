@@ -267,7 +267,7 @@
             text-overflow: ellipsis;
         }
         .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-        .book-actions { display: flex; gap: 6px; }
+        .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .btn-sm {
             padding: 6px 10px;
             border-radius: 6px;
@@ -277,6 +277,7 @@
             cursor: pointer;
         }
         .btn-open { background: var(--accent); color: #042f2e; }
+        .btn-sync { background: #3b82f6; color: #fff; }
         .btn-del { background: #e11d48; color: #fff; }
     </style>
 </head>
@@ -302,7 +303,7 @@
         <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
             <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
             <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> để bắt đầu nghe.</div>
+            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> (đồng bộ cả máy & Server).</div>
         </div>
     </main>
 
@@ -340,7 +341,7 @@
     <div class="modal-backdrop" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
         <div class="modal-sheet">
             <div class="modal-header">
-                <span>📚 Tủ sách đã lưu trên máy</span>
+                <span>📚 Tủ sách (Máy & Server)</span>
                 <button class="pill-btn" onclick="closeBookshelf()">✕ Đóng</button>
             </div>
             <div class="book-list" id="bookList"></div>
@@ -392,9 +393,7 @@
                             return true;
                         }
                     }
-                } catch (e) {
-                    console.log("Thử nguồn tunnel tiếp theo...", e);
-                }
+                } catch (e) {}
             }
             return false;
         }
@@ -457,7 +456,7 @@
             await loadVoicesFromServer();
         })();
 
-        // --- 2. INDEXEDDB BOOKSHELF ---
+        // --- 2. INDEXEDDB & CLOUD SERVER BOOKSHELF ---
         const DB_NAME = "AIStoryReaderDB";
         const STORE_NAME = "books";
         let currentBookId = localStorage.getItem("last_opened_book_id") || null;
@@ -516,55 +515,164 @@
             });
         }
 
+        async function uploadBookToServer(book) {
+            try {
+                const res = await fetch(getBaseUrl() + "/books", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(book)
+                });
+                return res.ok;
+            } catch (e) {
+                console.log("Chưa đẩy được truyện lên server:", e);
+                return false;
+            }
+        }
+
         async function saveProgress() {
             if (!currentBookId || chapters.length === 0) return;
+            const now = Date.now();
             try {
                 const book = await getBookById(currentBookId);
                 if (book) {
                     book.lastChapter = currentChapterIndex;
                     book.lastChunk = currentChunkIndex;
-                    book.updatedAt = Date.now();
+                    book.updatedAt = now;
                     await saveBookToDB(book);
                 }
             } catch (e) {}
+
+            fetch(getBaseUrl() + "/books/progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: currentBookId,
+                    lastChapter: currentChapterIndex,
+                    lastChunk: currentChunkIndex,
+                    updatedAt: now
+                })
+            }).catch(() => {});
         }
 
         async function openBookshelf() {
             const modal = document.getElementById("bookshelfModal");
             const listEl = document.getElementById("bookList");
             modal.classList.add("open");
-            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>Đang tải tủ sách...</div>";
+            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang đồng bộ tủ sách từ máy & Server...</div>";
 
-            const books = await getAllBooksFromDB();
-            books.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            const localBooks = await getAllBooksFromDB();
+            const bookMap = new Map();
 
-            if (books.length === 0) {
+            localBooks.forEach(b => {
+                bookMap.set(b.id, {
+                    id: b.id,
+                    title: b.title,
+                    chapterCount: b.chapters ? b.chapters.length : 0,
+                    lastChapter: b.lastChapter || 0,
+                    lastChunk: b.lastChunk || 0,
+                    updatedAt: b.updatedAt || 0,
+                    hasLocal: true,
+                    hasServer: false,
+                    localObj: b
+                });
+            });
+
+            try {
+                const res = await fetch(getBaseUrl() + "/books");
+                if (res.ok) {
+                    const data = await res.json();
+                    (data.books || []).forEach(sb => {
+                        if (bookMap.has(sb.id)) {
+                            const existing = bookMap.get(sb.id);
+                            existing.hasServer = true;
+                            if ((sb.updatedAt || 0) > (existing.updatedAt || 0)) {
+                                existing.lastChapter = sb.lastChapter || 0;
+                                existing.lastChunk = sb.lastChunk || 0;
+                                existing.updatedAt = sb.updatedAt;
+                                if (existing.localObj) {
+                                    existing.localObj.lastChapter = existing.lastChapter;
+                                    existing.localObj.lastChunk = existing.lastChunk;
+                                    existing.localObj.updatedAt = existing.updatedAt;
+                                    saveBookToDB(existing.localObj);
+                                }
+                            }
+                        } else {
+                            bookMap.set(sb.id, {
+                                id: sb.id,
+                                title: sb.title,
+                                chapterCount: sb.chapterCount || 0,
+                                lastChapter: sb.lastChapter || 0,
+                                lastChunk: sb.lastChunk || 0,
+                                updatedAt: sb.updatedAt || 0,
+                                hasLocal: false,
+                                hasServer: true,
+                                localObj: null
+                            });
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            const mergedList = Array.from(bookMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+            if (mergedList.length === 0) {
                 listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b> để thêm truyện!</div>";
                 return;
             }
 
             listEl.innerHTML = "";
-            books.forEach(b => {
+            mergedList.forEach(b => {
                 const item = document.createElement("div");
                 item.className = "book-item";
                 const chapNum = (b.lastChapter || 0) + 1;
                 const chunkNum = (b.lastChunk || 0) + 1;
+                const badge = b.hasServer ? "☁️ Server & Máy" : "📱 Chỉ trên máy này";
+
                 item.innerHTML = `
                     <div class="book-info">
                         <div class="book-title">${b.title}</div>
-                        <div class="book-meta">${b.chapters.length} chương • Đang đọc: Ch.${chapNum} (Đoạn ${chunkNum})</div>
+                        <div class="book-meta">${badge} • ${b.chapterCount} chương • Đọc: Ch.${chapNum} (Đoạn ${chunkNum})</div>
                     </div>
                     <div class="book-actions">
+                        ${!b.hasServer && b.hasLocal ? `<button class="btn-sm btn-sync">☁️ Đẩy lên</button>` : ""}
                         <button class="btn-sm btn-open">Đọc tiếp</button>
                         <button class="btn-sm btn-del">Xóa</button>
                     </div>
                 `;
-                item.querySelector(".btn-open").onclick = () => {
+
+                const syncBtn = item.querySelector(".btn-sync");
+                if (syncBtn) {
+                    syncBtn.onclick = async () => {
+                        syncBtn.textContent = "⏳...";
+                        const ok = await uploadBookToServer(b.localObj);
+                        if (ok) openBookshelf();
+                        else syncBtn.textContent = "Lỗi!";
+                    };
+                }
+
+                item.querySelector(".btn-open").onclick = async () => {
                     closeBookshelf();
-                    loadBookObject(b);
+                    if (b.hasLocal && b.localObj) {
+                        loadBookObject(b.localObj);
+                    } else {
+                        status.textContent = `☁️ Đang tải "${b.title}" từ Server về máy...`;
+                        try {
+                            const res = await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id));
+                            if (!res.ok) throw new Error("Không tải được truyện");
+                            const fullBook = await res.json();
+                            await saveBookToDB(fullBook);
+                            loadBookObject(fullBook);
+                        } catch (err) {
+                            status.textContent = `❌ Lỗi tải truyện từ server: ${err.message}`;
+                        }
+                    }
                 };
+
                 item.querySelector(".btn-del").onclick = async () => {
-                    await deleteBookFromDB(b.id);
+                    if (b.hasLocal) await deleteBookFromDB(b.id);
+                    if (b.hasServer) {
+                        fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
+                    }
                     if (currentBookId === b.id) {
                         currentBookId = null;
                         localStorage.removeItem("last_opened_book_id");
@@ -601,7 +709,7 @@
             status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
         }
 
-        // --- 3. PARSE TXT & EPUB (SMART JOIN & MAX_LEN = 400) ---
+        // --- 3. PARSE TXT & EPUB (MULTI-FORMAT TOC, NATURAL SORT & MAX_LEN = 400) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -622,7 +730,6 @@
             p.preload = "auto";
         });
 
-        // Silent Keep-Alive Audio cho iOS Background
         const silentKeepAlive = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
         silentKeepAlive.loop = true;
         silentKeepAlive.volume = 0.01;
@@ -634,21 +741,21 @@
         let abortControllers = {};
         let workerRunning = false;
 
-        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
+        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+.*/i;
 
         function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
             for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
                 const line = paragraphs[i].trim();
-                if (CHAPTER_REGEX.test(line)) return line.substring(0, 65);
+                if (CHAPTER_REGEX.test(line)) return line.substring(0, 75);
             }
             if (htmlDoc) {
                 const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
                 for (let h of headings) {
                     const t = h.textContent.replace(/\s+/g, ' ').trim();
-                    if (t && !/^(unknown|untitled|chương mới|mục lục)$/i.test(t)) return t.substring(0, 65);
+                    if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t)) return t.substring(0, 75);
                 }
             }
-            return paragraphs.length > 0 ? paragraphs.at(0).substring(0, 60) : fallbackTitle;
+            return fallbackTitle || (paragraphs.length > 0 ? paragraphs.at(0).substring(0, 60) : "Chương không tên");
         }
 
         function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
@@ -727,7 +834,7 @@
             try {
                 if (file.name.toLowerCase().endsWith('.txt')) {
                     const text = await file.text();
-                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s*[\dIVXLCDM]+)/im);
+                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
                     if (splits.length <= 1) {
                         const paras = processRawTextToChunks(text);
                         parsedChapters.push({
@@ -749,34 +856,117 @@
                     }
                 } else if (file.name.toLowerCase().endsWith('.epub')) {
                     const zip = await JSZip.loadAsync(file);
-                    const containerFile = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
-                    if (!containerFile) throw new Error("File EPUB không hợp lệ");
-
-                    const containerXml = await containerFile.async("text");
                     const parser = new DOMParser();
-                    const containerDoc = parser.parseFromString(containerXml, "text/xml");
-                    const opfPath = containerDoc.querySelector("rootfile").getAttribute("full-path");
-                    const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : "";
 
-                    const opfXml = await zip.file(opfPath).async("text");
-                    const opfDoc = parser.parseFromString(opfXml, "text/xml");
+                    const normalizeZipPath = (base, rel) => {
+                        if (!rel) return "";
+                        let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/');
+                        if (cleanRel.startsWith('/')) cleanRel = cleanRel.substring(1);
+                        const stack = base ? base.split('/').filter(Boolean) : [];
+                        for (const part of cleanRel.split('/')) {
+                            if (!part || part === '.') continue;
+                            if (part === '..') stack.pop();
+                            else stack.push(part);
+                        }
+                        return stack.join('/');
+                    };
 
-                    const manifest = {};
-                    opfDoc.querySelectorAll("manifest > item").forEach(item => {
-                        manifest[item.getAttribute("id")] = item.getAttribute("href");
-                    });
+                    const allZipKeys = Object.keys(zip.files);
+                    const findZipFile = (targetPath) => {
+                        if (!targetPath) return null;
+                        if (zip.file(targetPath)) return zip.file(targetPath);
+                        const lower = targetPath.toLowerCase();
+                        const matchedKey = allZipKeys.find(k => k.toLowerCase() === lower || k.toLowerCase().endsWith('/' + lower));
+                        return matchedKey ? zip.file(matchedKey) : null;
+                    };
 
-                    const spineItems = opfDoc.querySelectorAll("spine > itemref");
-                    for (let i = 0; i < spineItems.length; i++) {
-                        const href = manifest[spineItems[i].getAttribute("idref")];
-                        if (href) {
-                            const filePath = basePath + decodeURIComponent(href);
-                            const fileInZip = zip.file(filePath) || zip.file(filePath.replace(/^\//, ''));
-                            if (fileInZip) {
-                                const htmlContent = await fileInZip.async("text");
-                                const extracted = extractParagraphsFromHtml(htmlContent, `Chương ${i + 1}`);
-                                if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
+                    // 1. Tìm file OPF
+                    let opfPath = "";
+                    const containerFile = findZipFile("META-INF/container.xml");
+                    if (containerFile) {
+                        const containerXml = await containerFile.async("text");
+                        const containerDoc = parser.parseFromString(containerXml, "text/xml");
+                        const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
+                        if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
+                    }
+                    if (!opfPath) {
+                        opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
+                    }
+
+                    const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
+                    const tocMap = {};
+                    let spinePaths = [];
+
+                    // 2. Đọc OPF lấy Manifest & Spine (hỗ trợ cả tag có namespace opf:)
+                    const opfFile = findZipFile(opfPath);
+                    if (opfFile) {
+                        const opfXml = await opfFile.async("text");
+                        const opfDoc = parser.parseFromString(opfXml, "text/xml");
+
+                        const manifest = {};
+                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(
+                            Array.from(opfDoc.getElementsByTagName("opf:item"))
+                        );
+                        items.forEach(item => {
+                            const id = item.getAttribute("id");
+                            const href = item.getAttribute("href");
+                            if (id && href) manifest[id] = normalizeZipPath(basePath, href);
+                        });
+
+                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(
+                            Array.from(opfDoc.getElementsByTagName("opf:itemref"))
+                        );
+                        itemrefs.forEach(ref => {
+                            const idref = ref.getAttribute("idref");
+                            if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
+                        });
+                    }
+
+                    // 3. Quét toc.ncx để lấy tiêu đề chương chuẩn xác
+                    const ncxKey = allZipKeys.find(k => k.toLowerCase().endsWith(".ncx"));
+                    if (ncxKey) {
+                        const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
+                        const ncxXml = await zip.file(ncxKey).async("text");
+                        const ncxDoc = parser.parseFromString(ncxXml, "text/xml");
+                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(
+                            Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))
+                        );
+                        navPoints.forEach(np => {
+                            const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
+                            const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
+                            if (textEl && contentEl) {
+                                const label = textEl.textContent.replace(/\s+/g, ' ').trim();
+                                const src = contentEl.getAttribute("src");
+                                if (label && src) {
+                                    const normSrc = normalizeZipPath(ncxBase, src).toLowerCase();
+                                    if (!tocMap[normSrc]) tocMap[normSrc] = label;
+                                }
                             }
+                        });
+                    }
+
+                    // 4. Fallback: Quét toàn bộ HTML/XHTML và sắp xếp tự nhiên nếu thiếu OPF
+                    if (spinePaths.length === 0) {
+                        spinePaths = allZipKeys
+                            .filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k))
+                            .sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
+                    }
+
+                    // 5. Trích xuất nội dung từng chương
+                    for (let i = 0; i < spinePaths.length; i++) {
+                        const pathKey = spinePaths[i];
+                        if (/(?:^|\/)(cover|titlepage|toc|nav|sgc-toc)\.(x?html|htm)$/i.test(pathKey)) continue;
+
+                        const fileInZip = findZipFile(pathKey);
+                        if (fileInZip) {
+                            const htmlContent = await fileInZip.async("text");
+                            const cleanFileName = pathKey.split('/').pop().replace(/\.(x?html|htm)$/i, '');
+                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
+                            const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
+
+                            const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
+                            if (tocTitle) extracted.title = tocTitle.substring(0, 75);
+                            if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
                         }
                     }
                 }
@@ -793,7 +983,12 @@
                 };
                 await saveBookToDB(bookObj);
                 loadBookObject(bookObj);
-                status.textContent = `✅ Đã lưu vào Tủ sách (${parsedChapters.length} chương)!`;
+
+                status.textContent = `☁️ Đang đồng bộ "${bookObj.title}" lên Server...`;
+                const uploaded = await uploadBookToServer(bookObj);
+                status.textContent = uploaded
+                    ? `✅ Đã lưu Tủ sách & Đồng bộ Server (${parsedChapters.length} chương)!`
+                    : `✅ Đã lưu Tủ sách trên máy (${parsedChapters.length} chương)!`;
             } catch (err) {
                 status.textContent = `❌ Lỗi: ${err.message}`;
             }
@@ -825,7 +1020,6 @@
             }).join('');
 
             highlightParagraph(currentChunkIndex);
-            // Giữ lại cache của chương mới (nếu đã được pre-fetch từ cuối chương trước), chỉ xóa chương cũ
             clearAudioCache(currentChapterIndex);
         }
 
@@ -935,7 +1129,6 @@
                     let targetChap = -1;
                     let targetChunk = -1;
 
-                    // 1. Kiểm tra các đoạn tiếp theo trong chương hiện tại
                     for (let i = base; i <= limit; i++) {
                         const k = getCacheKey(currentChapterIndex, i);
                         if (!audioCache[k]) {
@@ -945,12 +1138,11 @@
                         }
                     }
 
-                    // 2. Nếu chương hiện tại đã tải xong và chỉ còn <= 2 đoạn là hết chương -> Tải trước 2 đoạn đầu của chương kế tiếp
                     if (targetChap === -1 && (chunks.length - 1 - base) <= 2) {
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length) {
                             const nextParas = chapters[nextChapIdx].paragraphs;
-                            const nextLimit = Math.min(nextParas.length - 1, 1); // Tải trước đoạn 0 và 1 của chương sau
+                            const nextLimit = Math.min(nextParas.length - 1, 1);
                             for (let j = 0; j <= nextLimit; j++) {
                                 const nk = getCacheKey(nextChapIdx, j);
                                 if (!audioCache[nk]) {
@@ -1030,7 +1222,6 @@
             const currentKey = getCacheKey(currentChapterIndex, startIndex);
             const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
 
-            // Hủy các request cũ đang treo nhưng giữ lại đoạn chuẩn bị phát và đoạn đầu chương sau (nếu đang tải)
             Object.keys(abortControllers).forEach(k => {
                 if (k !== currentKey && k !== nextChapKey0) {
                     abortControllers[k].abort();
