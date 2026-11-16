@@ -351,7 +351,6 @@
         // --- 1. SERVER & TUNNEL AUTO-SYNC CONFIG ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
         let SELECTED_VOICE = localStorage.getItem("my_tts_selected_voice") || "default";
-        const TUNNEL_JSON_URL = "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json";
 
         const voiceSelect = document.getElementById('voiceSelect');
         const serverBtn = document.getElementById('serverBtn');
@@ -367,18 +366,37 @@
         }
 
         async function syncTunnelUrlIfNeeded() {
-            try {
-                const res = await fetch(`${TUNNEL_JSON_URL}?t=${Date.now()}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.url) {
-                        SERVER_BASE = data.url;
-                        updateServerBadge();
+            const urlsToTry = [
+                "https://api.github.com/repos/tranatrinh/web-story-reader/contents/tunnel.json?ref=main&_=" + Date.now(),
+                "./tunnel.json?t=" + Date.now(),
+                "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json?t=" + Date.now()
+            ];
+
+            for (const url of urlsToTry) {
+                try {
+                    const headers = url.includes("api.github.com")
+                        ? { "Accept": "application/vnd.github.raw+json" }
+                        : {};
+                    const res = await fetch(url, { cache: "no-store", headers });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.url && data.url.trim()) {
+                            const newTunnel = data.url.trim();
+                            if (newTunnel !== SERVER_BASE) {
+                                SERVER_BASE = newTunnel;
+                                updateServerBadge();
+                                console.log("[+] Đã đồng bộ Tunnel mới:", SERVER_BASE);
+                            } else {
+                                updateServerBadge();
+                            }
+                            return true;
+                        }
                     }
+                } catch (e) {
+                    console.log("Thử nguồn tunnel tiếp theo...", e);
                 }
-            } catch (e) {
-                console.log("Dùng URL hiện tại, không fetch được tunnel.json từ GitHub:", e);
             }
+            return false;
         }
 
         async function loadVoicesFromServer() {
@@ -418,12 +436,18 @@
         }
 
         async function changeServerUrl() {
-            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel (VD: https://xxxx.trycloudflare.com):", SERVER_BASE);
-            if (newUrl && newUrl.trim()) {
-                SERVER_BASE = newUrl.trim();
+            await syncTunnelUrlIfNeeded();
+            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel (Để trống và bấm OK để tự đồng bộ từ GitHub):", SERVER_BASE);
+            if (newUrl !== null) {
+                if (newUrl.trim() === "") {
+                    await syncTunnelUrlIfNeeded();
+                } else {
+                    SERVER_BASE = newUrl.trim();
+                }
                 updateServerBadge();
                 clearAudioCache();
                 await loadVoicesFromServer();
+                status.textContent = `🔗 Đã kết nối: ${SERVER_BASE}`;
             }
         }
 
