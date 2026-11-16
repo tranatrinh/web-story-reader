@@ -3,1114 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Story Reader Pro - Multi Voice</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <title>AI Story Reader Pro - Full Features</title>
+    <script src="https://cloudflare.com"></script>
     <style>
-        :root {
-            --bg: #0b0f19;
-            --surface: #131a2a;
-            --surface-2: #1e293b;
-            --border: #283548;
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
-            --accent: #10b981;
-            --accent-glow: rgba(16, 185, 129, 0.25);
-        }
+        :root { --bg: #0b0f19; --card: #131b2e; --elev: #1e293b; --border: #283548; --text: #f1f5f9; --muted: #94a3b8; --accent: #10b981; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100dvh;
-            overflow: hidden;
-        }
-        /* Top Header */
-        header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .brand {
-            font-weight: 700;
-            font-size: 15px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .pill-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 11px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .pill-btn:active { opacity: 0.75; }
-        .pill-accent {
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
-            border-color: rgba(16, 185, 129, 0.35);
-        }
-
-        /* Chapter Bar */
-        .chapter-bar {
-            background: #0f1523;
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        #chapterSelect {
-            flex: 1;
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 13px;
-            outline: none;
-            min-width: 0;
-        }
-
-        /* Reading Area */
-        #storyContainer {
-            flex: 1;
-            overflow-y: auto;
-            padding: 18px 16px 32px 16px;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 18px;
-            line-height: 1.75;
-            color: #cbd5e1;
-            max-width: 780px;
-            width: 100%;
-            margin: 0 auto;
-        }
-        #storyContainer p {
-            margin: 0 0 14px 0;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        #storyContainer p.active-chunk {
-            background: rgba(16, 185, 129, 0.12);
-            border-left-color: var(--accent);
-            color: #f8fafc;
-        }
-        .word-span { transition: color 0.1s, text-shadow 0.1s; }
-        .word-span.spoken {
-            color: #34d399;
-            font-weight: 600;
-            text-shadow: 0 0 12px var(--accent-glow);
-        }
-
-        /* Bottom Player Dock */
-        .player-dock {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            color: var(--text-muted);
-            gap: 8px;
-        }
-        #status {
-            color: #fcd34d;
-            font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: var(--surface-2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            transition: width 0.15s linear;
-        }
-        .controls-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-        }
-        .dock-select {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 8px;
-            font-size: 12px;
-            font-weight: 600;
-            outline: none;
-            max-width: 135px;
-        }
-        .transport {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .ctrl-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            font-size: 15px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .ctrl-btn:active { transform: scale(0.94); }
-        .play-btn {
-            background: var(--accent);
-            color: #042f2e;
-            border: none;
-            width: 46px;
-            height: 46px;
-            font-size: 18px;
-            font-weight: 700;
-            box-shadow: 0 0 16px var(--accent-glow);
-        }
-
-        /* Bookshelf Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-            z-index: 50;
-        }
-        .modal-backdrop.open { display: flex; }
-        .modal-sheet {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            border-radius: 18px 18px 0 0;
-            width: 100%;
-            max-width: 640px;
-            max-height: 75dvh;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 12px;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .book-list {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .book-item {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-        .book-info { min-width: 0; flex: 1; }
-        .book-title {
-            font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-        .book-actions { display: flex; gap: 6px; }
-        .btn-sm {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: none;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-open { background: var(--accent); color: #042f2e; }
-        .btn-del { background: #e11d48; color: #fff; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+        header { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-shrink: 0; }
+        .brand { font-weight: 700; font-size: 14px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .btn { background: var(--elev); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-accent { background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.4); }
+        .sub-bar { background: #0f1523; border-bottom: 1px solid var(--border); padding: 6px 12px; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        #chapterSelect { flex: 1; background: var(--elev); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px; outline: none; min-width: 0; }
+        #storyContainer { flex: 1; overflow-y: auto; padding: 16px 14px 30px; font-family: Georgia, serif; font-size: 18px; line-height: 1.75; color: #94a3b8; max-width: 780px; width: 100%; margin: 0 auto; }
+        #storyContainer p { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; border-left: 3px solid transparent; cursor: pointer; }
+        #storyContainer p.active-chunk { background: var(--card); color: #e2e8f0; border-left-color: var(--accent); }
+        .word-span.spoken { color: #34d399; font-weight: 700; text-shadow: 0 0 10px rgba(16,185,129,0.4); }
+        .dock { background: var(--card); border-top: 1px solid var(--border); padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .status-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); gap: 8px; }
+        #status { color: #fbbf24; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .progress { width: 100%; height: 4px; background: var(--elev); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+        .controls { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .dock-sel { background: var(--elev); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px; font-size: 12px; font-weight: 600; outline: none; max-width: 130px; }
+        .transport { display: flex; align-items: center; gap: 10px; }
+        .c-btn { background: var(--elev); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 38px; height: 38px; font-size: 15px; cursor: pointer; }
+        .p-btn { background: var(--accent); color: #042f2e; border: none; border-radius: 50%; width: 46px; height: 46px; font-size: 18px; font-weight: 700; cursor: pointer; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+        .modal.open { display: flex; }
+        .sheet { background: var(--card); border-top: 1px solid var(--border); border-radius: 18px 18px 0 0; width: 100%; max-width: 640px; max-height: 75dvh; display: flex; flex-direction: column; padding: 14px; gap: 10px; }
+        .book-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .book-item { background: var(--elev); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .book-info { min-width: 0; flex: 1; cursor: pointer; }
+        .book-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .book-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
     </style>
 </head>
 <body>
-
     <header>
-        <div class="brand">🎧 Story Reader</div>
-        <div class="header-actions">
-            <button class="pill-btn" onclick="openBookshelf()">📚 Tủ sách</button>
-            <label class="pill-btn pill-accent">
-                ＋ Mở file
-                <input type="file" id="fileInput" accept=".txt,.epub" style="display:none;" onclick="this.value=null;">
-            </label>
-            <button class="pill-btn" id="serverBtn" onclick="changeServerUrl()">🔗 Server</button>
+        <div class="brand" id="bookTitle">🎧 Story Reader</div>
+        <div class="actions">
+            <button class="btn" onclick="openBookshelf()">📚 Tủ sách</button>
+            <label class="btn btn-accent">＋ Mở file<input type="file" id="fileInput" accept=".txt,.epub" style="display:none;" onclick="this.value=null;"></label>
+            <button class="btn" onclick="changeServerUrl()" title="Đổi Server">🔗 Server</button>
         </div>
     </header>
-
-    <div class="chapter-bar" id="chapterBar" style="display:none;">
-        <select id="chapterSelect" onchange="onChapterChange()"></select>
+    <div class="sub-bar">
+        <select id="chapterSelect" onchange="onChapterChange()"><option value="0">Chưa có chương nào</option></select>
     </div>
-
-    <main id="storyContainer">
-        <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
-            <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
-            <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> để bắt đầu nghe.</div>
+    <div id="storyContainer">
+        <div style="text-align:center;color:#64748b;padding:40px 10px;font-family:sans-serif;">
+            <div style="font-size:32px;margin-bottom:8px;">📖</div>
+            <div><b>Chưa có truyện nào đang mở</b></div>
+            <div style="font-size:13px;margin-top:6px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> để bắt đầu nghe.</div>
         </div>
-    </main>
-
-    <footer class="player-dock">
-        <div class="status-row">
-            <span id="status">Sẵn sàng!</span>
-            <span id="chunkCounter">0 / 0</span>
-        </div>
-        <div class="progress-track">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div class="controls-row">
-            <select id="voiceSelect" class="dock-select" onchange="onVoiceChange()" title="Chọn giọng đọc">
-                <option value="default">🎙 Mặc định</option>
-            </select>
-
+    </div>
+    <div class="dock">
+        <div class="status-row"><div id="status">Sẵn sàng!</div><div id="chunkCounter">0 / 0</div></div>
+        <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="controls">
+            <select id="voiceSelect" class="dock-sel" onchange="onVoiceChange()"><option value="default">🎙 Mặc định</option></select>
             <div class="transport">
-                <button class="ctrl-btn" onclick="prevChunk()" title="Đoạn trước">⏮</button>
-                <button class="ctrl-btn play-btn" id="playToggleBtn" onclick="togglePlayPause()" title="Đọc / Dừng">▶</button>
-                <button class="ctrl-btn" onclick="nextChunk()" title="Đoạn tiếp">⏭</button>
+                <button class="c-btn" onclick="prevChunk()">⏮</button>
+                <button class="p-btn" id="mainPlayBtn" onclick="togglePlayPause()">▶</button>
+                <button class="c-btn" onclick="nextChunk()">⏭</button>
             </div>
-
-            <select id="speedSelect" class="dock-select" onchange="updateSpeed()" style="max-width:72px;">
-                <option value="0.8">0.8x</option>
-                <option value="1.0" selected>1.0x</option>
-                <option value="1.2">1.2x</option>
-                <option value="1.5">1.5x</option>
-                <option value="1.75">1.75x</option>
-                <option value="2.0">2.0x</option>
+            <select id="speedSelect" class="dock-sel" onchange="updateSpeed()">
+                <option value="0.8">0.8x</option><option value="1.0" selected>1.0x</option>
+                <option value="1.25">1.25x</option><option value="1.5">1.5x</option>
+                <option value="1.75">1.75x</option><option value="2.0">2.0x</option>
             </select>
         </div>
-    </footer>
-
-    <!-- Bookshelf Modal -->
-    <div class="modal-backdrop" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
-        <div class="modal-sheet">
-            <div class="modal-header">
+    </div>
+    <div class="modal" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
+        <div class="sheet">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;">
                 <span>📚 Tủ sách đã lưu trên máy</span>
-                <button class="pill-btn" onclick="closeBookshelf()">✕ Đóng</button>
+                <button class="btn" onclick="closeBookshelf()">✕ Đóng</button>
             </div>
             <div class="book-list" id="bookList"></div>
         </div>
     </div>
-
     <script>
-        // --- 1. SERVER & VOICE CONFIG ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
         let SELECTED_VOICE = localStorage.getItem("my_tts_selected_voice") || "default";
+        const MAX_LEN = 400;
+        const getApiUrl = () => SERVER_BASE.replace(/\/$/, "") + "/tts";
+        const getVoicesUrl = () => SERVER_BASE.replace(/\/$/, "") + "/voices";
 
-        const voiceSelect = document.getElementById('voiceSelect');
-        const serverBtn = document.getElementById('serverBtn');
-
-        function getBaseUrl() {
-            return SERVER_BASE.replace(/\/$/, "");
-        }
-
-        function updateServerBadge() {
-            const isTunnel = SERVER_BASE.includes("trycloudflare.com");
-            serverBtn.textContent = isTunnel ? "● Tunnel" : "🔗 Server";
-            localStorage.setItem("my_tts_server_url", SERVER_BASE);
-        }
-
-        async function loadVoicesFromServer() {
+        async function autoSyncTunnelUrl() {
             try {
-                const res = await fetch(getBaseUrl() + "/voices");
+                const res = await fetch("./tunnel.json?t=" + Date.now(), { cache: "no-store" });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.url && data.url.startsWith("http")) {
+                        SERVER_BASE = data.url.trim();
+                        localStorage.setItem("my_tts_server_url", SERVER_BASE);
+                        status.textContent = "✅ Đã đồng bộ Server: " + SERVER_BASE.replace(/^https?:\/\//, "");
+                    }
+                }
+            } catch (e) {}
+            await fetchAvailableVoices();
+        }
+
+        async function fetchAvailableVoices() {
+            try {
+                const res = await fetch(getVoicesUrl());
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.voices && Array.isArray(data.voices)) {
-                    voiceSelect.innerHTML = "";
+                    const vs = document.getElementById('voiceSelect');
+                    vs.innerHTML = "";
                     data.voices.forEach(v => {
                         const opt = document.createElement("option");
-                        opt.value = v.id;
-                        opt.textContent = v.name;
-                        voiceSelect.appendChild(opt);
+                        opt.value = v.id; opt.textContent = v.name; vs.appendChild(opt);
                     });
-                    if ([...voiceSelect.options].some(o => o.value === SELECTED_VOICE)) {
-                        voiceSelect.value = SELECTED_VOICE;
-                    } else {
-                        SELECTED_VOICE = voiceSelect.value || "default";
-                        localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
-                    }
-                }
-            } catch (e) {
-                console.log("Chưa kết nối được /voices:", e);
-            }
-        }
-
-        function onVoiceChange() {
-            SELECTED_VOICE = voiceSelect.value;
-            localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
-            clearAudioCache();
-            if (isPlaying) {
-                startTTS(currentChunkIndex);
-            } else {
-                status.textContent = `🎙 Đã đổi sang: ${voiceSelect.options[voiceSelect.selectedIndex]?.text || SELECTED_VOICE}`;
-            }
-        }
-
-        function changeServerUrl() {
-            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel (VD: https://xxxx.trycloudflare.com):", SERVER_BASE);
-            if (newUrl && newUrl.trim()) {
-                SERVER_BASE = newUrl.trim();
-                updateServerBadge();
-                clearAudioCache();
-                loadVoicesFromServer();
-            }
-        }
-
-        updateServerBadge();
-        loadVoicesFromServer();
-
-        // --- 2. INDEXEDDB BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB";
-        const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_id") || null;
-
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-                    }
-                };
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        async function saveBookToDB(book) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).put(book);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        async function getAllBooksFromDB() {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readonly");
-                const req = tx.objectStore(STORE_NAME).getAll();
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        async function getBookById(id) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readonly");
-                const req = tx.objectStore(STORE_NAME).get(id);
-                req.onsuccess = () => resolve(req.result || null);
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        async function deleteBookFromDB(id) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).delete(id);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        async function saveProgress() {
-            if (!currentBookId || chapters.length === 0) return;
-            try {
-                const book = await getBookById(currentBookId);
-                if (book) {
-                    book.lastChapter = currentChapterIndex;
-                    book.lastChunk = currentChunkIndex;
-                    book.updatedAt = Date.now();
-                    await saveBookToDB(book);
+                    if ([...vs.options].some(o => o.value === SELECTED_VOICE)) vs.value = SELECTED_VOICE;
+                    else SELECTED_VOICE = vs.value || "default";
                 }
             } catch (e) {}
         }
 
-        async function openBookshelf() {
-            const modal = document.getElementById("bookshelfModal");
-            const listEl = document.getElementById("bookList");
-            modal.classList.add("open");
-            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>Đang tải tủ sách...</div>";
-
-            const books = await getAllBooksFromDB();
-            books.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-            if (books.length === 0) {
-                listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b> để thêm truyện!</div>";
-                return;
-            }
-
-            listEl.innerHTML = "";
-            books.forEach(b => {
-                const item = document.createElement("div");
-                item.className = "book-item";
-                const chapNum = (b.lastChapter || 0) + 1;
-                const chunkNum = (b.lastChunk || 0) + 1;
-                item.innerHTML = `
-                    <div class="book-info">
-                        <div class="book-title">${b.title}</div>
-                        <div class="book-meta">${b.chapters.length} chương • Đang đọc: Ch.${chapNum} (Đoạn ${chunkNum})</div>
-                    </div>
-                    <div class="book-actions">
-                        <button class="btn-sm btn-open">Đọc tiếp</button>
-                        <button class="btn-sm btn-del">Xóa</button>
-                    </div>
-                `;
-                item.querySelector(".btn-open").onclick = () => {
-                    closeBookshelf();
-                    loadBookObject(b);
-                };
-                item.querySelector(".btn-del").onclick = async () => {
-                    await deleteBookFromDB(b.id);
-                    if (currentBookId === b.id) {
-                        currentBookId = null;
-                        localStorage.removeItem("last_opened_book_id");
-                    }
-                    openBookshelf();
-                };
-                listEl.appendChild(item);
-            });
+        function onVoiceChange() {
+            SELECTED_VOICE = document.getElementById('voiceSelect').value;
+            localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
+            const wasPlaying = isPlaying, resumeIdx = currentChunkIndex;
+            stopTTS(); clearAudioCache();
+            if (wasPlaying) startTTS(resumeIdx);
+            else status.textContent = "🎙 Giọng: " + (document.getElementById('voiceSelect').selectedOptions.item(0)?.text || SELECTED_VOICE);
         }
 
-        function closeBookshelf() {
-            document.getElementById("bookshelfModal").classList.remove("open");
-        }
-
-        function loadBookObject(book) {
-            stopTTS();
-            currentBookId = book.id;
-            localStorage.setItem("last_opened_book_id", book.id);
-            chapters = book.chapters;
-
-            chapterSelect.innerHTML = "";
-            chapters.forEach((chap, idx) => {
-                const opt = document.createElement("option");
-                opt.value = idx;
-                opt.textContent = chap.title;
-                chapterSelect.appendChild(opt);
-            });
-            document.getElementById("chapterBar").style.display = "flex";
-
-            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
-            chapterSelect.value = targetChap;
-            renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
-        }
-
-        // --- 3. PARSE TXT & EPUB (SMART JOIN & MAX_LEN = 400) ---
-        const fileInput = document.getElementById('fileInput');
-        const storyContainer = document.getElementById('storyContainer');
-        const status = document.getElementById('status');
-        const chapterSelect = document.getElementById('chapterSelect');
-        const speedSelect = document.getElementById('speedSelect');
-        const playToggleBtn = document.getElementById('playToggleBtn');
-        const chunkCounter = document.getElementById('chunkCounter');
-        const progressFill = document.getElementById('progressFill');
-
-        let chapters = [];
-        let currentChapterIndex = 0;
-        let chunks = [];
-        let currentChunkIndex = 0;
-
-        const players = [new Audio(), new Audio()];
-        players.forEach(p => {
-            p.playsInline = true;
-            p.preload = "auto";
-        });
-
-        // Silent Keep-Alive Audio cho iOS Background
-        const silentKeepAlive = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-        silentKeepAlive.loop = true;
-        silentKeepAlive.volume = 0.01;
-
-        let isPlaying = false;
-        let playSessionId = 0;
-        let audioCache = {};
-        let resolvedUrls = {};
-        let abortControllers = {};
-        let workerRunning = false;
-
-        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
-
-        function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
-            for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
-                const line = paragraphs[i].trim();
-                if (CHAPTER_REGEX.test(line)) return line.substring(0, 65);
-            }
-            if (htmlDoc) {
-                const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
-                for (let h of headings) {
-                    const t = h.textContent.replace(/\s+/g, ' ').trim();
-                    if (t && !/^(unknown|untitled|chương mới|mục lục)$/i.test(t)) return t.substring(0, 65);
-                }
-            }
-            return paragraphs.length > 0 ? paragraphs.at(0).substring(0, 60) : fallbackTitle;
-        }
-
-        function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, "text/html");
-            doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
-            doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-            doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
-                el.appendChild(doc.createTextNode("\n"));
-            });
-            const rawText = doc.body ? doc.body.textContent : doc.textContent;
-            const paragraphs = processRawTextToChunks(rawText);
-            const title = detectChapterTitleFromParagraphs(paragraphs, doc, fallbackTitle);
-            return { title, paragraphs };
-        }
-
-        function processRawTextToChunks(rawText) {
-            const rawLines = rawText.split(/\r?\n/);
-            const mergedLines = [];
-            const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-
-            for (let line of rawLines) {
-                let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (!trimmed || trimmed.toLowerCase() === "unknown" || !validCharRegex.test(trimmed)) continue;
-
-                if (mergedLines.length > 0) {
-                    const prev = mergedLines[mergedLines.length - 1];
-                    if (!/[.!?;:”"']$/.test(prev) && !CHAPTER_REGEX.test(trimmed)) {
-                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
-                        continue;
-                    }
-                }
-                mergedLines.push(trimmed);
-            }
-
-            const finalChunks = [];
-            const MAX_LEN = 400;
-            let currentBuf = "";
-
-            for (let para of mergedLines) {
-                if (para.length > MAX_LEN) {
-                    if (currentBuf.trim()) {
-                        finalChunks.push(currentBuf.trim());
-                        currentBuf = "";
-                    }
-                    const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
-                    for (let s of sentences) {
-                        if ((currentBuf + " " + s).trim().length > MAX_LEN) {
-                            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                            currentBuf = s;
-                        } else {
-                            currentBuf = (currentBuf + " " + s).trim();
-                        }
-                    }
-                } else {
-                    if ((currentBuf + " " + para).trim().length > MAX_LEN) {
-                        if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                        currentBuf = para;
-                    } else {
-                        currentBuf = (currentBuf + " " + para).trim();
-                    }
-                }
-            }
-            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-            return finalChunks;
-        }
-
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files.item(0);
-            if (!file) return;
-
-            stopTTS();
-            status.textContent = `⏳ Đang phân tích: ${file.name}...`;
-            let parsedChapters = [];
-
-            try {
-                if (file.name.toLowerCase().endsWith('.txt')) {
-                    const text = await file.text();
-                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s*[\dIVXLCDM]+)/im);
-                    if (splits.length <= 1) {
-                        const paras = processRawTextToChunks(text);
-                        parsedChapters.push({
-                            title: detectChapterTitleFromParagraphs(paras, null, "Toàn bộ nội dung"),
-                            paragraphs: paras
-                        });
-                    } else {
-                        splits.forEach((content, idx) => {
-                            if (content.trim()) {
-                                const paras = processRawTextToChunks(content);
-                                if (paras.length > 0) {
-                                    parsedChapters.push({
-                                        title: detectChapterTitleFromParagraphs(paras, null, `Chương ${idx + 1}`),
-                                        paragraphs: paras
-                                    });
-                                }
-                            }
-                        });
-                    }
-                } else if (file.name.toLowerCase().endsWith('.epub')) {
-                    const zip = await JSZip.loadAsync(file);
-                    const containerFile = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
-                    if (!containerFile) throw new Error("File EPUB không hợp lệ");
-
-                    const containerXml = await containerFile.async("text");
-                    const parser = new DOMParser();
-                    const containerDoc = parser.parseFromString(containerXml, "text/xml");
-                    const opfPath = containerDoc.querySelector("rootfile").getAttribute("full-path");
-                    const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : "";
-
-                    const opfXml = await zip.file(opfPath).async("text");
-                    const opfDoc = parser.parseFromString(opfXml, "text/xml");
-
-                    const manifest = {};
-                    opfDoc.querySelectorAll("manifest > item").forEach(item => {
-                        manifest[item.getAttribute("id")] = item.getAttribute("href");
-                    });
-
-                    const spineItems = opfDoc.querySelectorAll("spine > itemref");
-                    for (let i = 0; i < spineItems.length; i++) {
-                        const href = manifest[spineItems[i].getAttribute("idref")];
-                        if (href) {
-                            const filePath = basePath + decodeURIComponent(href);
-                            const fileInZip = zip.file(filePath) || zip.file(filePath.replace(/^\//, ''));
-                            if (fileInZip) {
-                                const htmlContent = await fileInZip.async("text");
-                                const extracted = extractParagraphsFromHtml(htmlContent, `Chương ${i + 1}`);
-                                if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
-                            }
-                        }
-                    }
-                }
-
-                if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản trong file.");
-
-                const bookObj = {
-                    id: file.name + "_" + file.size,
-                    title: file.name.replace(/\.(txt|epub)$/i, ""),
-                    chapters: parsedChapters,
-                    lastChapter: 0,
-                    lastChunk: 0,
-                    updatedAt: Date.now()
-                };
-                await saveBookToDB(bookObj);
-                loadBookObject(bookObj);
-                status.textContent = `✅ Đã lưu vào Tủ sách (${parsedChapters.length} chương)!`;
-            } catch (err) {
-                status.textContent = `❌ Lỗi: ${err.message}`;
-            }
-        });
-
-        function onChapterChange() {
-            const wasPlaying = isPlaying;
-            stopTTS();
-            const targetIdx = parseInt(chapterSelect.value, 10);
-            renderChapter(targetIdx, 0);
-            saveProgress();
-            if (wasPlaying) startTTS(0);
-        }
-
-        function renderChapter(index, startChunk = 0) {
-            currentChapterIndex = index;
-            const chap = chapters[currentChapterIndex];
-            if (!chap) return;
-
-            chunks = chap.paragraphs;
-            currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
-
-            storyContainer.innerHTML = chunks.map((text, idx) => {
-                const wordsHtml = text.split(/(\s+)/).map((part, wIdx) => {
-                    if (/^\s+$/.test(part)) return part;
-                    return `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`;
-                }).join('');
-                return `<p id="para-${idx}" onclick="startTTS(${idx})">${wordsHtml}</p>`;
-            }).join('');
-
-            highlightParagraph(currentChunkIndex);
-            clearAudioCache();
-        }
-
-        // --- 4. TTS FETCH & ABORT MANAGEMENT ---
-        function clearAudioCache() {
-            Object.values(abortControllers).forEach(ctrl => ctrl.abort());
-            abortControllers = {};
-            audioCache = {};
-            for (let key in resolvedUrls) {
-                URL.revokeObjectURL(resolvedUrls[key]);
-            }
-            resolvedUrls = {};
-        }
-
-        async function fetchAudioSingle(text, index, session) {
-            const controller = new AbortController();
-            abortControllers[index] = controller;
-
-            for (let attempt = 0; attempt < 2; attempt++) {
-                if (session !== playSessionId) throw new Error("Cancelled");
-                try {
-                    const response = await fetch(getBaseUrl() + "/tts", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: text, voice: SELECTED_VOICE }),
-                        signal: controller.signal
-                    });
-                    if (!response.ok) throw new Error("HTTP " + response.status);
-                    const blob = await response.blob();
-                    if (blob.size < 32) throw new Error("Empty blob");
-                    delete abortControllers[index];
-                    return URL.createObjectURL(blob);
-                } catch (err) {
-                    if (err.name === "AbortError" || session !== playSessionId) throw err;
-                    if (attempt === 1) {
-                        delete abortControllers[index];
-                        throw err;
-                    }
-                    await new Promise(r => setTimeout(r, 400));
-                }
-            }
-        }
-
-        function ensureChunkPromise(index, session) {
-            if (index >= chunks.length) return null;
-            if (!audioCache[index]) {
-                audioCache[index] = fetchAudioSingle(chunks[index], index, session).then(url => {
-                    if (session === playSessionId) {
-                        resolvedUrls[index] = url;
-                        if (isPlaying && index === currentChunkIndex + 1) {
-                            preloadAudioSlot(index, url);
-                        }
-                    }
-                    return url;
-                }).catch(err => {
-                    delete audioCache[index];
-                    throw err;
-                });
-            }
-            return audioCache[index];
-        }
-
-        function preloadAudioSlot(index, url) {
-            const slot = players[index % 2];
-            if (slot.dataset.loadedIdx !== String(index)) {
-                slot.src = url;
-                slot.dataset.loadedIdx = String(index);
-                slot.playbackRate = parseFloat(speedSelect.value);
-                slot.load();
-            }
-        }
-
-        async function startBackgroundWorker(startIdx, session) {
-            if (workerRunning) return;
-            workerRunning = true;
-
-            try {
-                while (session === playSessionId && isPlaying) {
-                    const base = currentChunkIndex;
-                    const limit = Math.min(chunks.length - 1, base + 3);
-                    let target = -1;
-                    for (let i = base; i <= limit; i++) {
-                        if (!audioCache[i]) {
-                            target = i;
-                            break;
-                        }
-                    }
-                    if (target === -1) break;
-                    try {
-                        await ensureChunkPromise(target, session);
-                    } catch (e) {
-                        await new Promise(r => setTimeout(r, 400));
-                    }
-                }
-            } finally {
-                workerRunning = false;
-            }
-        }
-
-        // --- 5. PLAYBACK, KARAOKE HIGHLIGHT & MEDIA SESSION ---
-        function updateMediaSession() {
-            if ('mediaSession' in navigator && chapters[currentChapterIndex]) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: chapters[currentChapterIndex].title,
-                    artist: `Đoạn ${currentChunkIndex + 1}/${chunks.length} • ${SELECTED_VOICE}`,
-                    album: "AI Story Reader"
-                });
-                navigator.mediaSession.setActionHandler('play', () => startTTS(currentChunkIndex));
-                navigator.mediaSession.setActionHandler('pause', () => stopTTS());
-                navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk());
-                navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk());
-            }
-        }
-
-        function togglePlayPause() {
-            if (isPlaying) {
-                stopTTS();
-            } else {
-                startTTS(currentChunkIndex);
-            }
-        }
-
-        function prevChunk() {
-            if (chunks.length === 0) return;
-            const prev = Math.max(0, currentChunkIndex - 1);
-            startTTS(prev);
-        }
-
-        function nextChunk() {
-            if (chunks.length === 0) return;
-            if (currentChunkIndex + 1 < chunks.length) {
-                startTTS(currentChunkIndex + 1);
-            } else if (currentChapterIndex + 1 < chapters.length) {
-                stopTTS();
-                currentChapterIndex++;
-                chapterSelect.value = currentChapterIndex;
-                renderChapter(currentChapterIndex, 0);
-                startTTS(0);
-            }
-        }
-
-        async function startTTS(startIndex = 0) {
-            if (chunks.length === 0) {
-                alert("Vui lòng mở file truyện trước!");
-                return;
-            }
-
-            playSessionId++;
-            const currentSession = playSessionId;
-            workerRunning = false;
-
-            // Hủy các request cũ không liên quan
-            Object.keys(abortControllers).forEach(k => {
-                if (Number(k) !== startIndex) {
-                    abortControllers[k].abort();
-                    delete abortControllers[k];
-                    delete audioCache[k];
-                }
-            });
-
-            players.forEach(p => {
-                p.onended = null;
-                p.onerror = null;
-                p.ontimeupdate = null;
-                p.pause();
-                p.dataset.loadedIdx = "";
-            });
-
-            currentChunkIndex = startIndex;
-            isPlaying = true;
-            playToggleBtn.textContent = "■";
-
-            silentKeepAlive.play().catch(() => {});
-            updateMediaSession();
-
-            await playLoop(currentSession);
-        }
-
-        async function playLoop(session) {
-            while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
-                const idx = currentChunkIndex;
-                const activePlayer = players[idx % 2];
-
-                highlightParagraph(idx);
-                saveProgress();
-                updateMediaSession();
-
-                if (!resolvedUrls[idx]) {
-                    status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
-                }
-
-                let audioUrl;
-                try {
-                    audioUrl = await ensureChunkPromise(idx, session);
-                } catch (err) {
-                    if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Bỏ qua đoạn lỗi ${idx + 1}...`;
-                    currentChunkIndex++;
-                    continue;
-                }
-
-                if (session !== playSessionId || !isPlaying) return;
-
-                if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
-                    preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
-                }
-
-                startBackgroundWorker(idx + 1, session);
-
-                status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
-                await playOnSlot(activePlayer, idx, audioUrl, session);
-
-                const oldIdx = idx - 2;
-                if (oldIdx >= 0 && resolvedUrls[oldIdx]) {
-                    URL.revokeObjectURL(resolvedUrls[oldIdx]);
-                    delete resolvedUrls[oldIdx];
-                    delete audioCache[oldIdx];
-                }
-
-                if (session !== playSessionId || !isPlaying) return;
-                currentChunkIndex++;
-            }
-
-            if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
-                if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển chương...";
-                    currentChapterIndex++;
-                    chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex, 0);
-                    saveProgress();
-                    startTTS(0);
-                    return;
-                } else {
-                    status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
-                    stopTTS();
-                }
-            }
-        }
-
-        function playOnSlot(playerInstance, idx, url, session) {
-            return new Promise((resolve) => {
-                if (session !== playSessionId || !isPlaying) {
-                    resolve();
-                    return;
-                }
-
-                playerInstance.onended = null;
-                playerInstance.onerror = null;
-                playerInstance.ontimeupdate = null;
-
-                if (playerInstance.dataset.loadedIdx !== String(idx)) {
-                    playerInstance.src = url;
-                    playerInstance.dataset.loadedIdx = String(idx);
-                }
-                playerInstance.playbackRate = parseFloat(speedSelect.value);
-
-                const paraEl = document.getElementById(`para-${idx}`);
-                const wordSpans = paraEl ? paraEl.querySelectorAll(".word-span") : [];
-
-                playerInstance.ontimeupdate = () => {
-                    if (!playerInstance.duration || wordSpans.length === 0) return;
-                    const ratio = Math.min(1, playerInstance.currentTime / playerInstance.duration);
-                    progressFill.style.width = `${(ratio * 100).toFixed(1)}%`;
-
-                    const spokenCount = Math.floor(ratio * wordSpans.length);
-                    wordSpans.forEach((sp, wIdx) => {
-                        if (wIdx <= spokenCount) sp.classList.add("spoken");
-                        else sp.classList.remove("spoken");
-                    });
-                };
-
-                const finish = () => {
-                    playerInstance.onended = null;
-                    playerInstance.onerror = null;
-                    playerInstance.ontimeupdate = null;
-                    progressFill.style.width = "0%";
-                    resolve();
-                };
-
-                playerInstance.onended = finish;
-                playerInstance.onerror = finish;
-
-                playerInstance.play().catch(() => finish());
-            });
-        }
-
-        function highlightParagraph(index) {
-            document.querySelectorAll('#storyContainer p.active-chunk').forEach(p => {
-                p.classList.remove('active-chunk');
-            });
-            document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
-
-            chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0";
-            const activePara = document.getElementById(`para-${index}`);
-            if (activePara) {
-                activePara.classList.add('active-chunk');
-                activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-
-        function updateSpeed() {
-            const rate = parseFloat(speedSelect.value);
-            players.forEach(p => p.playbackRate = rate);
-        }
-
-        function stopTTS() {
-            playSessionId++;
-            isPlaying = false;
-            workerRunning = false;
-            playToggleBtn.textContent = "▶";
-            progressFill.style.width = "0%";
-            silentKeepAlive.pause();
-
-            players.forEach(p => {
-                p.onended = null;
-                p.onerror = null;
-                p.ontimeupdate = null;
-                p.pause();
-                p.dataset.loadedIdx = "";
-            });
-            status.textContent = "⏹ Đã tạm dừng.";
-        }
-
-        // Khôi phục truyện đang đọc dở gần nhất khi mở lại trang
-        (async () => {
-            if (currentBookId) {
-                const savedBook = await getBookById(currentBookId);
-                if (savedBook) loadBookObject(savedBook);
-            }
-        })();
-    </script>
-</body>
-</html>
+        function changeServerUrl() {
+            let newUrl = prompt("Link Cloudflare Tunnel (để trống để tự đồng bộ GitHub):", SERVER_BASE);
+if (newUrl !== null) {
+if (newUrl.trim() === "") autoSyncTunnelUrl();
+else { SERVER_BASE = newUrl.trim(); localStorage.setItem("my_tts_server_url", SERVER_BASE); clearAudioCache(); fetchAvailableVoices(); }
+}
+}
+const openDB = () => new Promise((res, rej) => {
+const req = indexedDB.open("AIStoryReaderDB", 1);
+req.onupgradeneeded = e => { if (!e.target.result.objectStoreNames.contains("books")) e.target.result.createObjectStore("books", { keyPath: "id" }); };
+req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
+});
+const saveBookToDB = async b => { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction("books", "readwrite"); tx.objectStore("books").put(b); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); };
+const getAllBooksFromDB = async () => { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction("books", "readonly"); const r = tx.objectStore("books").getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => rej(r.error); }); };
+const getBookFromDB = async id => { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction("books", "readonly"); const r = tx.objectStore("books").get(id); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); }); };
+const deleteBookFromDB = async id => { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction("books", "readwrite"); tx.objectStore("books").delete(id); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); };
+const fileInput = document.getElementById('fileInput'), storyContainer = document.getElementById('storyContainer'), status = document.getElementById('status'), chapterSelect = document.getElementById('chapterSelect'), speedSelect = document.getElementById('speedSelect'), mainPlayBtn = document.getElementById('mainPlayBtn'), progressFill = document.getElementById('progressFill'), chunkCounter = document.getElementById('chunkCounter'), bookTitleEl = document.getElementById('bookTitle');
+let currentBookId = localStorage.getItem("last_active_book_id") || "", currentBookName = "", chapters = [], currentChapterIndex = 0, chunks = [], currentChunkIndex = 0;
+const players = [new Audio(), new Audio()]; players.forEach(p => { p.playsInline = true; p.preload = "auto"; });
+const keepAliveAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"); keepAliveAudio.loop = true; keepAliveAudio.volume = 0.01;
+let isPlaying = false, playSessionId = 0, audioCache = {}, resolvedUrls = {}, abortControllers = {}, workerRunning = false, karaokeRaf = null, activeWordSpans = [];
+const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+.*/i;
+const updatePlayButtonUI = () => { mainPlayBtn.textContent = isPlaying ? "■" : "▶"; };
+const togglePlayPause = () => isPlaying ? stopTTS() : startTTS(currentChunkIndex);
+const prevChunk = () => { if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1)); };
+const nextChunk = () => {
+if (chunks.length === 0) return;
+if (currentChunkIndex + 1 < chunks.length) startTTS(currentChunkIndex + 1);
+else if (currentChapterIndex + 1 < chapters.length) { currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex); startTTS(0); }
+};
+async function saveProgress() {
+if (!currentBookId) return;
+try { const ex = await getBookFromDB(currentBookId); if (ex) { ex.lastChapter = currentChapterIndex; ex.lastChunk = currentChunkIndex; ex.updatedAt = Date.now(); await saveBookToDB(ex); } } catch (e) {}
+}
+function detectChapterTitle(paragraphs, htmlDoc, fallback) {
+for (let i = 0; i < Math.min(10, paragraphs.length); i++) if (CHAPTER_REGEX.test(paragraphs[i].trim())) return paragraphs[i].trim().substring(0, 65);
+if (htmlDoc) for (let h of htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title")) { const t = h.textContent.replace(/\s+/g, ' ').trim(); if (t && !/^(unknown|untitled|chương mới|mục lục)$/i.test(t)) return t.substring(0, 65); }
+return paragraphs.length > 0 ? paragraphs.at(0).substring(0, 60) : fallback;
+}
+function extractHtml(htmlContent, fallback) {
+const doc = new DOMParser().parseFromString(htmlContent, "text/html");
+doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
+doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => { if (!(el.tagName === "DIV" && el.querySelector("p, div, h1, h2, h3, h4"))) el.appendChild(doc.createTextNode("\n")); });
+const paras = processRawText(doc.body ? doc.body.textContent : doc.textContent);
+return { title: detectChapterTitle(paras, doc, fallback), paragraphs: paras };
+}
+function processRawText(rawText) {
+const cleanLines = [], valid = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
+for (let line of rawText.split(/\r?\n/)) {
+let t = line.replace(/\s+/g, ' ').trim();
+if (t.length > 0 && t.toLowerCase() !== "unknown" && valid.test(t)) {
+if (cleanLines.length > 0) {
+const prev = cleanLines[cleanLines.length - 1];
+if (!/[.!?…:;”"'])]$/.test(prev) && /^[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ,.;:!?)”"']/.test(t)) { cleanLines[cleanLines.length - 1] = prev + " " + t; continue; }
+}
+cleanLines.push(t);
+}
+}
+const out = []; let buf = "";
+for (let p of cleanLines) {
+if (p.length > MAX_LEN) {
+if (buf.trim() && valid.test(buf)) { out.push(buf.trim()); buf = ""; }
+for (let s of p.split(/(?<=[.?!;…”"'])\s+/)) {
+if ((buf + " " + s).trim().length > MAX_LEN) { if (buf.trim() && valid.test(buf)) out.push(buf.trim()); buf = s; }
+else buf = (buf + " " + s).trim();
+}
+} else {
+if ((buf + " " + p).trim().length > MAX_LEN) { if (buf.trim() && valid.test(buf)) out.push(buf.trim()); buf = p; }
+else buf = (buf + " " + p).trim();
+}
+}
+if (buf.trim() && valid.test(buf)) out.push(buf.trim());
+return out;
+}
+fileInput.addEventListener('change', async (e) => {
+const file = e.target.files.item(0); if (!file) return;
+stopTTS(); status.textContent = ⏳ Đang nạp truyện: ${file.name}...;
+let parsed = [];
+try {
+if (file.name.toLowerCase().endsWith('.txt')) {
+const text = await file.text(), splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Chapter)\s*[\dIVXLCDM]+)/im);
+if (splits.length <= 1) { const p = processRawText(text); parsed.push({ title: detectChapterTitle(p, null, "Toàn bộ"), paragraphs: p }); }
+else splits.forEach((c, i) => { if (c.trim()) { const p = processRawText(c); if (p.length > 0) parsed.push({ title: detectChapterTitle(p, null, Chương ${i + 1}), paragraphs: p }); } });
+} else if (file.name.toLowerCase().endsWith('.epub')) {
+const zip = await JSZip.loadAsync(file), cf = zip.file("META-INF/container.xml") || zip.file("meta-inf/container.xml");
+if (!cf) throw new Error("EPUB không hợp lệ");
+const parser = new DOMParser(), cDoc = parser.parseFromString(await cf.async("text"), "text/xml"), opfPath = cDoc.querySelector("rootfile").getAttribute("full-path"), base = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : "";
+const opfDoc = parser.parseFromString(await zip.file(opfPath).async("text"), "text/xml"), manifest = {};
+opfDoc.querySelectorAll("manifest > item").forEach(it => { manifest[it.getAttribute("id")] = it.getAttribute("href"); });
+const spine = opfDoc.querySelectorAll("spine > itemref");
+for (let i = 0; i < spine.length; i++) {
+const href = manifest[spine[i].getAttribute("idref")];
+if (href) { const fp = base + decodeURIComponent(href), fz = zip.file(fp) || zip.file(fp.replace(/^//, '')); if (fz) { const ex = extractHtml(await fz.async("text"), Chương ${i + 1}); if (ex.paragraphs.length > 0) parsed.push(ex); } }
+}
+}
+if (parsed.length === 0) throw new Error("Không tìm thấy chữ.");
+const name = file.name.replace(/.(txt|epub)$/i, ""), rec = { id: "book_" + Date.now(), name, chapters: parsed, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
+await saveBookToDB(rec); openBookObject(rec);
+status.textContent = ✅ Đã lưu "${name}" vào Tủ sách!;
+} catch (err) { status.textContent = ❌ Lỗi: ${err.message}; }
+});
+function openBookObject(b) {
+stopTTS(); currentBookId = b.id; currentBookName = b.name; chapters = b.chapters;
+localStorage.setItem("last_active_book_id", currentBookId); bookTitleEl.textContent = "🎧 " + currentBookName;
+chapterSelect.innerHTML = ""; chapters.forEach((c, i) => { const o = document.createElement("option"); o.value = i; o.textContent = c.title; chapterSelect.appendChild(o); });
+const sc = Math.min(b.lastChapter || 0, chapters.length - 1); chapterSelect.value = sc; renderChapter(sc);
+if (b.lastChunk && b.lastChunk < chunks.length) { currentChunkIndex = b.lastChunk; highlightParagraph(currentChunkIndex); }
+}
+async function openBookshelf() {
+document.getElementById('bookshelfModal').classList.add("open");
+const listEl = document.getElementById('bookList'), books = (await getAllBooksFromDB()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+listEl.innerHTML = books.length === 0 ? <div style="text-align:center;color:#64748b;padding:30px;">Tủ sách trống.</div> : books.map(b => <div class="book-item"><div class="book-info" onclick="selectBook('${b.id}')"><div class="book-title">${b.id === currentBookId ? '📖 ' : ''}${b.name}</div><div class="book-meta">${b.chapters.length} chương • Chương ${(b.lastChapter || 0) + 1}, Đoạn ${(b.lastChunk || 0) + 1}</div></div><button class="btn" style="color:#fca5a5;" onclick="delBook('${b.id}')">Xóa</button></div>).join('');
+}
+const closeBookshelf = () => document.getElementById('bookshelfModal').classList.remove("open");
+const selectBook = async id => { const b = await getBookFromDB(id); if (b) { openBookObject(b); closeBookshelf(); } };
+const delBook = async id => { if (!confirm("Xóa truyện này?")) return; await deleteBookFromDB(id); if (id === currentBookId) { stopTTS(); currentBookId = ""; chapters = []; chunks = []; bookTitleEl.textContent = "🎧 Story Reader"; storyContainer.innerHTML = ""; } openBookshelf(); };
+function onChapterChange() { const wp = isPlaying; stopTTS(); renderChapter(parseInt(chapterSelect.value)); saveProgress(); if (wp) startTTS(0); }
+function renderChapter(idx) {
+currentChapterIndex = idx; const chap = chapters[idx]; if (!chap) return;
+chunks = chap.paragraphs; currentChunkIndex = 0;
+storyContainer.innerHTML = chunks.map((t, i) => <p id="para-${i}" onclick="startTTS(${i})">${t.split(/\s+/).map(w => ${w}).join(' ')}</p>).join('');
+storyContainer.scrollTop = 0; chunkCounter.textContent = 1 / ${chunks.length}; progressFill.style.width = "0%"; clearAudioCache();
+}
+const abortAll = () => { for (let k in abortControllers) { try { abortControllers[k].abort(); } catch (e) {} } abortControllers = {}; };
+const clearAudioCache = () => { abortAll(); audioCache = {}; for (let k in resolvedUrls) URL.revokeObjectURL(resolvedUrls[k]); resolvedUrls = {}; };
+async function fetchAudioSingle(text, index, session) {
+for (let attempt = 0; attempt < 3; attempt++) {
+if (session !== playSessionId) throw new Error("Cancelled");
+const ctrl = new AbortController(); abortControllers[index] = ctrl;
+try {
+const res = await fetch(getApiUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: SELECTED_VOICE }), signal: ctrl.signal });
+delete abortControllers[index]; if (!res.ok) throw new Error("HTTP " + res.status);
+const blob = await res.blob(); if (blob.size < 16) throw new Error("Empty");
+return URL.createObjectURL(blob);
+} catch (err) { delete abortControllers[index]; if (err.name === "AbortError" || session !== playSessionId) throw new Error("Cancelled"); if (attempt === 2) throw err; await new Promise(r => setTimeout(r, 400)); }
+}
+}
+function ensureChunkPromise(index, session) {
+if (index >= chunks.length) return null;
+if (!audioCache[index]) {
+audioCache[index] = fetchAudioSingle(chunks[index], index, session).then(url => {
+if (session === playSessionId) { resolvedUrls[index] = url; if (isPlaying && index === currentChunkIndex + 1) preloadSlot(index, url); }
+return url;
+}).catch(err => { delete audioCache[index]; throw err; });
+}
+return audioCache[index];
+}
+function preloadSlot(index, url) {
+const slot = players[index % 2];
+if (slot.dataset.loadedIdx !== String(index)) { slot.src = url; slot.dataset.loadedIdx = String(index); slot.playbackRate = parseFloat(speedSelect.value); slot.load(); }
+}
+async function startBgWorker(session) {
+if (workerRunning) return; workerRunning = true;
+try {
+while (session === playSessionId && isPlaying) {
+const limit = Math.min(chunks.length - 1, currentChunkIndex + 3);
+let target = -1;
+for (let i = currentChunkIndex; i <= limit; i++) if (!audioCache[i]) { target = i; break; }
+if (target === -1) break;
+try { await ensureChunkPromise(target, session); } catch (e) { await new Promise(r => setTimeout(r, 300)); }
+}
+} finally { workerRunning = false; }
+}
+function updateMediaSession(idx) {
+if (!('mediaSession' in navigator)) return;
+navigator.mediaSession.metadata = new MediaMetadata({ title: chapters[currentChapterIndex]?.title || "Đọc truyện", artist: ${currentBookName || "Story Reader"} (${idx + 1}/${chunks.length}), album: "VieNeu-TTS" });
+navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+navigator.mediaSession.setActionHandler('play', () => startTTS(currentChunkIndex));
+navigator.mediaSession.setActionHandler('pause', () => stopTTS());
+navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk());
+navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk());
+}
+function startKaraoke(player, idx) {
+if (karaokeRaf) cancelAnimationFrame(karaokeRaf);
+const para = document.getElementById(para-${idx}); if (!para) return;
+activeWordSpans = Array.from(para.querySelectorAll('.word-span'));
+const weights = activeWordSpans.map(s => Math.max(2, s.textContent.length)), totalW = weights.reduce((a, b) => a + b, 0);
+function tick() {
+if (!isPlaying) return;
+if (player.duration > 0) {
+const ratio = Math.min(1, Math.max(0, player.currentTime / player.duration));
+progressFill.style.width = ${(ratio * 100).toFixed(1)}%;
+let acc = 0, act = 0;
+for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (acc >= ratio * totalW) { act = i; break; } }
+for (let i = 0; i < activeWordSpans.length; i++) activeWordSpans[i].classList.toggle('spoken', i <= act);
+}
+karaokeRaf = requestAnimationFrame(tick);
+}
+karaokeRaf = requestAnimationFrame(tick);
+}
+async function startTTS(startIndex = 0) {
+if (chunks.length === 0) { openBookshelf(); return; }
+playSessionId++; const sess = playSessionId; workerRunning = false; abortAll();
+players.forEach(p => { p.onended = null; p.onerror = null; p.pause(); p.dataset.loadedIdx = ""; });
+currentChunkIndex = startIndex; isPlaying = true; updatePlayButtonUI(); saveProgress();
+keepAliveAudio.play().catch(() => {});
+const sil = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+players.forEach(p => { if (!p.src) p.src = sil; p.play().then(() => p.pause()).catch(() => {}); });
+await playLoop(sess);
+}
+async function playLoop(session) {
+while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
+const idx = currentChunkIndex, slot = players[idx % 2];
+highlightParagraph(idx); updateMediaSession(idx); saveProgress();
+if (!resolvedUrls[idx]) status.textContent = ⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...;
+let url;
+try { url = await ensureChunkPromise(idx, session); }
+catch (e) { if (session !== playSessionId || !isPlaying) return; status.textContent = ⚠️ Thử lại đoạn ${idx + 1}...; await new Promise(r => setTimeout(r, 500)); continue; }
+if (session !== playSessionId || !isPlaying) return;
+if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) preloadSlot(idx + 1, resolvedUrls[idx + 1]);
+startBgWorker(session);
+status.textContent = 🔊 ${chapters[currentChapterIndex].title};
+await new Promise(res => {
+if (session !== playSessionId || !isPlaying) return res();
+slot.onended = null; slot.onerror = null;
+if (slot.dataset.loadedIdx !== String(idx)) { slot.src = url; slot.dataset.loadedIdx = String(idx); }
+slot.playbackRate = parseFloat(speedSelect.value); startKaraoke(slot, idx);
+const done = () => { if (karaokeRaf) cancelAnimationFrame(karaokeRaf); progressFill.style.width = "100%"; slot.onended = null; slot.onerror = null; res(); };
+slot.onended = done; slot.onerror = done; slot.play().catch(done);
+});
+const old = idx - 2; if (old >= 0 && resolvedUrls[old]) { URL.revokeObjectURL(resolvedUrls[old]); delete resolvedUrls[old]; delete audioCache[old]; }
+if (session !== playSessionId || !isPlaying) return;
+currentChunkIndex++;
+}
+if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
+if (currentChapterIndex < chapters.length - 1) { currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex); startTTS(0); return; }
+else { status.textContent = "✅ Đã đọc hết truyện!"; stopTTS(); }
+}
+}
+function highlightParagraph(index) {
+document.querySelectorAll('#storyContainer p.active-chunk').forEach(p => { p.classList.remove('active-chunk'); p.querySelectorAll('.word-span').forEach(s => s.classList.remove('spoken')); });
+chunkCounter.textContent = ${index + 1} / ${chunks.length};
+const el = document.getElementById(para-${index});
+if (el) { el.classList.add('active-chunk'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+const updateSpeed = () => { const r = parseFloat(speedSelect.value); players.forEach(p => p.playbackRate = r); };
+function stopTTS() {
+playSessionId++; isPlaying = false; workerRunning = false; abortAll(); if (karaokeRaf) cancelAnimationFrame(karaokeRaf); keepAliveAudio.pause();
+players.forEach(p => { p.onended = null; p.onerror = null; p.pause(); p.dataset.loadedIdx = ""; });
+updatePlayButtonUI(); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; status.textContent = "⏹ Đã dừng đọc.";
+}
+window.addEventListener('DOMContentLoaded', async () => {
+await autoSyncTunnelUrl();
+if (currentBookId) { const b = await getBookFromDB(currentBookId); if (b) { openBookObject(b); status.textContent = 📖 Khôi phục: ${b.name}; } }
+});
