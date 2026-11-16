@@ -557,6 +557,7 @@
 
         function loadBookObject(book) {
             stopTTS();
+            clearAudioCache();
             currentBookId = book.id;
             localStorage.setItem("last_opened_book_id", book.id);
             chapters = book.chapters;
@@ -597,6 +598,7 @@
             p.preload = "auto";
         });
 
+        // Silent Keep-Alive Audio cho iOS Background
         const silentKeepAlive = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
         silentKeepAlive.loop = true;
         silentKeepAlive.volume = 0.01;
@@ -605,7 +607,6 @@
         let playSessionId = 0;
         let audioCache = {};
         let resolvedUrls = {};
-        let nextChapterCache = {}; // Cache riêng cho chương kế tiếp
         let abortControllers = {};
         let workerRunning = false;
 
@@ -800,27 +801,42 @@
             }).join('');
 
             highlightParagraph(currentChunkIndex);
-            clearAudioCache();
+            // Giữ lại cache của chương mới (nếu đã được pre-fetch từ cuối chương trước), chỉ xóa chương cũ
+            clearAudioCache(currentChapterIndex);
         }
 
-        // --- 4. TTS FETCH & ABORT MANAGEMENT ---
-        function clearAudioCache() {
-            Object.values(abortControllers).forEach(ctrl => ctrl.abort());
-            abortControllers = {};
-            audioCache = {};
-            for (let key in resolvedUrls) {
-                URL.revokeObjectURL(resolvedUrls[key]);
-            }
-            resolvedUrls = {};
-            for (let key in nextChapterCache) {
-                URL.revokeObjectURL(nextChapterCache[key]);
-            }
-            nextChapterCache = {};
+        // --- 4. TTS FETCH & CROSS-CHAPTER CACHE MANAGEMENT ---
+        function getCacheKey(chapIdx, chunkIdx) {
+            return `${chapIdx}_${chunkIdx}`;
         }
 
-        async function fetchAudioSingle(text, index, session, isNextChap = false) {
+        function clearAudioCache(keepChapIdx = null) {
+            const prefixToKeep = keepChapIdx !== null ? `${keepChapIdx}_` : null;
+
+            Object.keys(abortControllers).forEach(key => {
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
+                    abortControllers[key].abort();
+                    delete abortControllers[key];
+                }
+            });
+
+            Object.keys(audioCache).forEach(key => {
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
+                    delete audioCache[key];
+                }
+            });
+
+            Object.keys(resolvedUrls).forEach(key => {
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
+                    URL.revokeObjectURL(resolvedUrls[key]);
+                    delete resolvedUrls[key];
+                }
+            });
+        }
+
+        async function fetchAudioSingle(text, key, session) {
             const controller = new AbortController();
-            if (!isNextChap) abortControllers[index] = controller;
+            abortControllers[key] = controller;
 
             for (let attempt = 0; attempt < 2; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
@@ -834,12 +850,12 @@
                     if (!response.ok) throw new Error("HTTP " + response.status);
                     const blob = await response.blob();
                     if (blob.size < 32) throw new Error("Empty blob");
-                    if (!isNextChap) delete abortControllers[index];
+                    delete abortControllers[key];
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (err.name === "AbortError" || session !== playSessionId) throw err;
                     if (attempt === 1) {
-                        if (!isNextChap) delete abortControllers[index];
+                        delete abortControllers[key];
                         throw err;
                     }
                     if (attempt === 0) {
@@ -850,36 +866,41 @@
             }
         }
 
-        function ensureChunkPromise(index, session) {
-            if (index >= chunks.length) return null;
-            if (!audioCache[index]) {
-                audioCache[index] = fetchAudioSingle(chunks[index], index, session).then(url => {
+        function ensureChunkPromise(chapIdx, chunkIdx, session) {
+            const chap = chapters[chapIdx];
+            if (!chap || chunkIdx >= chap.paragraphs.length) return null;
+
+            const key = getCacheKey(chapIdx, chunkIdx);
+            const text = chap.paragraphs[chunkIdx];
+
+            if (!audioCache[key]) {
+                audioCache[key] = fetchAudioSingle(text, key, session).then(url => {
                     if (session === playSessionId) {
-                        resolvedUrls[index] = url;
-                        if (isPlaying && index === currentChunkIndex + 1) {
-                            preloadAudioSlot(index, url);
+                        resolvedUrls[key] = url;
+                        if (isPlaying && chapIdx === currentChapterIndex && chunkIdx === currentChunkIndex + 1) {
+                            preloadAudioSlot(key, chunkIdx, url);
                         }
                     }
                     return url;
                 }).catch(err => {
-                    delete audioCache[index];
+                    delete audioCache[key];
                     throw err;
                 });
             }
-            return audioCache[index];
+            return audioCache[key];
         }
 
-        function preloadAudioSlot(index, url) {
-            const slot = players[index % 2];
-            if (slot.dataset.loadedIdx !== String(index)) {
+        function preloadAudioSlot(key, chunkIdx, url) {
+            const slot = players[chunkIdx % 2];
+            if (slot.dataset.loadedKey !== key) {
                 slot.src = url;
-                slot.dataset.loadedIdx = String(index);
+                slot.dataset.loadedKey = key;
                 slot.playbackRate = parseFloat(speedSelect.value);
                 slot.load();
             }
         }
 
-        async function startBackgroundWorker(startIdx, session) {
+        async function startBackgroundWorker(session) {
             if (workerRunning) return;
             workerRunning = true;
 
@@ -887,38 +908,42 @@
                 while (session === playSessionId && isPlaying) {
                     const base = currentChunkIndex;
                     const limit = Math.min(chunks.length - 1, base + 3);
-                    let target = -1;
+                    let targetChap = -1;
+                    let targetChunk = -1;
+
+                    // 1. Kiểm tra các đoạn tiếp theo trong chương hiện tại
                     for (let i = base; i <= limit; i++) {
-                        if (!audioCache[i]) {
-                            target = i;
+                        const k = getCacheKey(currentChapterIndex, i);
+                        if (!audioCache[k]) {
+                            targetChap = currentChapterIndex;
+                            targetChunk = i;
                             break;
                         }
                     }
 
-                    // Nếu đã tới 2 đoạn cuối của chương hiện tại -> Pre-fetch luôn đoạn đầu chương tiếp theo
-                    if (target === -1 && currentChunkIndex >= chunks.length - 2) {
-                        if (currentChapterIndex + 1 < chapters.length) {
-                            const nextChap = chapters[currentChapterIndex + 1];
-                            if (nextChap && nextChap.paragraphs.length > 0 && !nextChapterCache[0]) {
-                                try {
-                                    const nextUrl = await fetchAudioSingle(nextChap.paragraphs[0], 0, session, true);
-                                    if (session === playSessionId) {
-                                        nextChapterCache[0] = nextUrl;
-                                    }
-                                } catch (e) {}
+                    // 2. Nếu chương hiện tại đã tải xong và chỉ còn <= 2 đoạn là hết chương -> Tải trước 2 đoạn đầu của chương kế tiếp
+                    if (targetChap === -1 && (chunks.length - 1 - base) <= 2) {
+                        const nextChapIdx = currentChapterIndex + 1;
+                        if (nextChapIdx < chapters.length) {
+                            const nextParas = chapters[nextChapIdx].paragraphs;
+                            const nextLimit = Math.min(nextParas.length - 1, 1); // Tải trước đoạn 0 và 1 của chương sau
+                            for (let j = 0; j <= nextLimit; j++) {
+                                const nk = getCacheKey(nextChapIdx, j);
+                                if (!audioCache[nk]) {
+                                    targetChap = nextChapIdx;
+                                    targetChunk = j;
+                                    break;
+                                }
                             }
                         }
                     }
 
-                    if (target === -1) {
-                        await new Promise(r => setTimeout(r, 600));
-                        continue;
-                    }
+                    if (targetChap === -1) break;
 
                     try {
-                        await ensureChunkPromise(target, session);
+                        await ensureChunkPromise(targetChap, targetChunk, session);
                     } catch (e) {
-                        await new Promise(r => setTimeout(r, 600));
+                        await new Promise(r => setTimeout(r, 400));
                     }
                 }
             } finally {
@@ -963,15 +988,7 @@
                 stopTTS();
                 currentChapterIndex++;
                 chapterSelect.value = currentChapterIndex;
-                
-                // Nếu đã có cache đoạn đầu chương mới từ trước -> Nạp thẳng vào audioCache luôn
                 renderChapter(currentChapterIndex, 0);
-                if (nextChapterCache[0]) {
-                    audioCache[0] = Promise.resolve(nextChapterCache[0]);
-                    resolvedUrls[0] = nextChapterCache[0];
-                    nextChapterCache = {};
-                }
-                saveProgress();
                 startTTS(0);
             }
         }
@@ -986,8 +1003,12 @@
             const currentSession = playSessionId;
             workerRunning = false;
 
+            const currentKey = getCacheKey(currentChapterIndex, startIndex);
+            const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
+
+            // Hủy các request cũ đang treo nhưng giữ lại đoạn chuẩn bị phát và đoạn đầu chương sau (nếu đang tải)
             Object.keys(abortControllers).forEach(k => {
-                if (Number(k) !== startIndex) {
+                if (k !== currentKey && k !== nextChapKey0) {
                     abortControllers[k].abort();
                     delete abortControllers[k];
                     delete audioCache[k];
@@ -999,7 +1020,7 @@
                 p.onerror = null;
                 p.ontimeupdate = null;
                 p.pause();
-                p.dataset.loadedIdx = "";
+                p.dataset.loadedKey = "";
             });
 
             currentChunkIndex = startIndex;
@@ -1015,19 +1036,20 @@
         async function playLoop(session) {
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
+                const key = getCacheKey(currentChapterIndex, idx);
                 const activePlayer = players[idx % 2];
 
                 highlightParagraph(idx);
                 saveProgress();
                 updateMediaSession();
 
-                if (!resolvedUrls[idx]) {
+                if (!resolvedUrls[key]) {
                     status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
                 }
 
                 let audioUrl;
                 try {
-                    audioUrl = await ensureChunkPromise(idx, session);
+                    audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
                     status.textContent = `⚠️ Bỏ qua đoạn lỗi ${idx + 1}...`;
@@ -1037,20 +1059,24 @@
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                if (idx + 1 < chunks.length && resolvedUrls[idx + 1]) {
-                    preloadAudioSlot(idx + 1, resolvedUrls[idx + 1]);
+                const nextKey = getCacheKey(currentChapterIndex, idx + 1);
+                if (idx + 1 < chunks.length && resolvedUrls[nextKey]) {
+                    preloadAudioSlot(nextKey, idx + 1, resolvedUrls[nextKey]);
                 }
 
-                startBackgroundWorker(idx + 1, session);
+                startBackgroundWorker(session);
 
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
-                await playOnSlot(activePlayer, idx, audioUrl, session);
+                await playOnSlot(activePlayer, key, idx, audioUrl, session);
 
                 const oldIdx = idx - 2;
-                if (oldIdx >= 0 && resolvedUrls[oldIdx]) {
-                    URL.revokeObjectURL(resolvedUrls[oldIdx]);
-                    delete resolvedUrls[oldIdx];
-                    delete audioCache[oldIdx];
+                if (oldIdx >= 0) {
+                    const oldKey = getCacheKey(currentChapterIndex, oldIdx);
+                    if (resolvedUrls[oldKey]) {
+                        URL.revokeObjectURL(resolvedUrls[oldKey]);
+                        delete resolvedUrls[oldKey];
+                        delete audioCache[oldKey];
+                    }
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
@@ -1062,13 +1088,7 @@
                     status.textContent = "⏭ Đang chuyển chương...";
                     currentChapterIndex++;
                     chapterSelect.value = currentChapterIndex;
-                    
                     renderChapter(currentChapterIndex, 0);
-                    if (nextChapterCache[0]) {
-                        audioCache[0] = Promise.resolve(nextChapterCache[0]);
-                        resolvedUrls[0] = nextChapterCache[0];
-                        nextChapterCache = {};
-                    }
                     saveProgress();
                     startTTS(0);
                     return;
@@ -1079,7 +1099,7 @@
             }
         }
 
-        function playOnSlot(playerInstance, idx, url, session) {
+        function playOnSlot(playerInstance, key, idx, url, session) {
             return new Promise((resolve) => {
                 if (session !== playSessionId || !isPlaying) {
                     resolve();
@@ -1090,9 +1110,9 @@
                 playerInstance.onerror = null;
                 playerInstance.ontimeupdate = null;
 
-                if (playerInstance.dataset.loadedIdx !== String(idx)) {
+                if (playerInstance.dataset.loadedKey !== key) {
                     playerInstance.src = url;
-                    playerInstance.dataset.loadedIdx = String(idx);
+                    playerInstance.dataset.loadedKey = key;
                 }
                 playerInstance.playbackRate = parseFloat(speedSelect.value);
 
@@ -1158,11 +1178,12 @@
                 p.onerror = null;
                 p.ontimeupdate = null;
                 p.pause();
-                p.dataset.loadedIdx = "";
+                p.dataset.loadedKey = "";
             });
             status.textContent = "⏹ Đã tạm dừng.";
         }
 
+        // Khôi phục truyện đang đọc dở gần nhất khi mở lại trang
         (async () => {
             if (currentBookId) {
                 const savedBook = await getBookById(currentBookId);
