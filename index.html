@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+import os
+
+part1 = """<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -85,12 +87,14 @@
             <div class="book-list" id="bookList"></div>
         </div>
     </div>
-    <script>
+"""
+
+part2 = """    <script>
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
         let SELECTED_VOICE = localStorage.getItem("my_tts_selected_voice") || "default";
         const MAX_LEN = 400;
-        const getApiUrl = () => SERVER_BASE.replace(/\/$/, "") + "/tts";
-        const getVoicesUrl = () => SERVER_BASE.replace(/\/$/, "") + "/voices";
+        const getApiUrl = () => SERVER_BASE.replace(/\\/$/, "") + "/tts";
+        const getVoicesUrl = () => SERVER_BASE.replace(/\\/$/, "") + "/voices";
 
         async function autoSyncTunnelUrl() {
             try {
@@ -100,7 +104,7 @@
                     if (data && data.url && data.url.startsWith("http")) {
                         SERVER_BASE = data.url.trim();
                         localStorage.setItem("my_tts_server_url", SERVER_BASE);
-                        status.textContent = "✅ Đã đồng bộ Server: " + SERVER_BASE.replace(/^https?:\/\//, "");
+                        status.textContent = "✅ Đã đồng bộ Server: " + SERVER_BASE.replace(/^https?:\\/\\//, "");
                     }
                 }
             } catch (e) {}
@@ -135,7 +139,7 @@
         }
 
         function changeServerUrl() {
-            let newUrl = prompt("Link Cloudflare Tunnel (để trống để tự đồng bộ GitHub):", SERVER_BASE);
+let newUrl = prompt("Link Cloudflare Tunnel (để trống để tự đồng bộ GitHub):", SERVER_BASE);
 if (newUrl !== null) {
 if (newUrl.trim() === "") autoSyncTunnelUrl();
 else { SERVER_BASE = newUrl.trim(); localStorage.setItem("my_tts_server_url", SERVER_BASE); clearAudioCache(); fetchAvailableVoices(); }
@@ -187,8 +191,8 @@ for (let line of rawText.split(/\r?\n/)) {
 let t = line.replace(/\s+/g, ' ').trim();
 if (t.length > 0 && t.toLowerCase() !== "unknown" && valid.test(t)) {
 if (cleanLines.length > 0) {
-const prev = cleanLines[cleanLines.length - 1];
-if (!/[.!?…:;”"'])]$/.test(prev) && /^[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ,.;:!?)”"']/.test(t)) { cleanLines[cleanLines.length - 1] = prev + " " + t; continue; }
+const prev = cleanLines.at(-1);
+if (!/[.!?…:;”"'\])]$/.test(prev) && /^[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ,.;:!?)”"']/.test(t)) { cleanLines[cleanLines.length - 1] = prev + " " + t; continue; }
 }
 cleanLines.push(t);
 }
@@ -209,7 +213,8 @@ else buf = (buf + " " + p).trim();
 if (buf.trim() && valid.test(buf)) out.push(buf.trim());
 return out;
 }
-fileInput.addEventListener('change', async (e) => {
+"""
+part3 = """        fileInput.addEventListener('change', async (e) => {
 const file = e.target.files.item(0); if (!file) return;
 stopTTS(); status.textContent = ⏳ Đang nạp truyện: ${file.name}...;
 let parsed = [];
@@ -227,11 +232,11 @@ opfDoc.querySelectorAll("manifest > item").forEach(it => { manifest[it.getAttrib
 const spine = opfDoc.querySelectorAll("spine > itemref");
 for (let i = 0; i < spine.length; i++) {
 const href = manifest[spine[i].getAttribute("idref")];
-if (href) { const fp = base + decodeURIComponent(href), fz = zip.file(fp) || zip.file(fp.replace(/^//, '')); if (fz) { const ex = extractHtml(await fz.async("text"), Chương ${i + 1}); if (ex.paragraphs.length > 0) parsed.push(ex); } }
+if (href) { const fp = base + decodeURIComponent(href), fz = zip.file(fp) || zip.file(fp.replace(/^\//, '')); if (fz) { const ex = extractHtml(await fz.async("text"), Chương ${i + 1}); if (ex.paragraphs.length > 0) parsed.push(ex); } }
 }
 }
 if (parsed.length === 0) throw new Error("Không tìm thấy chữ.");
-const name = file.name.replace(/.(txt|epub)$/i, ""), rec = { id: "book_" + Date.now(), name, chapters: parsed, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
+const name = file.name.replace(/\.(txt|epub)$/i, ""), rec = { id: "book_" + Date.now(), name, chapters: parsed, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
 await saveBookToDB(rec); openBookObject(rec);
 status.textContent = ✅ Đã lưu "${name}" vào Tủ sách!;
 } catch (err) { status.textContent = ❌ Lỗi: ${err.message}; }
@@ -255,7 +260,7 @@ function onChapterChange() { const wp = isPlaying; stopTTS(); renderChapter(pars
 function renderChapter(idx) {
 currentChapterIndex = idx; const chap = chapters[idx]; if (!chap) return;
 chunks = chap.paragraphs; currentChunkIndex = 0;
-storyContainer.innerHTML = chunks.map((t, i) => <p id="para-${i}" onclick="startTTS(${i})">${t.split(/\s+/).map(w => ${w}).join(' ')}</p>).join('');
+storyContainer.innerHTML = chunks.map((t, i) => <p id="para-${i}" onclick="startTTS(${i})">${t.split(/\\s+/).map(w => ${w}).join(' ')}</p>).join('');
 storyContainer.scrollTop = 0; chunkCounter.textContent = 1 / ${chunks.length}; progressFill.style.width = "0%"; clearAudioCache();
 }
 const abortAll = () => { for (let k in abortControllers) { try { abortControllers[k].abort(); } catch (e) {} } abortControllers = {}; };
@@ -380,3 +385,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 await autoSyncTunnelUrl();
 if (currentBookId) { const b = await getBookFromDB(currentBookId); if (b) { openBookObject(b); status.textContent = 📖 Khôi phục: ${b.name}; } }
 });
+
+
+
+"""
+full_code = part1 + part2 + part3
+base_dir = os.path.dirname(os.path.abspath(file))
+for fname in ["index.txt", "index.html"]:
+out_path = os.path.join(base_dir, fname)
+with open(out_path, "w", encoding="utf-8") as f:
+f.write(full_code)
+print(f"[+] Đã xuất thành công: {out_path}")
