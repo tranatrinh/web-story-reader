@@ -239,7 +239,7 @@
         }
         (async () => { await syncTunnelUrlIfNeeded(); updateServerBadge(); await loadVoicesFromServer(); })();
 
-        // --- 2. INDEXEDDB (Version 6 - Ép xóa DB để cập nhật Cấu Trúc Bóc Tách Mới) ---
+        // --- 2. INDEXEDDB ---
         const DB_NAME = "AIStoryReaderDB_v6";
         const STORE_NAME = "books";
         let currentBookId = localStorage.getItem("last_opened_book_v6") || null;
@@ -337,6 +337,7 @@
         const mainPlayer = new Audio(); mainPlayer.playsInline = true; mainPlayer.preload = "auto";
         
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+/i;
+        const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
         const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen|nguồn\s*:|nhóm\s*dịch|biên\s*tập|thực\s*hiện|trọn\s*bộ)/i;
 
