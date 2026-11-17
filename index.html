@@ -94,7 +94,7 @@
             min-width: 0;
         }
 
-        /* Reading Area - Layout chuẩn sách Apple Books */
+        /* Reading Area - Layout chuẩn sách */
         #storyContainer {
             flex: 1;
             overflow-y: auto;
@@ -117,7 +117,7 @@
             padding: 12px 14px;
             cursor: pointer;
             border-radius: 10px;
-            background: rgba(30, 41, 59, 0.5); /* Tạo bọc nền nhẹ sang trọng cho tiêu đề */
+            background: rgba(30, 41, 59, 0.5);
             border: 1px solid rgba(255,255,255,0.03);
             transition: background 0.15s;
         }
@@ -129,14 +129,13 @@
         #storyContainer p {
             margin: 0 0 16px 0;
             padding: 8px 10px;
-            text-indent: 1.6em; /* Thụt lề đầu dòng chuẩn Apple Books */
-            text-align: justify; /* Căn đều 2 bên chống lởm chởm */
+            text-indent: 1.6em; /* Thụt lề đầu dòng */
+            text-align: justify; /* Căn đều 2 bên */
             border-radius: 8px;
             border-left: 3px solid transparent;
             cursor: pointer;
             transition: background 0.2s;
         }
-        /* Style riêng cho các dòng đặc biệt ngắn (như thơ, tiêu đề phụ, hoặc lời thoại) không lùi lề */
         #storyContainer p.centered-meta {
             text-align: center;
             text-indent: 0;
@@ -333,7 +332,7 @@
         <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
             <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
             <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> (đồng bộ cả máy & Server).</div>
+            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b>.</div>
         </div>
     </main>
 
@@ -478,10 +477,10 @@
             await loadVoicesFromServer();
         })();
 
-        // --- 2. INDEXEDDB & CLOUD SERVER BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB";
+        // --- 2. INDEXEDDB V5 (ĐỔI TÊN ĐỂ ÉP TRÌNH DUYỆT XÓA CACHE CŨ) ---
+        const DB_NAME = "AIStoryReaderDB_v5"; // Quan trọng: Đổi DB để xóa cache rác cũ
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_id") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_id_v5") || null;
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -577,7 +576,7 @@
             const modal = document.getElementById("bookshelfModal");
             const listEl = document.getElementById("bookList");
             modal.classList.add("open");
-            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang đồng bộ tủ sách từ máy & Server...</div>";
+            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang tải tủ sách...</div>";
 
             const localBooks = await getAllBooksFromDB();
             const bookMap = new Map();
@@ -635,7 +634,7 @@
             const mergedList = Array.from(bookMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
             if (mergedList.length === 0) {
-                listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b> để thêm truyện!</div>";
+                listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b>!</div>";
                 return;
             }
 
@@ -682,7 +681,7 @@
                             await saveBookToDB(fullBook);
                             loadBookObject(fullBook);
                         } catch (err) {
-                            status.textContent = `❌ Lỗi tải truyện từ server: ${err.message}`;
+                            status.textContent = `❌ Lỗi: ${err.message}`;
                         }
                     }
                 };
@@ -692,7 +691,7 @@
                     if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
                     if (currentBookId === b.id) {
                         currentBookId = null;
-                        localStorage.removeItem("last_opened_book_id");
+                        localStorage.removeItem("last_opened_book_id_v5");
                     }
                     openBookshelf();
                 };
@@ -708,7 +707,7 @@
             stopTTS();
             clearAudioCache();
             currentBookId = book.id;
-            localStorage.setItem("last_opened_book_id", book.id);
+            localStorage.setItem("last_opened_book_id_v5", book.id);
             chapters = book.chapters;
 
             chapterSelect.innerHTML = "";
@@ -726,7 +725,7 @@
             status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
         }
 
-        // --- 3. BỘ BÓC TÁCH DOM & LỌC SẠCH RÁC CHUẨN XÁC ---
+        // --- 3. BỘ DAO MỔ RÁC & CẮT KHỐI CHUẨN XÁC ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -746,24 +745,42 @@
         mainPlayer.preload = "auto";
 
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+.*/i;
-        const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-        // Bổ sung cụm rác, tên truyện, tác giả phổ biến để filter dứt điểm
-        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen|nguồn\s*:|tác\s*giả\s*:|nhóm\s*dịch|biên\s*tập|trọn\s*bộ|nhà\s*xuất\s*bản)/i;
 
-        function normalizeCompare(str) {
-            return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, '');
+        // DAO MỔ RÁC: Xử lý chuỗi rác bị dán chặt vào câu văn (như ảnh của bạn)
+        function sanitizeParagraph(text, titleStr) {
+            let p = text;
+
+            // 1. Phá hủy mọi link web và đuôi .com
+            p = p.replace(/(?:https?:\/\/)?(?:www\.)?(?:dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen)\.(?:com|vn|net|org|info|me|io|tk)[^\s]*/gi, '');
+
+            // 2. Chém đứt tiêu đề nếu nó bị dán lén vào đầu đoạn văn
+            if (titleStr && titleStr.length > 3) {
+                const lowerP = p.toLowerCase();
+                const lowerT = titleStr.toLowerCase();
+                const idx = lowerP.indexOf(lowerT);
+                // Nếu tìm thấy tiêu đề bị nhét ở ngay đầu dòng (khoảng 100 ký tự đầu) -> cắt phăng phần trước nó
+                if (idx >= 0 && idx < 100) {
+                    p = p.substring(idx + titleStr.length);
+                    // Dọn dẹp nốt dấu câu hoặc chữ rác thừa ngay sau khi cắt tiêu đề
+                    p = p.replace(/^[\s.:,\-–—]+/, '');
+                }
+            }
+
+            // 3. Quét sạch các chữ prefix vớ vẩn
+            p = p.replace(/^(?:\s|-)*(?:Nội dung giản lược|Tóm tắt|Giới thiệu|Văn án|Tác giả|Nguồn)\s*:/gi, '');
+            
+            // Xóa dấu cách thừa
+            return p.replace(/\s+/g, ' ').trim();
         }
 
-        // CHIA ĐOẠN KHÔNG GÔP TIÊU ĐỀ: Chỉ gộp câu dở dang, giữ nguyên đoạn văn độc lập
+        // HÀM CHIA KHỐI CHUẨN XÁC: Gộp câu ngắn, bảo toàn câu dài
         function chunkCleanLines(lines) {
             const mergedLines = [];
             for (let line of lines) {
                 let trimmed = line.trim();
                 if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
 
-                // TUYỆT ĐỐI không gộp nếu dòng hiện tại là tiêu đề phụ, hoặc dòng này quá ngắn (< 75 ký tự) 
-                // giúp bảo toàn thơ ca, dòng hội thoại và tiêu đề, không dồn thành cục "thấy ghê"
                 if (mergedLines.length > 0) {
                     const prev = mergedLines[mergedLines.length - 1];
                     const isPrevHeading = CHAPTER_REGEX.test(prev) || prev.length < 75;
@@ -806,27 +823,26 @@
             return finalChunks;
         }
 
-        function extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, bookNameClean) {
+        function extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
             doc.querySelectorAll("script, style, nav, svg, img").forEach(el => el.remove());
 
-            // Tách các thẻ block bằng \n một cách chuẩn chỉ, thay vì đập bẹp thành 1 cục textContent
-            doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-            doc.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, li, blockquote, tr").forEach(el => {
+            // Chuyển thẻ thành \n để chống việc trình duyệt tự động đập bẹp văn bản
+            doc.querySelectorAll("br, hr").forEach(br => br.replaceWith("\n"));
+            doc.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, li, blockquote").forEach(el => {
                 el.insertAdjacentText('beforebegin', '\n');
                 el.insertAdjacentText('afterend', '\n');
             });
 
             const rawText = doc.body ? doc.body.textContent : doc.textContent;
-            const rawLines = rawText.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
+            let rawLines = rawText.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
 
-            // Tìm tiêu đề
             let detectedHeading = "";
             const headingEls = doc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
             for (let h of headingEls) {
                 const t = h.textContent.replace(/\s+/g, ' ').trim();
-                if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t) && !WEB_JUNK_REGEX.test(t) && t.length < 100) {
+                if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t) && t.length < 100) {
                     detectedHeading = t;
                     break;
                 }
@@ -834,15 +850,7 @@
 
             let combinedChapHeading = "";
             for (let i = 0; i < Math.min(6, rawLines.length); i++) {
-                if (ONLY_CHAP_NUM_REGEX.test(rawLines[i])) {
-                    const nextLine = rawLines[i + 1] || "";
-                    if (nextLine && nextLine.length < 55 && !/[.!?]$/.test(nextLine)) {
-                        combinedChapHeading = `${rawLines[i].replace(/[:.\-]+$/, '').trim()}: ${nextLine.trim()}`;
-                    } else {
-                        combinedChapHeading = rawLines[i];
-                    }
-                    break;
-                } else if (CHAPTER_REGEX.test(rawLines[i]) && rawLines[i].length < 90) {
+                if (CHAPTER_REGEX.test(rawLines[i]) && rawLines[i].length < 90) {
                     combinedChapHeading = rawLines[i];
                     break;
                 }
@@ -854,60 +862,19 @@
             else if (detectedHeading) finalTitle = detectedHeading;
             else finalTitle = fallbackTitle;
 
-            const normTitle = normalizeCompare(finalTitle);
-            const normBookParts = (bookNameClean || "").split(/[-–_•|]/).map(s => normalizeCompare(s)).filter(s => s.length >= 3);
+            // Chạy hàm "Dao mổ rác" cho 5 dòng đầu tiên để diệt sạch rác bị dán chặt
+            for (let i = 0; i < Math.min(5, rawLines.length); i++) {
+                rawLines[i] = sanitizeParagraph(rawLines[i], finalTitle);
+            }
+            // Xóa bỏ các dòng trống sinh ra sau khi rác bị chặt đứt
+            rawLines = rawLines.filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
 
-            // TĂNG SỨC MẠNH: Quét rộng lên 25 dòng đầu để quét sạch các loại giới thiệu dài dòng
-            let scanCount = 0;
-            while (rawLines.length > 0 && scanCount < 25) {
-                scanCount++;
-                const firstLine = rawLines[0];
-                const normFirst = normalizeCompare(firstLine);
-
-                // Loại bỏ rác dtv-ebook
-                if (WEB_JUNK_REGEX.test(firstLine) && firstLine.length < 100) {
-                    rawLines.shift(); continue;
-                }
-                // Loại bỏ dòng tên truyện, tác giả, quyển... lấn át đầu file
-                if (firstLine.length < 55 && normBookParts.some(part => normFirst === part || (part.includes(normFirst) && normFirst.length >= 4))) {
-                    rawLines.shift(); continue;
-                }
-                // Loại bỏ tiêu đề trùng lặp lại ngay bên dưới
-                if (normFirst === normTitle || ONLY_CHAP_NUM_REGEX.test(firstLine) || (firstLine.length < 75 && normTitle.includes(normFirst) && normFirst.length >= 3)) {
-                    rawLines.shift(); continue;
-                }
-                
-                // Tiêu đề dính liền chữ
-                if (finalTitle.length > 3 && firstLine.toLowerCase().startsWith(finalTitle.toLowerCase())) {
-                    const remainder = firstLine.substring(finalTitle.length).replace(/^[\s.:,\-–—]+/, '').trim();
-                    if (remainder.length > 0) {
-                        rawLines[0] = remainder;
-                    } else {
-                        rawLines.shift(); continue;
-                    }
-                }
-                
-                let isStuckTitle = false;
-                const titleMatch = firstLine.match(CHAPTER_REGEX);
-                if (titleMatch && titleMatch[0].length < 40 && normTitle.includes(normalizeCompare(titleMatch[0]))) {
-                    const remainder = firstLine.substring(titleMatch[0].length).replace(/^[\s.:,\-–—]+/, '').trim();
-                    if (remainder.length > 0) {
-                        rawLines[0] = remainder;
-                        isStuckTitle = true;
-                    } else {
-                        rawLines.shift(); 
-                        continue;
-                    }
-                }
-                if (isStuckTitle) continue;
-
-                // Dòng nội dung hợp lệ thực sự, ngừng quét rác dồn
-                break; 
+            // Xóa tên tác giả lọt sàng (Ví dụ: "Nam Phái Tam Thúc" nằm chỏng chơ 1 dòng)
+            if (rawLines.length > 0 && rawLines[0].length < 35 && /^(?:Nam Phái Tam Thúc|Già Thiên Thần Đông|Thần Đông|Trọn Bộ)$/i.test(rawLines[0])) {
+                rawLines.shift();
             }
 
-            // Chia khối an toàn tts
             const cleanChunks = chunkCleanLines(rawLines);
-
             return { title: finalTitle.substring(0, 85), paragraphs: cleanChunks };
         }
 
@@ -916,8 +883,7 @@
             if (!file) return;
 
             stopTTS();
-            status.textContent = `⏳ Đang bóc tách và dọn rác: ${file.name}...`;
-            const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, "");
+            status.textContent = `⏳ Đang bóc tách bằng bộ lọc V5: ${file.name}...`;
             let parsedChapters = [];
 
             try {
@@ -927,13 +893,14 @@
                     
                     if (splits.length <= 1) {
                         const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-                        const chunks = chunkCleanLines(rawLines);
+                        for (let i = 0; i < Math.min(5, rawLines.length); i++) rawLines[i] = sanitizeParagraph(rawLines[i], "");
+                        const chunks = chunkCleanLines(rawLines.filter(l => l.length > 0));
                         parsedChapters.push({ title: "Toàn bộ nội dung", paragraphs: chunks });
                     } else {
                         for (let idx = 0; idx < splits.length; idx++) {
                             const content = splits[idx].trim();
                             if (!content) continue;
-                            const rawLines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
+                            let rawLines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
                             if (rawLines.length === 0) continue;
 
                             let title = `Chương ${parsedChapters.length + 1}`;
@@ -941,6 +908,9 @@
                                 title = rawLines.shift();
                             }
                             
+                            for (let i = 0; i < Math.min(5, rawLines.length); i++) rawLines[i] = sanitizeParagraph(rawLines[i], title);
+                            rawLines = rawLines.filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
+
                             const chunks = chunkCleanLines(rawLines);
                             if (chunks.length > 0) parsedChapters.push({ title, paragraphs: chunks });
                         }
@@ -989,7 +959,6 @@
                     if (opfFile) {
                         const opfXml = await opfFile.async("text");
                         const opfDoc = parser.parseFromString(opfXml, "text/xml");
-
                         const manifest = {};
                         const items = Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item")));
                         items.forEach(item => {
@@ -997,7 +966,6 @@
                             const href = item.getAttribute("href");
                             if (id && href) manifest[id] = normalizeZipPath(basePath, href);
                         });
-
                         const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref")));
                         itemrefs.forEach(ref => {
                             const idref = ref.getAttribute("idref");
@@ -1042,8 +1010,12 @@
                             const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
                             const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
 
-                            const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, cleanBookTitle);
-                            if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
+                            // GỌI HÀM "DAO MỔ" MỚI
+                            const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle);
+                            
+                            if (extracted.paragraphs.length > 0) {
+                                parsedChapters.push(extracted);
+                            }
                         }
                     }
                 }
@@ -1051,8 +1023,8 @@
                 if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản trong file.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size,
-                    title: cleanBookTitle,
+                    id: file.name + "_" + file.size + "_v5", // Gắn version để phá vỡ Cache IndexedDB
+                    title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
                     lastChapter: 0,
                     lastChunk: 0,
@@ -1086,7 +1058,6 @@
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            // Đưa title vào index 0
             chunks = [chap.title, ...chap.paragraphs];
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
@@ -1099,8 +1070,8 @@
 
             // Các đoạn nội dung (Sẽ được CSS thụt dòng text-indent: 1.5em)
             for (let idx = 1; idx < chunks.length; idx++) {
-                // Kiểm tra xem đoạn này có quá ngắn (kiểu tiêu đề phụ/tên tác giả/dòng chú thích) không để bỏ lùi lề
-                const isShortMeta = chunks[idx].length < 75;
+                // Kiểm tra xem đoạn này có quá ngắn không để bỏ lùi lề
+                const isShortMeta = chunks[idx].length < 65;
                 const pClass = isShortMeta ? "centered-meta" : "";
                 
                 html += `<p id="para-${idx}" class="${pClass}" onclick="startTTS(${idx})">` + 
@@ -1115,7 +1086,7 @@
             clearAudioCache(currentChapterIndex);
         }
 
-        // BỘ GIỮ TIẾN TRÌNH NỀN (REAL NON-ZERO SUB-AUDIBLE WAVE + WEB AUDIO LOCK)
+        // BỘ GIỮ TIẾN TRÌNH NỀN
         function createRealKeepAliveWavUrl() {
             const sampleRate = 8000;
             const durationSeconds = 4;
@@ -1573,6 +1544,7 @@
 
             mainPlayer.onended = null;
             mainPlayer.onerror = null;
+            mainPlayer.ontimeupdate = null;
             mainPlayer.pause();
             mainPlayer.dataset.loadedKey = "";
 
