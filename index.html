@@ -191,10 +191,10 @@
         async function changeServerUrl() { await syncTunnelUrlIfNeeded(); let newUrl = prompt("Nhập link Server / Cloudflare Tunnel:", SERVER_BASE); if (newUrl !== null) { SERVER_BASE = newUrl.trim() === "" ? SERVER_BASE : newUrl.trim(); updateServerBadge(); clearAudioCache(); await loadVoicesFromServer(); } }
         (async () => { await syncTunnelUrlIfNeeded(); updateServerBadge(); await loadVoicesFromServer(); })();
 
-        // --- 2. INDEXEDDB (Version 10 - Xóa sạch cache Audio ngầm bị kẹt) ---
-        const DB_NAME = "AIStoryReaderDB_v10";
+        // --- 2. INDEXEDDB (Version 11) ---
+        const DB_NAME = "AIStoryReaderDB_v11";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_v10") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_v11") || null;
 
         function openDB() { return new Promise((res, rej) => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" }); }; req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); }
         async function saveBookToDB(book) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).put(book); tx.oncomplete = res; tx.onerror = rej; }); }
@@ -216,13 +216,13 @@
                 const item = document.createElement("div"); item.className = "book-item";
                 item.innerHTML = `<div class="book-info"><div class="book-title">${b.title}</div><div class="book-meta">${b.hasServer ? "☁️ Server" : "📱 Máy"} • ${b.chapterCount} chương • Đọc: Ch.${b.lastChapter+1}</div></div><div class="book-actions"><button class="btn-sm btn-open">Đọc</button><button class="btn-sm btn-del">Xóa</button></div>`;
                 item.querySelector(".btn-open").onclick = async () => { closeBookshelf(); if (b.hasLocal) loadBookObject(b.localObj); else { status.textContent = `☁️ Đang tải từ Server...`; try { const fullBook = await (await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id))).json(); await saveBookToDB(fullBook); loadBookObject(fullBook); } catch (e) {} } };
-                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v10"); } openBookshelf(); };
+                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v11"); } openBookshelf(); };
                 document.getElementById("bookList").appendChild(item);
             });
         }
         function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
         function loadBookObject(book) {
-            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v10", book.id); chapters = book.chapters;
+            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v11", book.id); chapters = book.chapters;
             chapterSelect.innerHTML = ""; chapters.forEach((chap, idx) => chapterSelect.appendChild(new Option(chap.title, idx))); document.getElementById("chapterBar").style.display = "flex";
             const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1); chapterSelect.value = targetChap; renderChapter(targetChap, book.lastQueueIdx || 0); status.textContent = `📖 Sẵn sàng`;
         }
@@ -378,7 +378,7 @@
                 }
 
                 if (parsedChapters.length === 0) throw new Error("File trống hoặc lỗi bóc tách.");
-                const bookObj = { id: file.name + "_" + file.size + "_v10", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastQueueIdx: 0, updatedAt: Date.now() };
+                const bookObj = { id: file.name + "_" + file.size + "_v11", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastQueueIdx: 0, updatedAt: Date.now() };
                 await saveBookToDB(bookObj); loadBookObject(bookObj);
                 status.textContent = `☁️ Đang đồng bộ...`;
                 const uploaded = await uploadBookToServer(bookObj);
@@ -386,7 +386,17 @@
             } catch (err) { status.textContent = `❌ Lỗi: ${err.message}`; }
         });
 
-        function onChapterChange() { const wasPlaying = isPlaying; stopTTS(); renderChapter(parseInt(chapterSelect.value, 10), 0); saveProgress(); if (wasPlaying) startTTS(0); }
+        // HÀM CHUYỂN CHƯƠNG ĐÃ FIX: Thêm độ trễ nhỏ để tránh xung đột TTS
+        function onChapterChange() { 
+            const wasPlaying = isPlaying; 
+            stopTTS(); 
+            // Thêm độ trễ để đảm bảo các tiến trình cũ đã dừng hẳn trước khi bắt đầu chương mới
+            setTimeout(() => {
+                renderChapter(parseInt(chapterSelect.value, 10), 0); 
+                saveProgress(); 
+                if (wasPlaying) startTTS(0); 
+            }, 100);
+        }
 
         // --- RENDER GIAO DIỆN CHUẨN APPLE BOOKS ---
         function renderChapter(index, startQueueIdx = 0) {
@@ -436,12 +446,15 @@
 
         let isPlaying = false; let playSessionId = 0; let audioCache = {}; let resolvedUrls = {}; let abortControllers = {}; let workerRunning = false;
         function getCacheKey(chapIdx, qIdx) { return `${chapIdx}_${qIdx}`; }
+        
+        // Cải thiện hàm clearAudioCache để dọn dẹp sạch sẽ hơn
         function clearAudioCache(keepChapIdx = null) {
             const pre = keepChapIdx !== null ? `${keepChapIdx}_` : null;
             Object.keys(abortControllers).forEach(k => { if (!pre || !k.startsWith(pre)) { abortControllers[k].abort(); delete abortControllers[k]; } });
             Object.keys(audioCache).forEach(k => { if (!pre || !k.startsWith(pre)) delete audioCache[k]; });
             Object.keys(resolvedUrls).forEach(k => { if (!pre || !k.startsWith(pre)) { URL.revokeObjectURL(resolvedUrls[k]); delete resolvedUrls[k]; } });
         }
+        
         async function fetchAudioSingle(text, key, session) {
             const controller = new AbortController(); abortControllers[key] = controller;
             for (let attempt = 0; attempt < 3; attempt++) {
@@ -450,7 +463,6 @@
             }
         }
 
-        // HÀM LẤY CHUỖI TEXT AN TOÀN CHO BACKGROUND WORKER 
         function getChunkText(chapIdx, targetQ) {
             if (chapIdx === currentChapterIndex) return playQueue[targetQ]?.text;
             const chap = chapters[chapIdx];
@@ -485,7 +497,6 @@
                     const base = currentQueueIndex; const limit = Math.min(playQueue.length - 1, base + 6); let targetChap = -1; let targetQ = -1;
                     for (let i = base; i <= limit; i++) { const k = getCacheKey(currentChapterIndex, i); if (!audioCache[k]) { targetChap = currentChapterIndex; targetQ = i; break; } }
                     
-                    // Tải trước chương tiếp theo (ĐÃ FIX LỖI TÌM SAI VỊ TRÍ)
                     if (targetChap === -1 && (playQueue.length - 1 - base) <= 4) {
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length && chapters[nextChapIdx].blocks) { 
@@ -513,10 +524,22 @@
         
         async function startTTS(startIndex = 0) {
             if (playQueue.length === 0) return alert("Vui lòng mở file truyện trước!");
-            playSessionId++; const currentSession = playSessionId; workerRunning = false;
-            const currentKey = getCacheKey(currentChapterIndex, startIndex); const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
+            
+            // Tăng ID session và reset cờ để hủy các tác vụ cũ ngay lập tức
+            playSessionId++; 
+            const currentSession = playSessionId; 
+            workerRunning = false;
+            
+            const currentKey = getCacheKey(currentChapterIndex, startIndex); 
+            const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
+            
+            // Xóa các luồng tải không liên quan
             Object.keys(abortControllers).forEach(k => { if (k !== currentKey && k !== nextChapKey0 && !resolvedUrls[k]) { abortControllers[k].abort(); delete abortControllers[k]; delete audioCache[k]; } });
+            
+            // Đảm bảo mainPlayer được reset hoàn toàn trước khi phát mới
             mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
+            mainPlayer.pause();
+            
             currentQueueIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■"; activateBackgroundKeepAlive();
             if (!resolvedUrls[currentKey]) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); }
             updateMediaSession(); 
@@ -560,7 +583,20 @@
                 currentQueueIndex++;
             }
             if (isPlaying && session === playSessionId && currentQueueIndex >= playQueue.length) {
-                if (currentChapterIndex < chapters.length - 1) { status.textContent = "⏭ Đang chuyển chương..."; currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); saveProgress(); await playLoop(session); return; } else stopTTS("✅ Đã đọc hết truyện!");
+                if (currentChapterIndex < chapters.length - 1) { 
+                    status.textContent = "⏭ Đang chuyển chương..."; 
+                    currentChapterIndex++; 
+                    chapterSelect.value = currentChapterIndex; 
+                    // Thêm delay nhỏ khi tự động chuyển chương
+                    setTimeout(() => {
+                        renderChapter(currentChapterIndex, 0); 
+                        saveProgress(); 
+                        playLoop(session); 
+                    }, 100);
+                    return; 
+                } else {
+                    stopTTS("✅ Đã đọc hết truyện!");
+                }
             }
         }
 
@@ -572,7 +608,7 @@
                 if (mainPlayer.dataset.loadedKey !== key) { 
                     mainPlayer.src = url; 
                     mainPlayer.dataset.loadedKey = key; 
-                    mainPlayer.load(); // Bắt buộc iOS phải nạp mới file Blob
+                    mainPlayer.load(); // Bắt buộc nạp mới url
                 }
                 mainPlayer.playbackRate = parseFloat(speedSelect.value);
                 
@@ -610,7 +646,14 @@
         }
 
         function updateSpeed() { mainPlayer.playbackRate = parseFloat(speedSelect.value); }
-        function stopTTS(msg = "⏹ Đã tạm dừng.") { playSessionId++; isPlaying = false; workerRunning = false; playToggleBtn.textContent = "▶"; progressFill.style.width = "0%"; deactivateBackgroundKeepAlive(); mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.pause(); mainPlayer.dataset.loadedKey = ""; if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; status.textContent = msg; }
+        function stopTTS(msg = "⏹ Đã tạm dừng.") { 
+            playSessionId++; // Hủy mọi tiến trình đang chờ
+            isPlaying = false; workerRunning = false; playToggleBtn.textContent = "▶"; progressFill.style.width = "0%"; deactivateBackgroundKeepAlive(); 
+            mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; 
+            mainPlayer.pause(); mainPlayer.dataset.loadedKey = ""; 
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; 
+            status.textContent = msg; 
+        }
         document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isPlaying) { activateBackgroundKeepAlive(); const qItem = playQueue[currentQueueIndex]; if(qItem) document.getElementById(`block-${qItem.blockIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
         (async () => { if (currentBookId) { const b = await getBookById(currentBookId); if (b) loadBookObject(b); } })();
     </script>
