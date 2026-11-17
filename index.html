@@ -27,6 +27,7 @@
             height: 100dvh;
             overflow: hidden;
         }
+        /* Top Header */
         header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -37,68 +38,273 @@
             gap: 8px;
             flex-shrink: 0;
         }
-        .brand { font-weight: 700; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .brand {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .pill-btn {
-            background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
-            border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 11px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .pill-btn:active { opacity: 0.75; }
-        .pill-accent { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
+        .pill-accent {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border-color: rgba(16, 185, 129, 0.35);
+        }
 
+        /* Chapter Bar */
         .chapter-bar {
-            background: #0f1523; padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+            background: #0f1523;
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
         }
         #chapterSelect {
-            flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; min-width: 0;
+            flex: 1;
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 13px;
+            outline: none;
+            min-width: 0;
         }
 
-        /* KHU VỰC HIỂN THỊ CHUẨN APPLE BOOKS */
+        /* Reading Area - Layout chuẩn sách Apple Books */
         #storyContainer {
-            flex: 1; overflow-y: auto; padding: 24px 20px 48px 20px;
-            font-family: Georgia, "Times New Roman", serif; font-size: 19.5px; line-height: 1.7; color: #cbd5e1; max-width: 780px; width: 100%; margin: 0 auto;
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 20px 48px 20px;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 19.5px;
+            line-height: 1.7;
+            color: #cbd5e1;
+            max-width: 780px;
+            width: 100%;
+            margin: 0 auto;
         }
         #storyContainer h1.chap-heading {
-            font-size: 1.65em; font-weight: 700; line-height: 1.35; text-align: center; color: var(--text);
-            margin: 10px 0 36px 0; padding: 14px 16px; cursor: pointer; border-radius: 12px;
-            background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.04); transition: background 0.15s;
+            font-size: 1.65em;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: center;
+            color: var(--text);
+            margin: 10px 0 36px 0;
+            padding: 14px 16px;
+            cursor: pointer;
+            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s;
         }
-        #storyContainer h1.chap-heading.active-chunk { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+        #storyContainer h1.chap-heading.active-chunk {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
 
         #storyContainer p {
-            margin: 0 0 16px 0; padding: 6px 10px; text-indent: 1.6em; text-align: justify; /* Thụt lề và Căn đều 2 bên */
-            border-radius: 8px; border-left: 3px solid transparent; cursor: pointer; transition: background 0.2s;
+            margin: 0 0 16px 0;
+            padding: 6px 10px;
+            text-indent: 1.6em; /* Thụt lề đầu dòng */
+            text-align: justify; /* Căn đều 2 bên */
+            border-radius: 8px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        #storyContainer p.centered-meta { text-align: center; text-indent: 0; font-weight: bold; color: var(--text-muted); margin-bottom: 24px; font-size: 0.95em; }
-        #storyContainer p.active-chunk { background: rgba(16, 185, 129, 0.12); border-left-color: var(--accent); color: #f8fafc; }
+        #storyContainer p.centered-meta {
+            text-align: center;
+            text-indent: 0;
+            font-weight: bold;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 0.95em;
+        }
+        #storyContainer p.active-chunk {
+            background: rgba(16, 185, 129, 0.12);
+            border-left-color: var(--accent);
+            color: #f8fafc;
+        }
         .word-span { transition: color 0.1s, text-shadow 0.1s; }
-        .word-span.spoken { color: #34d399; font-weight: 600; text-shadow: 0 0 12px var(--accent-glow); }
-
-        .player-dock {
-            background: var(--surface); border-top: 1px solid var(--border); padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+        .word-span.spoken {
+            color: #34d399;
+            font-weight: 600;
+            text-shadow: 0 0 12px var(--accent-glow);
         }
-        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); gap: 8px; }
-        #status { color: #fcd34d; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .progress-track { width: 100%; height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
-        .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-        .dock-select { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; font-size: 12px; font-weight: 600; outline: none; max-width: 135px; }
-        .transport { display: flex; align-items: center; gap: 8px; }
-        .ctrl-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 38px; height: 38px; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .ctrl-btn:active { transform: scale(0.94); }
-        .play-btn { background: var(--accent); color: #042f2e; border: none; width: 46px; height: 46px; font-size: 18px; font-weight: 700; box-shadow: 0 0 16px var(--accent-glow); }
 
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+        /* Bottom Player Dock */
+        .player-dock {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            gap: 8px;
+        }
+        #status {
+            color: #fcd34d;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: var(--surface-2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.15s linear;
+        }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .dock-select {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            outline: none;
+            max-width: 135px;
+        }
+        .transport {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ctrl-btn {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ctrl-btn:active { transform: scale(0.94); }
+        .play-btn {
+            background: var(--accent);
+            color: #042f2e;
+            border: none;
+            width: 46px;
+            height: 46px;
+            font-size: 18px;
+            font-weight: 700;
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        /* Bookshelf Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 50;
+        }
         .modal-backdrop.open { display: flex; }
-        .modal-sheet { background: var(--surface); border-top: 1px solid var(--border); border-radius: 18px 18px 0 0; width: 100%; max-width: 640px; max-height: 75dvh; display: flex; flex-direction: column; padding: 16px; gap: 12px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; }
-        .book-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .book-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .modal-sheet {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-radius: 18px 18px 0 0;
+            width: 100%;
+            max-width: 640px;
+            max-height: 75dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .book-list {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .book-item {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
         .book-info { min-width: 0; flex: 1; }
-        .book-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .book-title {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
         .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .btn-sm { padding: 6px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .btn-sm {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
         .btn-open { background: var(--accent); color: #042f2e; }
         .btn-sync { background: #3b82f6; color: #fff; }
         .btn-del { background: #e11d48; color: #fff; }
@@ -239,10 +445,10 @@
         }
         (async () => { await syncTunnelUrlIfNeeded(); updateServerBadge(); await loadVoicesFromServer(); })();
 
-        // --- 2. INDEXEDDB ---
-        const DB_NAME = "AIStoryReaderDB_v6";
+        // --- 2. INDEXEDDB (Version 7 - Ép xóa DB để cập nhật Cấu Trúc DOM) ---
+        const DB_NAME = "AIStoryReaderDB_v7";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_v6") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_v7") || null;
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -310,13 +516,13 @@
                     if (b.hasLocal) loadBookObject(b.localObj);
                     else { status.textContent = `☁️ Đang tải từ Server...`; try { const fullBook = await (await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id))).json(); await saveBookToDB(fullBook); loadBookObject(fullBook); } catch (e) {} }
                 };
-                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v6"); } openBookshelf(); };
+                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v7"); } openBookshelf(); };
                 listEl.appendChild(item);
             });
         }
         function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
         function loadBookObject(book) {
-            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v6", book.id); chapters = book.chapters;
+            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v7", book.id); chapters = book.chapters;
             chapterSelect.innerHTML = ""; chapters.forEach((chap, idx) => chapterSelect.appendChild(new Option(chap.title, idx)));
             document.getElementById("chapterBar").style.display = "flex";
             const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1); chapterSelect.value = targetChap; renderChapter(targetChap, book.lastChunk || 0);
@@ -337,9 +543,8 @@
         const mainPlayer = new Audio(); mainPlayer.playsInline = true; mainPlayer.preload = "auto";
         
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+/i;
-        const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen|nguồn\s*:|nhóm\s*dịch|biên\s*tập|thực\s*hiện|trọn\s*bộ)/i;
+        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen)/i;
 
         function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
 
@@ -484,11 +689,11 @@
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
                             
-                            // Nhặt danh sách thẻ <p>
+                            // Nhặt danh sách thẻ <p> hoặc <div>
                             const rawParagraphs = extractDOMBlocks(htmlContent);
                             if (rawParagraphs.length === 0) continue;
 
-                            // Xác định tiêu đề (ưu tiên NCX -> File Header -> Fallback)
+                            // Xác định tiêu đề (ưu tiên NCX -> Fallback)
                             let finalTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
                             if (!finalTitle || /^(unknown|untitled)$/i.test(finalTitle)) {
                                 const headingMatch = rawParagraphs.find(p => CHAPTER_REGEX.test(p) && p.length < 80);
@@ -496,20 +701,20 @@
                             }
                             const normTitle = normalizeCompare(finalTitle);
 
-                            // BỘ LỌC RÁC CHUẨN XÁC THEO MẢNG
+                            // BỘ LỌC RÁC CHUẨN XÁC DỰA TRÊN NODE HTML
                             let scanLimit = Math.min(10, rawParagraphs.length);
                             for (let pIdx = 0; pIdx < scanLimit; pIdx++) {
                                 const pText = rawParagraphs[0];
                                 const normP = normalizeCompare(pText);
                                 
-                                // Diệt web lậu
+                                // Diệt web lậu (Chỉ vứt đi Node chứa nó, không ảnh hưởng Node kế tiếp)
                                 if (WEB_JUNK_REGEX.test(pText) && pText.length < 150) { rawParagraphs.shift(); continue; }
                                 // Diệt tên truyện lặp
                                 if (pText.length < 60 && (normP === normBookName || normP.includes(normBookName) || normBookName.includes(normP))) { rawParagraphs.shift(); continue; }
-                                // Diệt tên tác giả
-                                if (pText.length < 40 && /^(?:Nam Phái Tam Thúc|Thần Đông|Cố Mạn|Đường Gia Tam Thiếu)/i.test(pText)) { rawParagraphs.shift(); continue; }
+                                // Diệt tên tác giả / dịch giả
+                                if (pText.length < 40 && /^(?:Nam Phái Tam Thúc|Thần Đông|Cố Mạn|Đường Gia Tam Thiếu|Nhóm dịch|Người dịch)/i.test(pText)) { rawParagraphs.shift(); continue; }
                                 // Diệt tiêu đề lặp (Bên trong nội dung lại ghi 1 dòng trùng tiêu đề)
-                                if (normP === normTitle || (pText.length < 80 && normP.includes(normTitle)) || ONLY_CHAP_NUM_REGEX.test(pText)) { rawParagraphs.shift(); continue; }
+                                if (normP === normTitle || (pText.length < 80 && normP.includes(normTitle))) { rawParagraphs.shift(); continue; }
                                 
                                 break; // Gặp đoạn văn chuẩn thì dừng gọt
                             }
@@ -519,7 +724,7 @@
                         }
                     }
                 } else if (file.name.toLowerCase().endsWith('.txt')) {
-                    // Xử lý TXT tương tự: Cắt theo dòng \n thay vì thẻ <p>
+                    // Xử lý TXT: Cắt theo dòng \n thay vì thẻ <p>
                     const text = await file.text();
                     const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
                     if (splits.length <= 1) {
@@ -538,7 +743,7 @@
                 }
 
                 if (parsedChapters.length === 0) throw new Error("File trống hoặc không bóc tách được.");
-                const bookObj = { id: file.name + "_" + file.size + "_v6", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
+                const bookObj = { id: file.name + "_" + file.size + "_v7", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
                 await saveBookToDB(bookObj); loadBookObject(bookObj);
                 status.textContent = `☁️ Đang đồng bộ...`;
                 const uploaded = await uploadBookToServer(bookObj);
