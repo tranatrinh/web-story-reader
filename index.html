@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Story Reader Pro - Multi Voice</title>
+    <title>AI Story Reader Pro - Apple Books Style</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
@@ -15,298 +15,83 @@
             --text-muted: #94a3b8;
             --accent: #10b981;
             --accent-glow: rgba(16, 185, 129, 0.25);
+            --reader-font: Georgia, "Times New Roman", serif;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100dvh;
-            overflow: hidden;
-        }
-        /* Top Header */
-        header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .brand {
-            font-weight: 700;
-            font-size: 15px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .pill-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 11px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+        
+        header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+        .brand { font-weight: 700; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+        .header-actions { display: flex; align-items: center; gap: 6px; }
+        .pill-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
         .pill-btn:active { opacity: 0.75; }
-        .pill-accent {
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
-            border-color: rgba(16, 185, 129, 0.35);
-        }
+        .pill-accent { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
 
-        /* Chapter Bar */
-        .chapter-bar {
-            background: #0f1523;
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        #chapterSelect {
-            flex: 1;
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 13px;
-            outline: none;
-            min-width: 0;
-        }
+        .chapter-bar { background: #0f1523; padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        #chapterSelect { flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; min-width: 0; }
 
-        /* Reading Area - Layout chuẩn sách Apple Books */
+        /* KHU VỰC HIỂN THỊ CHUẨN APPLE BOOKS (Dựa trên cấu trúc phân cấp DOM) */
         #storyContainer {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px 20px 48px 20px;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 19.5px;
-            line-height: 1.7;
-            color: #cbd5e1;
-            max-width: 780px;
-            width: 100%;
-            margin: 0 auto;
-        }
-        #storyContainer h1.chap-heading {
-            font-size: 1.65em;
-            font-weight: 700;
-            line-height: 1.35;
-            text-align: center;
-            color: var(--text);
-            margin: 10px 0 36px 0;
-            padding: 14px 16px;
-            cursor: pointer;
-            border-radius: 12px;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255,255,255,0.04);
-            transition: background 0.15s;
-        }
-        #storyContainer h1.chap-heading.active-chunk {
-            background: rgba(16, 185, 129, 0.15);
-            border-color: rgba(16, 185, 129, 0.3);
+            flex: 1; overflow-y: auto; padding: 32px 20px 60px 20px;
+            max-width: 780px; width: 100%; margin: 0 auto;
         }
 
-        #storyContainer p {
-            margin: 0 0 16px 0;
-            padding: 6px 10px;
-            text-indent: 1.6em; /* Thụt lề đầu dòng */
-            text-align: justify; /* Căn đều 2 bên */
-            border-radius: 8px;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-            transition: background 0.2s;
+        /* 1. Tiêu đề chính (Chapter Title) */
+        #storyContainer h2.chap-title {
+            font-size: 1.8em; font-weight: 700; line-height: 1.35; text-align: center;
+            margin: 24px 0 12px 0; color: var(--text); font-family: var(--reader-font);
         }
-        #storyContainer p.centered-meta {
-            text-align: center;
-            text-indent: 0;
-            font-weight: bold;
-            color: var(--text-muted);
-            margin-bottom: 24px;
-            font-size: 0.95em;
+        
+        /* 2. Tiêu đề phụ (Chapter Subtitle) */
+        #storyContainer h3.chap-subtitle {
+            font-size: 1.25em; font-weight: 700; line-height: 1.4; text-align: center;
+            margin: 0 0 36px 0; color: var(--text-muted); font-family: var(--reader-font);
         }
-        #storyContainer p.active-chunk {
-            background: rgba(16, 185, 129, 0.12);
-            border-left-color: var(--accent);
-            color: #f8fafc;
+
+        /* 3. Thông tin meta đầu truyện (Author, Website - Không viền, căn giữa) */
+        #storyContainer div.meta-text {
+            font-size: 0.95em; font-weight: 600; text-align: center; color: var(--text-muted);
+            margin: 6px 0; font-family: var(--reader-font); letter-spacing: 0.5px;
         }
+
+        /* 4. Đoạn văn nội dung chính (Thụt đầu dòng, căn đều 2 bên) */
+        #storyContainer p.story-p {
+            margin: 0 0 16px 0; padding: 6px 10px;
+            text-indent: 1.6em; /* Cốt lõi: Thụt lề chuẩn sách */
+            text-align: justify; /* Cốt lõi: Căn đều 2 bên chống lởm chởm */
+            font-size: 19.5px; line-height: 1.7; color: #cbd5e1; font-family: var(--reader-font);
+            border-radius: 8px; border-left: 3px solid transparent; transition: background 0.2s;
+        }
+
+        /* Hiệu ứng bôi màu (Highlight) khi đọc TTS */
+        .active-block { background: rgba(16, 185, 129, 0.12); border-left-color: var(--accent) !important; color: #f8fafc !important; }
         .word-span { transition: color 0.1s, text-shadow 0.1s; }
-        .word-span.spoken {
-            color: #34d399;
-            font-weight: 600;
-            text-shadow: 0 0 12px var(--accent-glow);
-        }
+        .word-span.spoken { color: #34d399; font-weight: 600; text-shadow: 0 0 12px var(--accent-glow); }
 
-        /* Bottom Player Dock */
-        .player-dock {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            color: var(--text-muted);
-            gap: 8px;
-        }
-        #status {
-            color: #fcd34d;
-            font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: var(--surface-2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            transition: width 0.15s linear;
-        }
-        .controls-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-        }
-        .dock-select {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 8px;
-            font-size: 12px;
-            font-weight: 600;
-            outline: none;
-            max-width: 135px;
-        }
-        .transport {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .ctrl-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            font-size: 15px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .player-dock { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); gap: 8px; }
+        #status { color: #fcd34d; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .progress-track { width: 100%; height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+        .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .dock-select { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; font-size: 12px; font-weight: 600; outline: none; max-width: 135px; }
+        .transport { display: flex; align-items: center; gap: 8px; }
+        .ctrl-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 38px; height: 38px; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
         .ctrl-btn:active { transform: scale(0.94); }
-        .play-btn {
-            background: var(--accent);
-            color: #042f2e;
-            border: none;
-            width: 46px;
-            height: 46px;
-            font-size: 18px;
-            font-weight: 700;
-            box-shadow: 0 0 16px var(--accent-glow);
-        }
+        .play-btn { background: var(--accent); color: #042f2e; border: none; width: 46px; height: 46px; font-size: 18px; font-weight: 700; box-shadow: 0 0 16px var(--accent-glow); }
 
-        /* Bookshelf Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-            z-index: 50;
-        }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
         .modal-backdrop.open { display: flex; }
-        .modal-sheet {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            border-radius: 18px 18px 0 0;
-            width: 100%;
-            max-width: 640px;
-            max-height: 75dvh;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 12px;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .book-list {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .book-item {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
+        .modal-sheet { background: var(--surface); border-top: 1px solid var(--border); border-radius: 18px 18px 0 0; width: 100%; max-width: 640px; max-height: 75dvh; display: flex; flex-direction: column; padding: 16px; gap: 12px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; }
+        .book-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .book-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .book-info { min-width: 0; flex: 1; }
-        .book-title {
-            font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .book-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
         .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .btn-sm {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: none;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .btn-sm { padding: 6px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
         .btn-open { background: var(--accent); color: #042f2e; }
-        .btn-sync { background: #3b82f6; color: #fff; }
         .btn-del { background: #e11d48; color: #fff; }
     </style>
 </head>
@@ -331,8 +116,8 @@
     <main id="storyContainer">
         <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
             <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
-            <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) để hệ thống bóc tách DOM.</div>
+            <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Cấu trúc phân cấp DOM Apple Books</div>
+            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) để hệ thống bắt đầu.</div>
         </div>
     </main>
 
@@ -366,7 +151,7 @@
     <div class="modal-backdrop" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
         <div class="modal-sheet">
             <div class="modal-header">
-                <span>📚 Tủ sách (Đồng bộ)</span>
+                <span>📚 Tủ sách (Máy & Server)</span>
                 <button class="pill-btn" onclick="closeBookshelf()">✕ Đóng</button>
             </div>
             <div class="book-list" id="bookList"></div>
@@ -382,30 +167,15 @@
         const serverBtn = document.getElementById('serverBtn');
 
         function getBaseUrl() { return SERVER_BASE.replace(/\/$/, ""); }
-
-        function updateServerBadge() {
-            serverBtn.textContent = SERVER_BASE.includes("trycloudflare.com") ? "● Tunnel" : "🔗 Server";
-            localStorage.setItem("my_tts_server_url", SERVER_BASE);
-        }
+        function updateServerBadge() { serverBtn.textContent = SERVER_BASE.includes("trycloudflare.com") ? "● Tunnel" : "🔗 Server"; localStorage.setItem("my_tts_server_url", SERVER_BASE); }
 
         async function syncTunnelUrlIfNeeded() {
-            const urls = [
-                "https://api.github.com/repos/tranatrinh/web-story-reader/contents/tunnel.json?ref=main&_=" + Date.now(),
-                "./tunnel.json?t=" + Date.now(),
-                "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json?t=" + Date.now()
-            ];
+            const urls = [ "https://api.github.com/repos/tranatrinh/web-story-reader/contents/tunnel.json?ref=main&_=" + Date.now(), "./tunnel.json?t=" + Date.now(), "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json?t=" + Date.now() ];
             for (const url of urls) {
                 try {
                     const headers = url.includes("api.github.com") ? { "Accept": "application/vnd.github.raw+json" } : {};
                     const res = await fetch(url, { cache: "no-store", headers });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.url) {
-                            SERVER_BASE = data.url.trim();
-                            updateServerBadge();
-                            return true;
-                        }
-                    }
+                    if (res.ok) { const data = await res.json(); if (data && data.url) { SERVER_BASE = data.url.trim(); updateServerBadge(); return true; } }
                 } catch (e) {}
             }
             return false;
@@ -413,123 +183,57 @@
 
         async function loadVoicesFromServer() {
             try {
-                const res = await fetch(getBaseUrl() + "/voices");
-                if (!res.ok) return;
+                const res = await fetch(getBaseUrl() + "/voices"); if (!res.ok) return;
                 const data = await res.json();
                 if (data.voices) {
                     voiceSelect.innerHTML = "";
-                    data.voices.forEach(v => {
-                        const opt = document.createElement("option"); opt.value = v.id; opt.textContent = v.name;
-                        voiceSelect.appendChild(opt);
-                    });
-                    if ([...voiceSelect.options].some(o => o.value === SELECTED_VOICE)) voiceSelect.value = SELECTED_VOICE;
-                    else SELECTED_VOICE = voiceSelect.value || "default";
+                    data.voices.forEach(v => { const opt = document.createElement("option"); opt.value = v.id; opt.textContent = v.name; voiceSelect.appendChild(opt); });
+                    if ([...voiceSelect.options].some(o => o.value === SELECTED_VOICE)) voiceSelect.value = SELECTED_VOICE; else SELECTED_VOICE = voiceSelect.value || "default";
                 }
             } catch (e) {}
         }
 
-        function onVoiceChange() {
-            SELECTED_VOICE = voiceSelect.value;
-            localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
-            clearAudioCache();
-            if (isPlaying) startTTS(currentChunkIndex);
-        }
-
-        async function changeServerUrl() {
-            await syncTunnelUrlIfNeeded();
-            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel:", SERVER_BASE);
-            if (newUrl !== null) {
-                SERVER_BASE = newUrl.trim() === "" ? SERVER_BASE : newUrl.trim();
-                updateServerBadge(); clearAudioCache(); await loadVoicesFromServer();
-            }
-        }
+        function onVoiceChange() { SELECTED_VOICE = voiceSelect.value; localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE); clearAudioCache(); if (isPlaying) startTTS(currentQueueIndex); }
+        async function changeServerUrl() { await syncTunnelUrlIfNeeded(); let newUrl = prompt("Nhập link Server / Cloudflare Tunnel:", SERVER_BASE); if (newUrl !== null) { SERVER_BASE = newUrl.trim() === "" ? SERVER_BASE : newUrl.trim(); updateServerBadge(); clearAudioCache(); await loadVoicesFromServer(); } }
         (async () => { await syncTunnelUrlIfNeeded(); updateServerBadge(); await loadVoicesFromServer(); })();
 
-        // --- 2. INDEXEDDB (Version 7 - Ép xóa DB để cập nhật Cấu Trúc DOM) ---
-        const DB_NAME = "AIStoryReaderDB_v7";
+        // --- 2. INDEXEDDB (Version 8 - Cập nhật cấu trúc DOM mới) ---
+        const DB_NAME = "AIStoryReaderDB_v8";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_v7") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_v8") || null;
 
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, 1);
-                req.onupgradeneeded = (e) => {
-                    if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" });
-                };
-                req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
-            });
-        }
-        async function saveBookToDB(book) {
-            const db = await openDB();
-            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).put(book); tx.oncomplete = res; tx.onerror = rej; });
-        }
-        async function getAllBooksFromDB() {
-            const db = await openDB();
-            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).getAll(); req.onsuccess = () => res(req.result || []); });
-        }
-        async function getBookById(id) {
-            const db = await openDB();
-            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).get(id); req.onsuccess = () => res(req.result || null); });
-        }
-        async function deleteBookFromDB(id) {
-            const db = await openDB();
-            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).delete(id); tx.oncomplete = res; });
-        }
-        async function uploadBookToServer(book) {
-            try { return (await fetch(getBaseUrl() + "/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(book) })).ok; } catch(e) { return false; }
-        }
-        async function saveProgress() {
-            if (!currentBookId || chapters.length === 0) return;
-            const now = Date.now();
-            try {
-                const book = await getBookById(currentBookId);
-                if (book) { book.lastChapter = currentChapterIndex; book.lastChunk = currentChunkIndex; book.updatedAt = now; await saveBookToDB(book); }
-            } catch (e) {}
-            fetch(getBaseUrl() + "/books/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentBookId, lastChapter: currentChapterIndex, lastChunk: currentChunkIndex, updatedAt: now }) }).catch(() => {});
-        }
+        function openDB() { return new Promise((res, rej) => { const req = indexedDB.open(DB_NAME, 1); req.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" }); }; req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); }
+        async function saveBookToDB(book) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).put(book); tx.oncomplete = res; tx.onerror = rej; }); }
+        async function getAllBooksFromDB() { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).getAll(); req.onsuccess = () => res(req.result || []); }); }
+        async function getBookById(id) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).get(id); req.onsuccess = () => res(req.result || null); }); }
+        async function deleteBookFromDB(id) { const db = await openDB(); return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).delete(id); tx.oncomplete = res; }); }
+        async function uploadBookToServer(book) { try { return (await fetch(getBaseUrl() + "/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(book) })).ok; } catch(e) { return false; } }
+        async function saveProgress() { if (!currentBookId || chapters.length === 0) return; const now = Date.now(); try { const book = await getBookById(currentBookId); if (book) { book.lastChapter = currentChapterIndex; book.lastQueueIdx = currentQueueIndex; book.updatedAt = now; await saveBookToDB(book); } } catch (e) {} fetch(getBaseUrl() + "/books/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentBookId, lastChapter: currentChapterIndex, lastChunk: currentQueueIndex, updatedAt: now }) }).catch(() => {}); }
+        
         async function openBookshelf() {
-            document.getElementById("bookshelfModal").classList.add("open");
-            const listEl = document.getElementById("bookList"); listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang tải...</div>";
+            document.getElementById("bookshelfModal").classList.add("open"); document.getElementById("bookList").innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang tải...</div>";
             const localBooks = await getAllBooksFromDB(); const bookMap = new Map();
-            localBooks.forEach(b => bookMap.set(b.id, { id: b.id, title: b.title, chapterCount: b.chapters?.length || 0, lastChapter: b.lastChapter || 0, lastChunk: b.lastChunk || 0, updatedAt: b.updatedAt || 0, hasLocal: true, hasServer: false, localObj: b }));
-            try {
-                const res = await fetch(getBaseUrl() + "/books");
-                if (res.ok) {
-                    (await res.json()).books?.forEach(sb => {
-                        if (bookMap.has(sb.id)) {
-                            const ext = bookMap.get(sb.id); ext.hasServer = true;
-                            if (sb.updatedAt > ext.updatedAt) { ext.lastChapter = sb.lastChapter; ext.lastChunk = sb.lastChunk; ext.updatedAt = sb.updatedAt; if(ext.localObj) { ext.localObj.lastChapter = sb.lastChapter; ext.localObj.lastChunk = sb.lastChunk; saveBookToDB(ext.localObj); } }
-                        } else { bookMap.set(sb.id, { id: sb.id, title: sb.title, chapterCount: sb.chapterCount, lastChapter: sb.lastChapter, lastChunk: sb.lastChunk, updatedAt: sb.updatedAt, hasLocal: false, hasServer: true, localObj: null }); }
-                    });
-                }
-            } catch (e) {}
+            localBooks.forEach(b => bookMap.set(b.id, { id: b.id, title: b.title, chapterCount: b.chapters?.length || 0, lastChapter: b.lastChapter || 0, lastQueueIdx: b.lastQueueIdx || 0, updatedAt: b.updatedAt || 0, hasLocal: true, hasServer: false, localObj: b }));
+            try { const res = await fetch(getBaseUrl() + "/books"); if (res.ok) { (await res.json()).books?.forEach(sb => { if (bookMap.has(sb.id)) { const ext = bookMap.get(sb.id); ext.hasServer = true; if (sb.updatedAt > ext.updatedAt) { ext.lastChapter = sb.lastChapter; ext.lastQueueIdx = sb.lastChunk; ext.updatedAt = sb.updatedAt; if(ext.localObj) { ext.localObj.lastChapter = sb.lastChapter; ext.localObj.lastQueueIdx = sb.lastChunk; saveBookToDB(ext.localObj); } } } else { bookMap.set(sb.id, { id: sb.id, title: sb.title, chapterCount: sb.chapterCount, lastChapter: sb.lastChapter, lastQueueIdx: sb.lastChunk, updatedAt: sb.updatedAt, hasLocal: false, hasServer: true, localObj: null }); } }); } } catch (e) {}
             const mergedList = Array.from(bookMap.values()).sort((a, b) => b.updatedAt - a.updatedAt);
-            if (mergedList.length === 0) { listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>Tủ sách trống. Hãy mở file nhé!</div>"; return; }
-            listEl.innerHTML = "";
+            if (mergedList.length === 0) { document.getElementById("bookList").innerHTML = "<div style='color:#94a3b8;font-size:13px;'>Tủ sách trống.</div>"; return; }
+            document.getElementById("bookList").innerHTML = "";
             mergedList.forEach(b => {
                 const item = document.createElement("div"); item.className = "book-item";
-                item.innerHTML = `<div class="book-info"><div class="book-title">${b.title}</div><div class="book-meta">${b.hasServer ? "☁️ Server" : "📱 Máy"} • ${b.chapterCount} chương • Đọc: Ch.${b.lastChapter+1}</div></div>
-                                  <div class="book-actions">${b.hasLocal && !b.hasServer ? `<button class="btn-sm btn-sync">☁️ Up</button>` : ""}<button class="btn-sm btn-open">Đọc</button><button class="btn-sm btn-del">Xóa</button></div>`;
-                if(item.querySelector(".btn-sync")) item.querySelector(".btn-sync").onclick = async () => { if(await uploadBookToServer(b.localObj)) openBookshelf(); };
-                item.querySelector(".btn-open").onclick = async () => {
-                    closeBookshelf();
-                    if (b.hasLocal) loadBookObject(b.localObj);
-                    else { status.textContent = `☁️ Đang tải từ Server...`; try { const fullBook = await (await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id))).json(); await saveBookToDB(fullBook); loadBookObject(fullBook); } catch (e) {} }
-                };
-                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v7"); } openBookshelf(); };
-                listEl.appendChild(item);
+                item.innerHTML = `<div class="book-info"><div class="book-title">${b.title}</div><div class="book-meta">${b.hasServer ? "☁️ Server" : "📱 Máy"} • ${b.chapterCount} chương • Đọc: Ch.${b.lastChapter+1}</div></div><div class="book-actions"><button class="btn-sm btn-open">Đọc</button><button class="btn-sm btn-del">Xóa</button></div>`;
+                item.querySelector(".btn-open").onclick = async () => { closeBookshelf(); if (b.hasLocal) loadBookObject(b.localObj); else { status.textContent = `☁️ Đang tải từ Server...`; try { const fullBook = await (await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id))).json(); await saveBookToDB(fullBook); loadBookObject(fullBook); } catch (e) {} } };
+                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v8"); } openBookshelf(); };
+                document.getElementById("bookList").appendChild(item);
             });
         }
         function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
         function loadBookObject(book) {
-            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v7", book.id); chapters = book.chapters;
-            chapterSelect.innerHTML = ""; chapters.forEach((chap, idx) => chapterSelect.appendChild(new Option(chap.title, idx)));
-            document.getElementById("chapterBar").style.display = "flex";
-            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1); chapterSelect.value = targetChap; renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `📖 Sẵn sàng`;
+            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v8", book.id); chapters = book.chapters;
+            chapterSelect.innerHTML = ""; chapters.forEach((chap, idx) => chapterSelect.appendChild(new Option(chap.title, idx))); document.getElementById("chapterBar").style.display = "flex";
+            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1); chapterSelect.value = targetChap; renderChapter(targetChap, book.lastQueueIdx || 0); status.textContent = `📖 Sẵn sàng`;
         }
 
-        // --- 3. BỘ BÓC TÁCH DOM EPUB CỐT LÕI (DOM TRAVERSAL) ---
+        // --- 3. BỘ BÓC TÁCH DOM (CHUẨN APPLE BOOKS) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -539,211 +243,158 @@
         const chunkCounter = document.getElementById('chunkCounter');
         const progressFill = document.getElementById('progressFill');
 
-        let chapters = []; let currentChapterIndex = 0; let chunks = []; let currentChunkIndex = 0;
+        let chapters = []; let currentChapterIndex = 0; 
+        let playQueue = []; let currentQueueIndex = 0; // Tách rời UI và TTS
         const mainPlayer = new Audio(); mainPlayer.playsInline = true; mainPlayer.preload = "auto";
         
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
-        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen)/i;
 
-        function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
-
-        // Bóc tách text bằng cách chui vào TỪNG Node HTML (p, div, li) - BẢO TOÀN NGẮT DÒNG
-        function extractDOMBlocks(htmlContent) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, "text/html");
-            doc.querySelectorAll("script, style, nav, svg, img, table").forEach(el => el.remove());
-
-            const paragraphs = [];
-            const seenText = new Set();
+        function extractCleanBlocks(htmlContent, fallbackTitle) {
+            const doc = new DOMParser().parseFromString(htmlContent, "text/html");
+            doc.querySelectorAll("script, style, nav, svg, img, table, a, hr").forEach(el => el.remove());
             
-            // Tìm tất cả các thẻ có khả năng chứa text
-            const elements = doc.body.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote");
+            // Lấy toàn bộ khối HTML chứa văn bản
+            const rawBlocks = [];
+            const blockTags = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE'];
             
-            elements.forEach(el => {
-                // Chỉ lấy những thẻ không chứa thẻ block khác bên trong (để tránh lặp content)
-                const hasBlockChild = Array.from(el.children).some(child => 
-                    ["P", "DIV", "H1", "H2", "H3", "H4", "LI", "BLOCKQUOTE"].includes(child.tagName)
-                );
-                
+            doc.body.querySelectorAll(blockTags.join(',')).forEach(el => {
+                const hasBlockChild = Array.from(el.children).some(c => blockTags.includes(c.tagName));
                 if (!hasBlockChild) {
                     const text = el.textContent.replace(/\s+/g, ' ').trim();
-                    if (text.length > 0 && VALID_CHAR_REGEX.test(text) && !seenText.has(text)) {
-                        paragraphs.push(text);
-                        seenText.add(text);
+                    if (text.length > 0 && VALID_CHAR_REGEX.test(text)) {
+                        rawBlocks.push({ tag: el.tagName.toLowerCase(), text: text });
                     }
                 }
             });
 
-            // Fallback nếu HTML quá tệ, không dùng thẻ p/div mà text rải rác trong body
-            if (paragraphs.length === 0) {
-                doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-                const rawText = doc.body.textContent;
-                rawText.split(/\n/).forEach(line => {
+            if (rawBlocks.length === 0) {
+                doc.body.textContent.split(/\r?\n/).forEach(line => {
                     const t = line.replace(/\s+/g, ' ').trim();
-                    if (t.length > 0 && VALID_CHAR_REGEX.test(t)) paragraphs.push(t);
+                    if (t.length > 0 && VALID_CHAR_REGEX.test(t)) rawBlocks.push({ tag: 'p', text: t });
                 });
             }
-            return paragraphs;
-        }
 
-        // Không bao giờ gộp bừa bãi. Chỉ ngắt đoạn nếu 1 thẻ <p> dài hơn 400 ký tự
-        function chunkParagraphs(paragraphs) {
-            const finalChunks = [];
-            const MAX_LEN = 400;
+            const processedBlocks = [];
+            let foundMainContent = false;
 
-            for (let para of paragraphs) {
-                if (para.length <= MAX_LEN) {
-                    finalChunks.push(para);
+            for (let i = 0; i < rawBlocks.length; i++) {
+                const b = rawBlocks[i];
+                const text = b.text;
+                
+                const isHeadingTag = ['h1', 'h2', 'h3', 'h4'].includes(b.tag);
+                const isChapterMatch = CHAPTER_REGEX.test(text);
+                
+                // Phân loại thẻ HTML để Render UI chuẩn Apple Books
+                let type = "p";
+                if (isHeadingTag || isChapterMatch) {
+                    type = "h2"; // Tiêu đề chính
+                    foundMainContent = true;
+                } else if (!foundMainContent && text.length < 60) {
+                    type = "meta"; // Thông tin phụ đầu trang (Tác giả, Nguồn, ...)
+                } else if (foundMainContent && text.length < 90 && !/[.!?;:”"']$/.test(text) && processedBlocks.length > 0 && processedBlocks[processedBlocks.length-1].type === 'h2') {
+                    type = "h3"; // Tiêu đề phụ nằm ngay sau Tiêu đề chính
                 } else {
-                    let currentBuf = "";
-                    const sentences = para.match(/[^.!?;…”"']+([.!?;…”"']+|\s*$)/g) || [para];
+                    type = "p"; // Đoạn văn thông thường
+                    foundMainContent = true;
+                }
+
+                // Cắt nhỏ đoạn văn ngầm dưới nền (Max 400 ký tự) cho Server AI, 
+                // nhưng UI thì hiển thị gộp chung trong 1 khối <p> duy nhất!
+                let chunks = [];
+                if (text.length <= 400) {
+                    chunks.push(text);
+                } else {
+                    let cur = "";
+                    const sentences = text.match(/[^.!?;…”"']+([.!?;…”"']+|\s*$)/g) || [text];
                     for (let s of sentences) {
-                        if ((currentBuf + " " + s).trim().length > MAX_LEN) {
-                            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                            currentBuf = s;
+                        if ((cur + " " + s).trim().length > 400) {
+                            if (cur.trim()) chunks.push(cur.trim());
+                            cur = s;
                         } else {
-                            currentBuf = (currentBuf + " " + s).trim();
+                            cur = (cur + " " + s).trim();
                         }
                     }
-                    if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+                    if (cur.trim()) chunks.push(cur.trim());
                 }
+
+                processedBlocks.push({ type, chunks });
             }
-            return finalChunks;
+
+            return { title: fallbackTitle, blocks: processedBlocks };
         }
 
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files.item(0);
             if (!file) return;
 
-            stopTTS();
-            status.textContent = `⏳ Đang bóc tách bằng DOM Parser: ${file.name}...`;
-            const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, "");
-            const normBookName = normalizeCompare(cleanBookTitle);
-            let parsedChapters = [];
+            stopTTS(); status.textContent = `⏳ Đang bóc tách Cấu trúc DOM...`;
+            const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, ""); let parsedChapters = [];
 
             try {
-                if (file.name.toLowerCase().endsWith('.epub')) {
-                    const zip = await JSZip.loadAsync(file);
-                    const parser = new DOMParser();
-
-                    const normalizeZipPath = (base, rel) => {
-                        if (!rel) return ""; let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/'); if (cleanRel.startsWith('/')) cleanRel = cleanRel.substring(1);
-                        const stack = base ? base.split('/').filter(Boolean) : []; for (const part of cleanRel.split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
-                        return stack.join('/');
-                    };
-
-                    const allZipKeys = Object.keys(zip.files);
-                    const findZipFile = (targetPath) => {
-                        if (!targetPath) return null; if (zip.file(targetPath)) return zip.file(targetPath);
-                        const lower = targetPath.toLowerCase(); const matchedKey = allZipKeys.find(k => k.toLowerCase() === lower || k.toLowerCase().endsWith('/' + lower));
-                        return matchedKey ? zip.file(matchedKey) : null;
-                    };
-
-                    let opfPath = "";
-                    const containerFile = findZipFile("META-INF/container.xml");
-                    if (containerFile) {
-                        const containerDoc = parser.parseFromString(await containerFile.async("text"), "text/xml");
-                        const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
-                        if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
+                if (file.name.toLowerCase().endsWith('.txt')) {
+                    const text = await file.text();
+                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
+                    if (splits.length <= 1) {
+                        const res = extractCleanBlocks(`<div>${text.replace(/\n/g, '</p><p>')}</div>`, "Toàn bộ nội dung");
+                        parsedChapters.push(res);
+                    } else {
+                        splits.forEach(content => {
+                            if (content.trim().length > 0) {
+                                let lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                                let title = `Chương ${parsedChapters.length + 1}`;
+                                if (CHAPTER_REGEX.test(lines[0])) title = lines[0];
+                                const res = extractCleanBlocks(`<div><p>${lines.join('</p><p>')}</p></div>`, title);
+                                if (res.blocks.length > 0) parsedChapters.push(res);
+                            }
+                        });
                     }
+                } else if (file.name.toLowerCase().endsWith('.epub')) {
+                    const zip = await JSZip.loadAsync(file); const parser = new DOMParser();
+                    const normalizeZipPath = (base, rel) => { if (!rel) return ""; let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/'); if (cleanRel.startsWith('/')) cleanRel = cleanRel.substring(1); const stack = base ? base.split('/').filter(Boolean) : []; for (const part of cleanRel.split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); } return stack.join('/'); };
+                    const allZipKeys = Object.keys(zip.files); const findZipFile = (targetPath) => { if (!targetPath) return null; if (zip.file(targetPath)) return zip.file(targetPath); const lower = targetPath.toLowerCase(); const matchedKey = allZipKeys.find(k => k.toLowerCase() === lower || k.toLowerCase().endsWith('/' + lower)); return matchedKey ? zip.file(matchedKey) : null; };
+
+                    let opfPath = ""; const containerFile = findZipFile("META-INF/container.xml");
+                    if (containerFile) { const containerDoc = parser.parseFromString(await containerFile.async("text"), "text/xml"); const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0]; if (rootfile) opfPath = rootfile.getAttribute("full-path") || ""; }
                     if (!opfPath) opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
                     const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
                     
                     const tocMap = {}; let spinePaths = [];
-
                     const opfFile = findZipFile(opfPath);
                     if (opfFile) {
-                        const opfDoc = parser.parseFromString(await opfFile.async("text"), "text/xml");
-                        const manifest = {};
-                        Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item"))).forEach(item => {
-                            const id = item.getAttribute("id"); const href = item.getAttribute("href"); if (id && href) manifest[id] = normalizeZipPath(basePath, href);
-                        });
-                        Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref"))).forEach(ref => {
-                            const idref = ref.getAttribute("idref"); if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
-                        });
+                        const opfDoc = parser.parseFromString(await opfFile.async("text"), "text/xml"); const manifest = {};
+                        Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item"))).forEach(item => { const id = item.getAttribute("id"); const href = item.getAttribute("href"); if (id && href) manifest[id] = normalizeZipPath(basePath, href); });
+                        Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref"))).forEach(ref => { const idref = ref.getAttribute("idref"); if (idref && manifest[idref]) spinePaths.push(manifest[idref]); });
                     }
 
-                    // TÌM TIÊU ĐỀ CHUẨN XÁC TỪ FILE NCX
                     const ncxKey = allZipKeys.find(k => k.toLowerCase().endsWith(".ncx"));
                     if (ncxKey) {
-                        const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
-                        const ncxDoc = parser.parseFromString(await zip.file(ncxKey).async("text"), "text/xml");
+                        const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : ""; const ncxDoc = parser.parseFromString(await zip.file(ncxKey).async("text"), "text/xml");
                         Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))).forEach(np => {
-                            const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
-                            const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
-                            if (textEl && contentEl) {
-                                const label = textEl.textContent.replace(/\s+/g, ' ').trim(); const src = contentEl.getAttribute("src");
-                                if (label && src && !/^(unknown|untitled)$/i.test(label)) tocMap[normalizeZipPath(ncxBase, src).toLowerCase()] = label;
-                            }
+                            const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0]; const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
+                            if (textEl && contentEl) { const label = textEl.textContent.replace(/\s+/g, ' ').trim(); const src = contentEl.getAttribute("src"); if (label && src && !/^(unknown|untitled)$/i.test(label)) tocMap[normalizeZipPath(ncxBase, src).toLowerCase()] = label; }
                         });
                     }
 
                     if (spinePaths.length === 0) spinePaths = allZipKeys.filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k)).sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
 
                     for (let i = 0; i < spinePaths.length; i++) {
-                        const pathKey = spinePaths[i];
-                        if (/(?:^|\/)(cover|titlepage|toc|nav|sgc-toc)\.(x?html|htm)$/i.test(pathKey)) continue;
-
+                        const pathKey = spinePaths[i]; if (/(?:^|\/)(cover|titlepage|toc|nav|sgc-toc)\.(x?html|htm)$/i.test(pathKey)) continue;
                         const fileInZip = findZipFile(pathKey);
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
+                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
+                            const fallbackTitle = tocTitle || `Chương ${parsedChapters.length + 1}`;
                             
-                            // Nhặt danh sách thẻ <p> hoặc <div>
-                            const rawParagraphs = extractDOMBlocks(htmlContent);
-                            if (rawParagraphs.length === 0) continue;
-
-                            // Xác định tiêu đề (ưu tiên NCX -> Fallback)
-                            let finalTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
-                            if (!finalTitle || /^(unknown|untitled)$/i.test(finalTitle)) {
-                                const headingMatch = rawParagraphs.find(p => CHAPTER_REGEX.test(p) && p.length < 80);
-                                finalTitle = headingMatch ? headingMatch : `Chương ${parsedChapters.length + 1}`;
-                            }
-                            const normTitle = normalizeCompare(finalTitle);
-
-                            // BỘ LỌC RÁC CHUẨN XÁC DỰA TRÊN NODE HTML
-                            let scanLimit = Math.min(10, rawParagraphs.length);
-                            for (let pIdx = 0; pIdx < scanLimit; pIdx++) {
-                                const pText = rawParagraphs[0];
-                                const normP = normalizeCompare(pText);
-                                
-                                // Diệt web lậu (Chỉ vứt đi Node chứa nó, không ảnh hưởng Node kế tiếp)
-                                if (WEB_JUNK_REGEX.test(pText) && pText.length < 150) { rawParagraphs.shift(); continue; }
-                                // Diệt tên truyện lặp
-                                if (pText.length < 60 && (normP === normBookName || normP.includes(normBookName) || normBookName.includes(normP))) { rawParagraphs.shift(); continue; }
-                                // Diệt tên tác giả / dịch giả
-                                if (pText.length < 40 && /^(?:Nam Phái Tam Thúc|Thần Đông|Cố Mạn|Đường Gia Tam Thiếu|Nhóm dịch|Người dịch)/i.test(pText)) { rawParagraphs.shift(); continue; }
-                                // Diệt tiêu đề lặp (Bên trong nội dung lại ghi 1 dòng trùng tiêu đề)
-                                if (normP === normTitle || (pText.length < 80 && normP.includes(normTitle))) { rawParagraphs.shift(); continue; }
-                                
-                                break; // Gặp đoạn văn chuẩn thì dừng gọt
-                            }
-
-                            const cleanChunks = chunkParagraphs(rawParagraphs);
-                            if (cleanChunks.length > 0) parsedChapters.push({ title: finalTitle.substring(0, 85), paragraphs: cleanChunks });
+                            // GỌI HÀM BÓC TÁCH DOM (TÔN TRỌNG KHỐI CHUẨN)
+                            const extracted = extractCleanBlocks(htmlContent, fallbackTitle);
+                            if (extracted.blocks.length > 0) parsedChapters.push(extracted);
                         }
-                    }
-                } else if (file.name.toLowerCase().endsWith('.txt')) {
-                    // Xử lý TXT: Cắt theo dòng \n thay vì thẻ <p>
-                    const text = await file.text();
-                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
-                    if (splits.length <= 1) {
-                        const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-                        parsedChapters.push({ title: "Toàn bộ nội dung", paragraphs: chunkParagraphs(rawLines) });
-                    } else {
-                        splits.forEach(content => {
-                            let rawLines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-                            if (rawLines.length > 0) {
-                                let title = `Chương ${parsedChapters.length + 1}`;
-                                if (CHAPTER_REGEX.test(rawLines[0]) && rawLines[0].length < 90) title = rawLines.shift();
-                                parsedChapters.push({ title, paragraphs: chunkParagraphs(rawLines) });
-                            }
-                        });
                     }
                 }
 
-                if (parsedChapters.length === 0) throw new Error("File trống hoặc không bóc tách được.");
-                const bookObj = { id: file.name + "_" + file.size + "_v7", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
+                if (parsedChapters.length === 0) throw new Error("File trống hoặc lỗi bóc tách.");
+                const bookObj = { id: file.name + "_" + file.size + "_v8", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastQueueIdx: 0, updatedAt: Date.now() };
                 await saveBookToDB(bookObj); loadBookObject(bookObj);
                 status.textContent = `☁️ Đang đồng bộ...`;
                 const uploaded = await uploadBookToServer(bookObj);
@@ -751,35 +402,47 @@
             } catch (err) { status.textContent = `❌ Lỗi: ${err.message}`; }
         });
 
-        function onChapterChange() {
-            const wasPlaying = isPlaying; stopTTS(); const targetIdx = parseInt(chapterSelect.value, 10); renderChapter(targetIdx, 0); saveProgress(); if (wasPlaying) startTTS(0);
-        }
+        function onChapterChange() { const wasPlaying = isPlaying; stopTTS(); renderChapter(parseInt(chapterSelect.value, 10), 0); saveProgress(); if (wasPlaying) startTTS(0); }
 
-        // TÁCH TIÊU ĐỀ LÀM THẺ <h1> GIỐNG APPLE BOOKS (RENDER UI)
-        function renderChapter(index, startChunk = 0) {
+        // --- RENDER GIAO DIỆN CHUẨN APPLE BOOKS ---
+        function renderChapter(index, startQueueIdx = 0) {
             currentChapterIndex = index; const chap = chapters[currentChapterIndex]; if (!chap) return;
-            chunks = [chap.title, ...chap.paragraphs];
-            currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
+            
+            playQueue = [];
+            let html = "";
+            let qIdx = 0;
 
-            // Chunk 0 là Tiêu đề
-            let html = `<h1 class="chap-heading" id="para-0" onclick="startTTS(0)">` + chunks[0].split(/(\s+)/).map((part, wIdx) => /^\s+$/.test(part) ? part : `<span class="word-span" id="w-0-${wIdx}">${part}</span>`).join('') + `</h1>`;
+            chap.blocks.forEach((block, bIdx) => {
+                // Phân cấp CSS dựa theo thẻ đã tag
+                let tag = "p"; let cls = "story-p";
+                if (block.type === "h2") { tag = "h2"; cls = "chap-title"; }
+                else if (block.type === "h3") { tag = "h3"; cls = "chap-subtitle"; }
+                else if (block.type === "meta") { tag = "div"; cls = "meta-text"; }
 
-            // Đoạn văn bên dưới thụt đầu dòng (text-indent được set trong CSS)
-            for (let idx = 1; idx < chunks.length; idx++) {
-                // Nếu đoạn quá ngắn (<55 ký tự), không thụt lề mà căn giữa cho đẹp
-                const isShortMeta = chunks[idx].length < 55;
-                const pClass = isShortMeta ? "centered-meta" : "";
+                html += `<${tag} class="${cls}" id="block-${bIdx}">`;
                 
-                html += `<p id="para-${idx}" class="${pClass}" onclick="startTTS(${idx})">` + chunks[idx].split(/(\s+)/).map((part, wIdx) => /^\s+$/.test(part) ? part : `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`).join('') + `</p>`;
-            }
-            storyContainer.innerHTML = html; highlightParagraph(currentChunkIndex); clearAudioCache(currentChapterIndex);
+                block.chunks.forEach((chunkText) => {
+                    playQueue.push({ blockIdx: bIdx, queueIdx: qIdx, text: chunkText });
+                    // Tách từ để highlight TTS
+                    const wordsHtml = chunkText.split(/(\s+)/).map((part, wIdx) => 
+                        /^\s+$/.test(part) ? part : `<span class="word-span" id="w-${qIdx}-${wIdx}">${part}</span>`
+                    ).join('');
+                    
+                    html += `<span class="tts-chunk" id="chunk-${qIdx}" onclick="startTTS(${qIdx})">${wordsHtml}</span> `;
+                    qIdx++;
+                });
+                html += `</${tag}>`;
+            });
+
+            storyContainer.innerHTML = html;
+            currentQueueIndex = Math.min(startQueueIdx, Math.max(0, playQueue.length - 1));
+            highlightChunk(currentQueueIndex); clearAudioCache(currentChapterIndex);
         }
 
         // AUDIO PLAYER & TTS BACKGROUND LOGIC
         function createRealKeepAliveWavUrl() {
             const sr = 8000; const dur = 4; const ns = sr * dur; const buf = new ArrayBuffer(44 + ns * 2); const view = new DataView(buf);
-            const wStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-            wStr(0, 'RIFF'); view.setUint32(4, 36 + ns * 2, true); wStr(8, 'WAVE'); wStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); wStr(36, 'data'); view.setUint32(40, ns * 2, true);
+            const wStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); }; wStr(0, 'RIFF'); view.setUint32(4, 36 + ns * 2, true); wStr(8, 'WAVE'); wStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); wStr(36, 'data'); view.setUint32(40, ns * 2, true);
             for (let i = 0; i < ns; i++) view.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 1 * (i / sr)) * 3) || 1, true);
             return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
         }
@@ -793,7 +456,7 @@
         function deactivateBackgroundKeepAlive() { silentKeepAlive.pause(); if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); if (wakeLockSentinel) { wakeLockSentinel.release(); wakeLockSentinel = null; } }
 
         let isPlaying = false; let playSessionId = 0; let audioCache = {}; let resolvedUrls = {}; let abortControllers = {}; let workerRunning = false;
-        function getCacheKey(chapIdx, chunkIdx) { return `${chapIdx}_${chunkIdx}`; }
+        function getCacheKey(chapIdx, qIdx) { return `${chapIdx}_${qIdx}`; }
         function clearAudioCache(keepChapIdx = null) {
             const pre = keepChapIdx !== null ? `${keepChapIdx}_` : null;
             Object.keys(abortControllers).forEach(k => { if (!pre || !k.startsWith(pre)) { abortControllers[k].abort(); delete abortControllers[k]; } });
@@ -807,57 +470,53 @@
                 try { const res = await fetch(getBaseUrl() + "/tts", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, voice: SELECTED_VOICE }), signal: controller.signal }); if (!res.ok) throw new Error(); const blob = await res.blob(); delete abortControllers[key]; return URL.createObjectURL(blob); } catch (err) { if (err.name === "AbortError" || session !== playSessionId) throw err; if (attempt === 2) { delete abortControllers[key]; throw err; } if (attempt === 0) await syncTunnelUrlIfNeeded(); await new Promise(r => setTimeout(r, 800)); }
             }
         }
-        function ensureChunkPromise(chapIdx, chunkIdx, session) {
-            const chap = chapters[chapIdx]; if (!chap || chunkIdx >= chunks.length) return null;
-            const key = getCacheKey(chapIdx, chunkIdx); const text = chunks[chunkIdx];
-            if (!audioCache[key]) audioCache[key] = fetchAudioSingle(text, key, session).then(url => { if (session === playSessionId) resolvedUrls[key] = url; return url; }).catch(err => { delete audioCache[key]; throw err; });
+        function ensureChunkPromise(chapIdx, qIdx, session) {
+            const qItem = playQueue[qIdx]; if (!qItem) return null;
+            const key = getCacheKey(chapIdx, qIdx);
+            if (!audioCache[key]) audioCache[key] = fetchAudioSingle(qItem.text, key, session).then(url => { if (session === playSessionId) resolvedUrls[key] = url; return url; }).catch(err => { delete audioCache[key]; throw err; });
             return audioCache[key];
         }
         async function startBackgroundWorker(session) {
             if (workerRunning) return; workerRunning = true;
             try {
                 while (session === playSessionId && isPlaying) {
-                    const base = currentChunkIndex; const limit = Math.min(chunks.length - 1, base + 8); let targetChap = -1; let targetChunk = -1;
-                    for (let i = base; i <= limit; i++) { const k = getCacheKey(currentChapterIndex, i); if (!audioCache[k]) { targetChap = currentChapterIndex; targetChunk = i; break; } }
-                    if (targetChap === -1 && (chunks.length - 1 - base) <= 4) {
-                        const nextChapIdx = currentChapterIndex + 1;
-                        if (nextChapIdx < chapters.length) { for (let j = 0; j <= Math.min(chapters[nextChapIdx].paragraphs.length, 2); j++) { const nk = getCacheKey(nextChapIdx, j); if (!audioCache[nk]) { targetChap = nextChapIdx; targetChunk = j; break; } } }
-                    }
+                    const base = currentQueueIndex; const limit = Math.min(playQueue.length - 1, base + 6); let targetChap = -1; let targetQ = -1;
+                    for (let i = base; i <= limit; i++) { const k = getCacheKey(currentChapterIndex, i); if (!audioCache[k]) { targetChap = currentChapterIndex; targetQ = i; break; } }
                     if (targetChap === -1) break;
-                    try { await ensureChunkPromise(targetChap, targetChunk, session); } catch (e) { await new Promise(r => setTimeout(r, 500)); }
+                    try { await ensureChunkPromise(targetChap, targetQ, session); } catch (e) { await new Promise(r => setTimeout(r, 500)); }
                 }
             } finally { workerRunning = false; }
         }
 
-        function updateMediaSession() { if ('mediaSession' in navigator && chapters[currentChapterIndex]) { navigator.mediaSession.metadata = new MediaMetadata({ title: chapters[currentChapterIndex].title, artist: `Đoạn ${currentChunkIndex + 1}/${chunks.length} • ${SELECTED_VOICE}`, album: "AI Story Reader" }); navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused"; navigator.mediaSession.setActionHandler('play', () => startTTS(currentChunkIndex)); navigator.mediaSession.setActionHandler('pause', () => stopTTS()); navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk()); navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk()); } }
-        function togglePlayPause() { if (isPlaying) stopTTS(); else startTTS(currentChunkIndex); }
-        function prevChunk() { if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1)); }
-        function nextChunk() { if (chunks.length === 0) return; if (currentChunkIndex + 1 < chunks.length) startTTS(currentChunkIndex + 1); else if (currentChapterIndex + 1 < chapters.length) { currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); startTTS(0); } }
+        function updateMediaSession() { if ('mediaSession' in navigator && chapters[currentChapterIndex]) { navigator.mediaSession.metadata = new MediaMetadata({ title: chapters[currentChapterIndex].title, artist: `Đoạn ${currentQueueIndex + 1}/${playQueue.length} • ${SELECTED_VOICE}`, album: "AI Story Reader" }); navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused"; navigator.mediaSession.setActionHandler('play', () => startTTS(currentQueueIndex)); navigator.mediaSession.setActionHandler('pause', () => stopTTS()); navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk()); navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk()); } }
+        function togglePlayPause() { if (isPlaying) stopTTS(); else startTTS(currentQueueIndex); }
+        function prevChunk() { if (playQueue.length > 0) startTTS(Math.max(0, currentQueueIndex - 1)); }
+        function nextChunk() { if (playQueue.length === 0) return; if (currentQueueIndex + 1 < playQueue.length) startTTS(currentQueueIndex + 1); else if (currentChapterIndex + 1 < chapters.length) { currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); startTTS(0); } }
         
         async function startTTS(startIndex = 0) {
-            if (chunks.length === 0) return alert("Vui lòng mở file truyện trước!");
+            if (playQueue.length === 0) return alert("Vui lòng mở file truyện trước!");
             playSessionId++; const currentSession = playSessionId; workerRunning = false;
             const currentKey = getCacheKey(currentChapterIndex, startIndex); const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
             Object.keys(abortControllers).forEach(k => { if (k !== currentKey && k !== nextChapKey0 && !resolvedUrls[k]) { abortControllers[k].abort(); delete abortControllers[k]; delete audioCache[k]; } });
             mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
-            currentChunkIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■"; activateBackgroundKeepAlive();
+            currentQueueIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■"; activateBackgroundKeepAlive();
             if (!resolvedUrls[currentKey]) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); }
             updateMediaSession(); await playLoop(currentSession);
         }
 
         async function playLoop(session) {
-            while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
-                const idx = currentChunkIndex; const key = getCacheKey(currentChapterIndex, idx);
-                highlightParagraph(idx); saveProgress(); updateMediaSession(); startBackgroundWorker(session);
-                if (!resolvedUrls[key]) { status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`; if (mainPlayer.paused && isPlaying) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); } }
+            while (isPlaying && session === playSessionId && currentQueueIndex < playQueue.length) {
+                const idx = currentQueueIndex; const key = getCacheKey(currentChapterIndex, idx);
+                highlightChunk(idx); saveProgress(); updateMediaSession(); startBackgroundWorker(session);
+                if (!resolvedUrls[key]) { status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${playQueue.length})...`; if (mainPlayer.paused && isPlaying) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); } }
                 let audioUrl; try { audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session); } catch (err) { if (session !== playSessionId || !isPlaying) return; status.textContent = `⚠️ Đang kết nối lại...`; await new Promise(r => setTimeout(r, 1200)); continue; }
                 if (session !== playSessionId || !isPlaying) return; startBackgroundWorker(session); status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
                 const playResult = await playOnMainPlayer(key, idx, audioUrl, session); if (session !== playSessionId || !isPlaying) return;
                 if (playResult === "blocked") return stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe)");
                 const oldIdx = idx - 3; if (oldIdx >= 0) { const oldKey = getCacheKey(currentChapterIndex, oldIdx); if (resolvedUrls[oldKey]) { URL.revokeObjectURL(resolvedUrls[oldKey]); delete resolvedUrls[oldKey]; delete audioCache[oldKey]; } }
-                currentChunkIndex++;
+                currentQueueIndex++;
             }
-            if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
+            if (isPlaying && session === playSessionId && currentQueueIndex >= playQueue.length) {
                 if (currentChapterIndex < chapters.length - 1) { status.textContent = "⏭ Đang chuyển chương..."; currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); saveProgress(); await playLoop(session); return; } else stopTTS("✅ Đã đọc hết truyện!");
             }
         }
@@ -868,7 +527,7 @@
                 mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.loop = false;
                 if (mainPlayer.dataset.loadedKey !== key) { mainPlayer.src = url; mainPlayer.dataset.loadedKey = key; }
                 mainPlayer.playbackRate = parseFloat(speedSelect.value);
-                const wordSpans = document.getElementById(`para-${idx}`)?.querySelectorAll(".word-span") || [];
+                const wordSpans = document.getElementById(`chunk-${idx}`)?.querySelectorAll(".word-span") || [];
                 mainPlayer.ontimeupdate = () => {
                     if (!mainPlayer.duration || wordSpans.length === 0) return;
                     const r = Math.min(1, mainPlayer.currentTime / mainPlayer.duration); progressFill.style.width = `${(r * 100).toFixed(1)}%`;
@@ -878,10 +537,24 @@
                 mainPlayer.onended = () => finish("ended"); mainPlayer.onerror = () => finish("error"); mainPlayer.play().catch((err) => finish(err && err.name === "NotAllowedError" ? "blocked" : "error"));
             });
         }
-        function highlightParagraph(index) { document.querySelectorAll('#storyContainer p.active-chunk, #storyContainer h1.active-chunk').forEach(p => p.classList.remove('active-chunk')); document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken')); chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0"; const activePara = document.getElementById(`para-${index}`); if (activePara) { activePara.classList.add('active-chunk'); if (document.visibilityState === 'visible') activePara.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
+        function highlightChunk(qIdx) { 
+            document.querySelectorAll('.active-block').forEach(el => el.classList.remove('active-block')); 
+            document.querySelectorAll('.word-span.spoken').forEach(el => el.classList.remove('spoken')); 
+            chunkCounter.textContent = playQueue.length > 0 ? `${qIdx + 1} / ${playQueue.length}` : "0 / 0"; 
+            
+            const qItem = playQueue[qIdx];
+            if (qItem) {
+                // Highlight toàn bộ Block (Thẻ <p> hoặc <h2> chứa đoạn này)
+                const activeBlock = document.getElementById(`block-${qItem.blockIdx}`); 
+                if (activeBlock) { 
+                    activeBlock.classList.add('active-block'); 
+                    if (document.visibilityState === 'visible') activeBlock.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                } 
+            }
+        }
         function updateSpeed() { mainPlayer.playbackRate = parseFloat(speedSelect.value); }
         function stopTTS(msg = "⏹ Đã tạm dừng.") { playSessionId++; isPlaying = false; workerRunning = false; playToggleBtn.textContent = "▶"; progressFill.style.width = "0%"; deactivateBackgroundKeepAlive(); mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.pause(); mainPlayer.dataset.loadedKey = ""; if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; status.textContent = msg; }
-        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isPlaying) { activateBackgroundKeepAlive(); document.getElementById(`para-${currentChunkIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isPlaying) { activateBackgroundKeepAlive(); const qItem = playQueue[currentQueueIndex]; if(qItem) document.getElementById(`block-${qItem.blockIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
         (async () => { if (currentBookId) { const b = await getBookById(currentBookId); if (b) loadBookObject(b); } })();
     </script>
 </body>
