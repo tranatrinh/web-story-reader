@@ -1035,10 +1035,8 @@
                             const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
                             const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
 
-                            // SỬ DỤNG BỘ LỌC DOM THÔNG MINH MỚI
                             const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, cleanBookTitle);
                             
-                            // Gửi dữ liệu sạch vào hàm chia chunk
                             const cleanText = extracted.paragraphs.join('\n');
                             const chunks = processRawTextToChunks(cleanText);
 
@@ -1081,7 +1079,7 @@
             if (wasPlaying) startTTS(0);
         }
 
-        // TÁCH TIÊU ĐỀ LÀM THẺ <h1> GIỐNG APPLE BOOKS
+        // TÁCH TIÊU ĐỀ LÀM THẺ <h1>
         function renderChapter(index, startChunk = 0) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
@@ -1090,14 +1088,14 @@
             chunks = [chap.title, ...chap.paragraphs];
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
-            // Đoạn index 0 luôn luôn là Tiêu đề
+            // Đoạn index 0 là Tiêu đề
             let html = `<h1 class="chap-heading" id="para-0" onclick="startTTS(0)">` + 
                 chunks[0].split(/(\s+)/).map((part, wIdx) => {
                     if (/^\s+$/.test(part)) return part;
                     return `<span class="word-span" id="w-0-${wIdx}">${part}</span>`;
                 }).join('') + `</h1>`;
 
-            // Các đoạn nội dung từ index 1 trở đi
+            // Các đoạn nội dung
             for (let idx = 1; idx < chunks.length; idx++) {
                 html += `<p id="para-${idx}" onclick="startTTS(${idx})">` + 
                     chunks[idx].split(/(\s+)/).map((part, wIdx) => {
@@ -1111,7 +1109,7 @@
             clearAudioCache(currentChapterIndex);
         }
 
-        // BỘ GIỮ TIẾN TRÌNH NỀN (REAL NON-ZERO SUB-AUDIBLE WAVE + WEB AUDIO LOCK)
+        // BỘ GIỮ TIẾN TRÌNH NỀN
         function createRealKeepAliveWavUrl() {
             const sampleRate = 8000;
             const durationSeconds = 4;
@@ -1539,7 +1537,7 @@
         }
 
         function highlightParagraph(index) {
-            document.querySelectorAll('#storyContainer .active-chunk').forEach(p => {
+            document.querySelectorAll('#storyContainer p.active-chunk, #storyContainer h1.active-chunk').forEach(p => {
                 p.classList.remove('active-chunk');
             });
             document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
