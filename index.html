@@ -709,7 +709,7 @@
             status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
         }
 
-        // --- 3. PARSE TXT & EPUB (MULTI-FORMAT TOC, NATURAL SORT & MAX_LEN = 400) ---
+        // --- 3. BỘ ĐỌC VÀ LỌC FILE TRUYỆN THÔNG MINH (ADVANCED PARSER) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -724,138 +724,28 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // SINGLE MASTER PLAYER: Đảm bảo iOS/Android giữ nguyên quyền phát xuyên suốt khi khóa màn hình
+        // SINGLE MASTER PLAYER: Đảm bảo iOS/Android giữ nguyên quyền phát
         const mainPlayer = new Audio();
         mainPlayer.playsInline = true;
         mainPlayer.preload = "auto";
 
-        // BỘ GIỮ TIẾN TRÌNH NỀN (REAL NON-ZERO SUB-AUDIBLE WAVE + WEB AUDIO LOCK)
-        // Tạo sóng âm tần số 1Hz biên độ cực nhỏ (khác 0) để bộ lọc phần cứng iOS/Android không bao giờ suspend tab
-        function createRealKeepAliveWavUrl() {
-            const sampleRate = 8000;
-            const durationSeconds = 4;
-            const numSamples = sampleRate * durationSeconds;
-            const buffer = new ArrayBuffer(44 + numSamples * 2);
-            const view = new DataView(buffer);
-            const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-
-            writeStr(0, 'RIFF');
-            view.setUint32(4, 36 + numSamples * 2, true);
-            writeStr(8, 'WAVE');
-            writeStr(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeStr(36, 'data');
-            view.setUint32(40, numSamples * 2, true);
-
-            for (let i = 0; i < numSamples; i++) {
-                // Dao động sóng 1Hz với biên độ cực nhỏ (+/- 3 trên thang 32767 -> không thể nghe thấy nhưng PCM != 0)
-                const sample = Math.round(Math.sin(2 * Math.PI * 1 * (i / sampleRate)) * 3);
-                view.setInt16(44 + i * 2, sample || 1, true);
-            }
-            return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
-        }
-
-        const keepAliveBlobUrl = createRealKeepAliveWavUrl();
-        const silentKeepAlive = new Audio(keepAliveBlobUrl);
-        silentKeepAlive.loop = true;
-        silentKeepAlive.playsInline = true;
-        silentKeepAlive.volume = 0.05;
-
-        let audioCtx = null;
-        let wakeLockSentinel = null;
-
-        function activateBackgroundKeepAlive() {
-            silentKeepAlive.play().catch(() => {});
-            try {
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (AudioContextClass) {
-                    if (!audioCtx) {
-                        audioCtx = new AudioContextClass();
-                        const osc = audioCtx.createOscillator();
-                        const gain = audioCtx.createGain();
-                        osc.frequency.value = 1; // 1Hz sub-audible
-                        gain.gain.value = 0.001;
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.start();
-                    }
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume().catch(() => {});
-                    }
-                }
-            } catch (e) {}
-
-            if ('wakeLock' in navigator && !wakeLockSentinel) {
-                navigator.wakeLock.request('screen').then(s => {
-                    wakeLockSentinel = s;
-                    s.addEventListener('release', () => { wakeLockSentinel = null; });
-                }).catch(() => {});
-            }
-        }
-
-        function deactivateBackgroundKeepAlive() {
-            silentKeepAlive.pause();
-            if (audioCtx && audioCtx.state === 'running') {
-                audioCtx.suspend().catch(() => {});
-            }
-            if (wakeLockSentinel) {
-                wakeLockSentinel.release().catch(() => {});
-                wakeLockSentinel = null;
-            }
-        }
-
-        let isPlaying = false;
-        let playSessionId = 0;
-        let audioCache = {};
-        let resolvedUrls = {};
-        let abortControllers = {};
-        let workerRunning = false;
-
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+.*/i;
+        const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
+        const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
+        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen|nguồn\s*:|tác\s*giả\s*:)/i;
 
-        function detectChapterTitleFromParagraphs(paragraphs, htmlDoc, fallbackTitle) {
-            for (let i = 0; i < Math.min(10, paragraphs.length); i++) {
-                const line = paragraphs[i].trim();
-                if (CHAPTER_REGEX.test(line)) return line.substring(0, 75);
-            }
-            if (htmlDoc) {
-                const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
-                for (let h of headings) {
-                    const t = h.textContent.replace(/\s+/g, ' ').trim();
-                    if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t)) return t.substring(0, 75);
-                }
-            }
-            return fallbackTitle || (paragraphs.length > 0 ? paragraphs.at(0).substring(0, 60) : "Chương không tên");
+        function normalizeCompare(str) {
+            return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, '');
         }
 
-        function extractParagraphsFromHtml(htmlContent, fallbackTitle) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, "text/html");
-            doc.querySelectorAll("script, style, nav").forEach(el => el.remove());
-            doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
-            doc.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote").forEach(el => {
-                el.appendChild(doc.createTextNode("\n"));
-            });
-            const rawText = doc.body ? doc.body.textContent : doc.textContent;
-            const paragraphs = processRawTextToChunks(rawText);
-            const title = detectChapterTitleFromParagraphs(paragraphs, doc, fallbackTitle);
-            return { title, paragraphs };
-        }
-
+        // Hàm gốc của bạn dùng để gom đoạn tránh việc Server TTS bị quá tải
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
             const mergedLines = [];
-            const validCharRegex = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
 
             for (let line of rawLines) {
                 let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (!trimmed || trimmed.toLowerCase() === "unknown" || !validCharRegex.test(trimmed)) continue;
+                if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
 
                 if (mergedLines.length > 0) {
                     const prev = mergedLines[mergedLines.length - 1];
@@ -868,7 +758,7 @@
             }
 
             const finalChunks = [];
-            const MAX_LEN = 400;
+            const MAX_LEN = 400; // Ngắt câu gửi lên Flask Server ko quá 400 ký tự
             let currentBuf = "";
 
             for (let para of mergedLines) {
@@ -899,12 +789,121 @@
             return finalChunks;
         }
 
+        // BỘ LỌC THÔNG MINH MỚI ĐƯỢC CHÈN VÀO (Kết hợp với hàm processRawTextToChunks của bạn)
+        function extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, bookNameClean) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, "text/html");
+            doc.querySelectorAll("script, style, nav, svg, img").forEach(el => el.remove());
+
+            let detectedHeading = "";
+            const headingEls = doc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
+            for (let h of headingEls) {
+                const t = h.textContent.replace(/\s+/g, ' ').trim();
+                if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t) && !WEB_JUNK_REGEX.test(t) && t.length < 100) {
+                    detectedHeading = t;
+                    break;
+                }
+            }
+
+            doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+            doc.querySelectorAll("h1, h2, h3, h4, h5, h6, p, div, li, blockquote, tr").forEach(el => {
+                el.insertAdjacentText('beforebegin', '\n');
+                el.insertAdjacentText('afterend', '\n');
+            });
+
+            const rawText = doc.body ? doc.body.textContent : doc.textContent;
+            const rawLines = rawText.split(/\r?\n/);
+            const paragraphs = [];
+
+            for (let line of rawLines) {
+                let trimmed = line.replace(/\s+/g, ' ').trim();
+                if (!trimmed || /^(unknown|untitled)$/i.test(trimmed) || !VALID_CHAR_REGEX.test(trimmed)) continue;
+                paragraphs.push(trimmed);
+            }
+
+            // Gộp tiêu đề nếu bị tách 2 dòng (Ví dụ: "Chương 3" rồi xuống dòng "Kim Tích")
+            let combinedChapHeading = "";
+            for (let i = 0; i < Math.min(6, paragraphs.length); i++) {
+                if (ONLY_CHAP_NUM_REGEX.test(paragraphs[i])) {
+                    const nextLine = paragraphs[i + 1] || "";
+                    if (nextLine && nextLine.length < 55 && !/[.!?]$/.test(nextLine)) {
+                        combinedChapHeading = `${paragraphs[i].replace(/[:.\-]+$/, '').trim()}: ${nextLine.trim()}`;
+                    } else {
+                        combinedChapHeading = paragraphs[i];
+                    }
+                    break;
+                } else if (CHAPTER_REGEX.test(paragraphs[i]) && paragraphs[i].length < 90) {
+                    combinedChapHeading = paragraphs[i];
+                    break;
+                }
+            }
+
+            let finalTitle = "";
+            if (tocTitle && !/^(unknown|untitled)$/i.test(tocTitle)) {
+                finalTitle = tocTitle.trim();
+            } else if (combinedChapHeading) {
+                finalTitle = combinedChapHeading;
+            } else if (detectedHeading) {
+                finalTitle = detectedHeading;
+            } else {
+                finalTitle = fallbackTitle;
+            }
+
+            const normTitle = normalizeCompare(finalTitle);
+            const normBookParts = (bookNameClean || "")
+                .split(/[-–_•|]/)
+                .map(s => normalizeCompare(s))
+                .filter(s => s.length >= 3);
+
+            // Quét tối đa 7 dòng đầu tiên để lọc sạch rác đầu chương
+            let scanCount = 0;
+            while (paragraphs.length > 0 && scanCount < 7) {
+                scanCount++;
+                const firstLine = paragraphs[0];
+                const normFirst = normalizeCompare(firstLine);
+
+                // Lọc dòng web rác
+                if (WEB_JUNK_REGEX.test(firstLine) && firstLine.length < 85) {
+                    paragraphs.shift();
+                    continue;
+                }
+                // Lọc dòng chứa mỗi tên truyện / tác giả
+                if (firstLine.length < 45 && normBookParts.some(part => normFirst === part || (part.includes(normFirst) && normFirst.length >= 4))) {
+                    paragraphs.shift();
+                    continue;
+                }
+                // Lọc dòng trùng tiêu đề
+                if (normFirst === normTitle || ONLY_CHAP_NUM_REGEX.test(firstLine) || (firstLine.length < 55 && normTitle.includes(normFirst) && normFirst.length >= 3)) {
+                    paragraphs.shift();
+                    continue;
+                }
+                // Dòng dính chữ tiêu đề vào nội dung
+                if (finalTitle.length > 3 && firstLine.toLowerCase().startsWith(finalTitle.toLowerCase())) {
+                    const remainder = firstLine.substring(finalTitle.length).replace(/^[\s.:,\-–—]+/, '').trim();
+                    if (remainder.length > 0) {
+                        paragraphs[0] = remainder;
+                    } else {
+                        paragraphs.shift();
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            // Gửi dữ liệu sạch vào bộ chia Max_Len 400 của bạn để gửi lên Flask server 
+            const finalCleanedText = paragraphs.join('\n');
+            const finalChunks = processRawTextToChunks(finalCleanedText);
+
+            return { title: finalTitle.substring(0, 85), paragraphs: finalChunks };
+        }
+
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files.item(0);
             if (!file) return;
 
             stopTTS();
-            status.textContent = `⏳ Đang phân tích: ${file.name}...`;
+            status.textContent = `⏳ Đang lọc sạch rác: ${file.name}...`;
+            const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, "");
             let parsedChapters = [];
 
             try {
@@ -912,23 +911,28 @@
                     const text = await file.text();
                     const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
                     if (splits.length <= 1) {
-                        const paras = processRawTextToChunks(text);
+                        const chunks = processRawTextToChunks(text);
                         parsedChapters.push({
-                            title: detectChapterTitleFromParagraphs(paras, null, "Toàn bộ nội dung"),
-                            paragraphs: paras
+                            title: "Toàn bộ nội dung",
+                            paragraphs: chunks
                         });
                     } else {
-                        splits.forEach((content, idx) => {
-                            if (content.trim()) {
-                                const paras = processRawTextToChunks(content);
-                                if (paras.length > 0) {
-                                    parsedChapters.push({
-                                        title: detectChapterTitleFromParagraphs(paras, null, `Chương ${idx + 1}`),
-                                        paragraphs: paras
-                                    });
-                                }
+                        for (let idx = 0; idx < splits.length; idx++) {
+                            const content = splits[idx].trim();
+                            if (!content) continue;
+                            const lines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+                            if (lines.length === 0) continue;
+
+                            let title = `Chương ${parsedChapters.length + 1}`;
+                            if (CHAPTER_REGEX.test(lines[0]) && lines[0].length < 90) {
+                                title = lines.shift();
                             }
-                        });
+                            
+                            // Gửi vào chunk cho an toàn 
+                            const cleanText = lines.join('\n');
+                            const chunks = processRawTextToChunks(cleanText);
+                            if (chunks.length > 0) parsedChapters.push({ title, paragraphs: chunks });
+                        }
                     }
                 } else if (file.name.toLowerCase().endsWith('.epub')) {
                     const zip = await JSZip.loadAsync(file);
@@ -964,9 +968,7 @@
                         const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
                         if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
                     }
-                    if (!opfPath) {
-                        opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
-                    }
+                    if (!opfPath) opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
 
                     const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
                     const tocMap = {};
@@ -976,20 +978,14 @@
                     if (opfFile) {
                         const opfXml = await opfFile.async("text");
                         const opfDoc = parser.parseFromString(opfXml, "text/xml");
-
                         const manifest = {};
-                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(
-                            Array.from(opfDoc.getElementsByTagName("opf:item"))
-                        );
+                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item")));
                         items.forEach(item => {
                             const id = item.getAttribute("id");
                             const href = item.getAttribute("href");
                             if (id && href) manifest[id] = normalizeZipPath(basePath, href);
                         });
-
-                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(
-                            Array.from(opfDoc.getElementsByTagName("opf:itemref"))
-                        );
+                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref")));
                         itemrefs.forEach(ref => {
                             const idref = ref.getAttribute("idref");
                             if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
@@ -1001,16 +997,14 @@
                         const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
                         const ncxXml = await zip.file(ncxKey).async("text");
                         const ncxDoc = parser.parseFromString(ncxXml, "text/xml");
-                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(
-                            Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))
-                        );
+                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint")));
                         navPoints.forEach(np => {
                             const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
                             const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
                             if (textEl && contentEl) {
                                 const label = textEl.textContent.replace(/\s+/g, ' ').trim();
                                 const src = contentEl.getAttribute("src");
-                                if (label && src) {
+                                if (label && src && !/^(unknown|untitled)$/i.test(label)) {
                                     const normSrc = normalizeZipPath(ncxBase, src).toLowerCase();
                                     if (!tocMap[normSrc]) tocMap[normSrc] = label;
                                 }
@@ -1032,11 +1026,11 @@
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
                             const cleanFileName = pathKey.split('/').pop().replace(/\.(x?html|htm)$/i, '');
-                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
-                            const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
+                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()] || "";
+                            const fallbackTitle = CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`;
 
-                            const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
-                            if (tocTitle) extracted.title = tocTitle.substring(0, 75);
+                            // GỌI BỘ LỌC SẠCH MỚI Ở ĐÂY (Vừa lọc sạch, vừa tự gọi Max_Len 400 ở bước cuối)
+                            const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, cleanBookTitle);
                             if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
                         }
                     }
@@ -1094,7 +1088,93 @@
             clearAudioCache(currentChapterIndex);
         }
 
-        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT ---
+        // BỘ GIỮ TIẾN TRÌNH NỀN (REAL NON-ZERO SUB-AUDIBLE WAVE + WEB AUDIO LOCK)
+        function createRealKeepAliveWavUrl() {
+            const sampleRate = 8000;
+            const durationSeconds = 4;
+            const numSamples = sampleRate * durationSeconds;
+            const buffer = new ArrayBuffer(44 + numSamples * 2);
+            const view = new DataView(buffer);
+            const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + numSamples * 2, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, numSamples * 2, true);
+
+            for (let i = 0; i < numSamples; i++) {
+                const sample = Math.round(Math.sin(2 * Math.PI * 1 * (i / sampleRate)) * 3);
+                view.setInt16(44 + i * 2, sample || 1, true);
+            }
+            return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+        }
+
+        const keepAliveBlobUrl = createRealKeepAliveWavUrl();
+        const silentKeepAlive = new Audio(keepAliveBlobUrl);
+        silentKeepAlive.loop = true;
+        silentKeepAlive.playsInline = true;
+        silentKeepAlive.volume = 0.05;
+
+        let audioCtx = null;
+        let wakeLockSentinel = null;
+
+        function activateBackgroundKeepAlive() {
+            silentKeepAlive.play().catch(() => {});
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    if (!audioCtx) {
+                        audioCtx = new AudioContextClass();
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.frequency.value = 1;
+                        gain.gain.value = 0.001;
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                    }
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume().catch(() => {});
+                    }
+                }
+            } catch (e) {}
+
+            if ('wakeLock' in navigator && !wakeLockSentinel) {
+                navigator.wakeLock.request('screen').then(s => {
+                    wakeLockSentinel = s;
+                    s.addEventListener('release', () => { wakeLockSentinel = null; });
+                }).catch(() => {});
+            }
+        }
+
+        function deactivateBackgroundKeepAlive() {
+            silentKeepAlive.pause();
+            if (audioCtx && audioCtx.state === 'running') {
+                audioCtx.suspend().catch(() => {});
+            }
+            if (wakeLockSentinel) {
+                wakeLockSentinel.release().catch(() => {});
+                wakeLockSentinel = null;
+            }
+        }
+
+        let isPlaying = false;
+        let playSessionId = 0;
+        let audioCache = {};
+        let resolvedUrls = {};
+        let abortControllers = {};
+        let workerRunning = false;
+
+        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT (Giữ nguyên của Flask Server) ---
         function getCacheKey(chapIdx, chunkIdx) {
             return `${chapIdx}_${chunkIdx}`;
         }
@@ -1176,7 +1256,6 @@
             return audioCache[key];
         }
 
-        // Tải trước sâu (8 đoạn trong chương hiện tại + 3 đoạn đầu chương kế tiếp)
         async function startBackgroundWorker(session) {
             if (workerRunning) return;
             workerRunning = true;
@@ -1197,7 +1276,6 @@
                         }
                     }
 
-                    // Khi còn <= 4 đoạn là hết chương -> Tải trước luôn 3 đoạn đầu của chương sau
                     if (targetChap === -1 && (chunks.length - 1 - base) <= 4) {
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length) {
@@ -1298,10 +1376,8 @@
             isPlaying = true;
             playToggleBtn.textContent = "■";
 
-            // Kích hoạt đồng bộ luồng giữ âm thanh nền ngay trong thao tác chạm của người dùng
             activateBackgroundKeepAlive();
 
-            // Nếu đoạn hiện tại chưa kịp tải xong, cho mainPlayer phát tạm luồng sóng ngầm để mở khóa quyền Audio của iOS
             if (!resolvedUrls[currentKey]) {
                 mainPlayer.src = keepAliveBlobUrl;
                 mainPlayer.loop = true;
@@ -1321,12 +1397,10 @@
                 saveProgress();
                 updateMediaSession();
 
-                // Kích hoạt worker tải trước các đoạn kế tiếp ngay lập tức
                 startBackgroundWorker(session);
 
                 if (!resolvedUrls[key]) {
                     status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
-                    // Giữ mainPlayer luôn ở trạng thái đang phát (loop sóng ngầm) trong lúc đợi mạng để iOS không suspend tab
                     if (mainPlayer.paused && isPlaying) {
                         mainPlayer.src = keepAliveBlobUrl;
                         mainPlayer.loop = true;
@@ -1341,7 +1415,7 @@
                     if (session !== playSessionId || !isPlaying) return;
                     status.textContent = `⚠️ Đang thử kết nối lại đoạn ${idx + 1}...`;
                     await new Promise(r => setTimeout(r, 1200));
-                    continue; // Thử lại đúng đoạn hiện tại thay vì nhảy cóc bỏ qua
+                    continue; 
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
@@ -1353,13 +1427,11 @@
 
                 if (session !== playSessionId || !isPlaying) return;
 
-                // Nếu trình duyệt chặn phát do sự cố khóa phiên, giữ nguyên đoạn hiện tại để đọc tiếp khi mở máy
                 if (playResult === "blocked") {
                     stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe tiếp từ đoạn này)");
                     return;
                 }
 
-                // Dọn bộ nhớ các đoạn đã qua xa (cách 3 đoạn trước)
                 const oldIdx = idx - 3;
                 if (oldIdx >= 0) {
                     const oldKey = getCacheKey(currentChapterIndex, oldIdx);
@@ -1380,7 +1452,6 @@
                     chapterSelect.value = currentChapterIndex;
                     renderChapter(currentChapterIndex, 0);
                     saveProgress();
-                    // Tiếp tục vòng lặp đọc chương mới trên cùng session mà không ngắt Audio Session
                     await playLoop(session);
                     return;
                 } else {
@@ -1485,7 +1556,6 @@
             status.textContent = customMessage;
         }
 
-        // Tự động kích hoạt lại luồng âm thanh nền nếu người dùng quay lại màn hình
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible" && isPlaying) {
                 activateBackgroundKeepAlive();
@@ -1494,7 +1564,6 @@
             }
         });
 
-        // Khôi phục truyện đang đọc dở gần nhất khi mở lại trang
         (async () => {
             if (currentBookId) {
                 const savedBook = await getBookById(currentBookId);
