@@ -27,7 +27,6 @@
             height: 100dvh;
             overflow: hidden;
         }
-        /* Top Header */
         header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -38,273 +37,68 @@
             gap: 8px;
             flex-shrink: 0;
         }
-        .brand {
-            font-weight: 700;
-            font-size: 15px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .brand { font-weight: 700; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .header-actions { display: flex; align-items: center; gap: 6px; }
         .pill-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 11px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
+            background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+            border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
         }
         .pill-btn:active { opacity: 0.75; }
-        .pill-accent {
-            background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
-            border-color: rgba(16, 185, 129, 0.35);
-        }
+        .pill-accent { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
 
-        /* Chapter Bar */
         .chapter-bar {
-            background: #0f1523;
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
+            background: #0f1523; padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0;
         }
         #chapterSelect {
-            flex: 1;
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 13px;
-            outline: none;
-            min-width: 0;
+            flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; min-width: 0;
         }
 
-        /* Reading Area - Layout chuẩn sách */
+        /* KHU VỰC HIỂN THỊ CHUẨN APPLE BOOKS */
         #storyContainer {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px 20px 48px 20px;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 19.5px;
-            line-height: 1.7;
-            color: #cbd5e1;
-            max-width: 780px;
-            width: 100%;
-            margin: 0 auto;
+            flex: 1; overflow-y: auto; padding: 24px 20px 48px 20px;
+            font-family: Georgia, "Times New Roman", serif; font-size: 19.5px; line-height: 1.7; color: #cbd5e1; max-width: 780px; width: 100%; margin: 0 auto;
         }
         #storyContainer h1.chap-heading {
-            font-size: 1.6em;
-            font-weight: 700;
-            line-height: 1.35;
-            text-align: center;
-            color: var(--text);
-            margin: 12px 0 36px 0;
-            padding: 12px 14px;
-            cursor: pointer;
-            border-radius: 10px;
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255,255,255,0.03);
-            transition: background 0.15s;
+            font-size: 1.65em; font-weight: 700; line-height: 1.35; text-align: center; color: var(--text);
+            margin: 10px 0 36px 0; padding: 14px 16px; cursor: pointer; border-radius: 12px;
+            background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.04); transition: background 0.15s;
         }
-        #storyContainer h1.chap-heading.active-chunk {
-            background: rgba(16, 185, 129, 0.15);
-            border-color: rgba(16, 185, 129, 0.3);
-        }
+        #storyContainer h1.chap-heading.active-chunk { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
 
         #storyContainer p {
-            margin: 0 0 16px 0;
-            padding: 8px 10px;
-            text-indent: 1.6em; /* Thụt lề đầu dòng */
-            text-align: justify; /* Căn đều 2 bên */
-            border-radius: 8px;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-            transition: background 0.2s;
+            margin: 0 0 16px 0; padding: 6px 10px; text-indent: 1.6em; text-align: justify; /* Thụt lề và Căn đều 2 bên */
+            border-radius: 8px; border-left: 3px solid transparent; cursor: pointer; transition: background 0.2s;
         }
-        #storyContainer p.centered-meta {
-            text-align: center;
-            text-indent: 0;
-            font-weight: bold;
-            color: var(--text-muted);
-            margin-bottom: 24px;
-            font-size: 0.9em;
-        }
-        #storyContainer p.active-chunk {
-            background: rgba(16, 185, 129, 0.12);
-            border-left-color: var(--accent);
-            color: #f8fafc;
-        }
+        #storyContainer p.centered-meta { text-align: center; text-indent: 0; font-weight: bold; color: var(--text-muted); margin-bottom: 24px; font-size: 0.95em; }
+        #storyContainer p.active-chunk { background: rgba(16, 185, 129, 0.12); border-left-color: var(--accent); color: #f8fafc; }
         .word-span { transition: color 0.1s, text-shadow 0.1s; }
-        .word-span.spoken {
-            color: #34d399;
-            font-weight: 600;
-            text-shadow: 0 0 12px var(--accent-glow);
-        }
+        .word-span.spoken { color: #34d399; font-weight: 600; text-shadow: 0 0 12px var(--accent-glow); }
 
-        /* Bottom Player Dock */
         .player-dock {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex-shrink: 0;
+            background: var(--surface); border-top: 1px solid var(--border); padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
         }
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            color: var(--text-muted);
-            gap: 8px;
-        }
-        #status {
-            color: #fcd34d;
-            font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: var(--surface-2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            transition: width 0.15s linear;
-        }
-        .controls-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-        }
-        .dock-select {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 8px;
-            font-size: 12px;
-            font-weight: 600;
-            outline: none;
-            max-width: 135px;
-        }
-        .transport {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .ctrl-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            font-size: 15px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); gap: 8px; }
+        #status { color: #fcd34d; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .progress-track { width: 100%; height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.15s linear; }
+        .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .dock-select { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 8px; font-size: 12px; font-weight: 600; outline: none; max-width: 135px; }
+        .transport { display: flex; align-items: center; gap: 8px; }
+        .ctrl-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 38px; height: 38px; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
         .ctrl-btn:active { transform: scale(0.94); }
-        .play-btn {
-            background: var(--accent);
-            color: #042f2e;
-            border: none;
-            width: 46px;
-            height: 46px;
-            font-size: 18px;
-            font-weight: 700;
-            box-shadow: 0 0 16px var(--accent-glow);
-        }
+        .play-btn { background: var(--accent); color: #042f2e; border: none; width: 46px; height: 46px; font-size: 18px; font-weight: 700; box-shadow: 0 0 16px var(--accent-glow); }
 
-        /* Bookshelf Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            display: none;
-            align-items: flex-end;
-            justify-content: center;
-            z-index: 50;
-        }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
         .modal-backdrop.open { display: flex; }
-        .modal-sheet {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            border-radius: 18px 18px 0 0;
-            width: 100%;
-            max-width: 640px;
-            max-height: 75dvh;
-            display: flex;
-            flex-direction: column;
-            padding: 16px;
-            gap: 12px;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .book-list {
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .book-item {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
+        .modal-sheet { background: var(--surface); border-top: 1px solid var(--border); border-radius: 18px 18px 0 0; width: 100%; max-width: 640px; max-height: 75dvh; display: flex; flex-direction: column; padding: 16px; gap: 12px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; }
+        .book-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .book-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .book-info { min-width: 0; flex: 1; }
-        .book-title {
-            font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .book-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
         .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .btn-sm {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: none;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .btn-sm { padding: 6px 10px; border-radius: 6px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
         .btn-open { background: var(--accent); color: #042f2e; }
         .btn-sync { background: #3b82f6; color: #fff; }
         .btn-del { background: #e11d48; color: #fff; }
@@ -332,7 +126,7 @@
         <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
             <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
             <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b>.</div>
+            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) để hệ thống bóc tách DOM.</div>
         </div>
     </main>
 
@@ -345,32 +139,28 @@
             <div class="progress-fill" id="progressFill"></div>
         </div>
         <div class="controls-row">
-            <select id="voiceSelect" class="dock-select" onchange="onVoiceChange()" title="Chọn giọng đọc">
+            <select id="voiceSelect" class="dock-select" onchange="onVoiceChange()">
                 <option value="default">🎙 Mặc định</option>
             </select>
-
             <div class="transport">
-                <button class="ctrl-btn" onclick="prevChunk()" title="Đoạn trước">⏮</button>
-                <button class="ctrl-btn play-btn" id="playToggleBtn" onclick="togglePlayPause()" title="Đọc / Dừng">▶</button>
-                <button class="ctrl-btn" onclick="nextChunk()" title="Đoạn tiếp">⏭</button>
+                <button class="ctrl-btn" onclick="prevChunk()">⏮</button>
+                <button class="ctrl-btn play-btn" id="playToggleBtn" onclick="togglePlayPause()">▶</button>
+                <button class="ctrl-btn" onclick="nextChunk()">⏭</button>
             </div>
-
             <select id="speedSelect" class="dock-select" onchange="updateSpeed()" style="max-width:72px;">
                 <option value="0.8">0.8x</option>
                 <option value="1.0" selected>1.0x</option>
                 <option value="1.2">1.2x</option>
                 <option value="1.5">1.5x</option>
-                <option value="1.75">1.75x</option>
                 <option value="2.0">2.0x</option>
             </select>
         </div>
     </footer>
 
-    <!-- Bookshelf Modal -->
     <div class="modal-backdrop" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
         <div class="modal-sheet">
             <div class="modal-header">
-                <span>📚 Tủ sách (Máy & Server)</span>
+                <span>📚 Tủ sách (Đồng bộ)</span>
                 <button class="pill-btn" onclick="closeBookshelf()">✕ Đóng</button>
             </div>
             <div class="book-list" id="bookList"></div>
@@ -385,37 +175,28 @@
         const voiceSelect = document.getElementById('voiceSelect');
         const serverBtn = document.getElementById('serverBtn');
 
-        function getBaseUrl() {
-            return SERVER_BASE.replace(/\/$/, "");
-        }
+        function getBaseUrl() { return SERVER_BASE.replace(/\/$/, ""); }
 
         function updateServerBadge() {
-            const isTunnel = SERVER_BASE.includes("trycloudflare.com");
-            serverBtn.textContent = isTunnel ? "● Tunnel" : "🔗 Server";
+            serverBtn.textContent = SERVER_BASE.includes("trycloudflare.com") ? "● Tunnel" : "🔗 Server";
             localStorage.setItem("my_tts_server_url", SERVER_BASE);
         }
 
         async function syncTunnelUrlIfNeeded() {
-            const urlsToTry = [
+            const urls = [
                 "https://api.github.com/repos/tranatrinh/web-story-reader/contents/tunnel.json?ref=main&_=" + Date.now(),
                 "./tunnel.json?t=" + Date.now(),
                 "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json?t=" + Date.now()
             ];
-
-            for (const url of urlsToTry) {
+            for (const url of urls) {
                 try {
                     const headers = url.includes("api.github.com") ? { "Accept": "application/vnd.github.raw+json" } : {};
                     const res = await fetch(url, { cache: "no-store", headers });
                     if (res.ok) {
                         const data = await res.json();
-                        if (data && data.url && data.url.trim()) {
-                            const newTunnel = data.url.trim();
-                            if (newTunnel !== SERVER_BASE) {
-                                SERVER_BASE = newTunnel;
-                                updateServerBadge();
-                            } else {
-                                updateServerBadge();
-                            }
+                        if (data && data.url) {
+                            SERVER_BASE = data.url.trim();
+                            updateServerBadge();
                             return true;
                         }
                     }
@@ -429,20 +210,14 @@
                 const res = await fetch(getBaseUrl() + "/voices");
                 if (!res.ok) return;
                 const data = await res.json();
-                if (data.voices && Array.isArray(data.voices)) {
+                if (data.voices) {
                     voiceSelect.innerHTML = "";
                     data.voices.forEach(v => {
-                        const opt = document.createElement("option");
-                        opt.value = v.id;
-                        opt.textContent = v.name;
+                        const opt = document.createElement("option"); opt.value = v.id; opt.textContent = v.name;
                         voiceSelect.appendChild(opt);
                     });
-                    if ([...voiceSelect.options].some(o => o.value === SELECTED_VOICE)) {
-                        voiceSelect.value = SELECTED_VOICE;
-                    } else {
-                        SELECTED_VOICE = voiceSelect.value || "default";
-                        localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
-                    }
+                    if ([...voiceSelect.options].some(o => o.value === SELECTED_VOICE)) voiceSelect.value = SELECTED_VOICE;
+                    else SELECTED_VOICE = voiceSelect.value || "default";
                 }
             } catch (e) {}
         }
@@ -451,281 +226,104 @@
             SELECTED_VOICE = voiceSelect.value;
             localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
             clearAudioCache();
-            if (isPlaying) {
-                startTTS(currentChunkIndex);
-            } else {
-                status.textContent = `🎙 Đã đổi sang: ${voiceSelect.options[voiceSelect.selectedIndex]?.text || SELECTED_VOICE}`;
-            }
+            if (isPlaying) startTTS(currentChunkIndex);
         }
 
         async function changeServerUrl() {
             await syncTunnelUrlIfNeeded();
-            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel (Để trống và bấm OK để tự đồng bộ từ GitHub):", SERVER_BASE);
+            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel:", SERVER_BASE);
             if (newUrl !== null) {
-                if (newUrl.trim() === "") await syncTunnelUrlIfNeeded();
-                else SERVER_BASE = newUrl.trim();
-                updateServerBadge();
-                clearAudioCache();
-                await loadVoicesFromServer();
-                status.textContent = `🔗 Đã kết nối: ${SERVER_BASE}`;
+                SERVER_BASE = newUrl.trim() === "" ? SERVER_BASE : newUrl.trim();
+                updateServerBadge(); clearAudioCache(); await loadVoicesFromServer();
             }
         }
+        (async () => { await syncTunnelUrlIfNeeded(); updateServerBadge(); await loadVoicesFromServer(); })();
 
-        (async () => {
-            await syncTunnelUrlIfNeeded();
-            updateServerBadge();
-            await loadVoicesFromServer();
-        })();
-
-        // --- 2. INDEXEDDB V5 (ĐỔI TÊN ĐỂ ÉP TRÌNH DUYỆT XÓA CACHE CŨ) ---
-        const DB_NAME = "AIStoryReaderDB_v5"; // Quan trọng: Đổi DB để xóa cache rác cũ
+        // --- 2. INDEXEDDB (Version 6 - Ép xóa DB để cập nhật Cấu Trúc Bóc Tách Mới) ---
+        const DB_NAME = "AIStoryReaderDB_v6";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_id_v5") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_v6") || null;
 
         function openDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open(DB_NAME, 1);
                 req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: "id" });
+                    if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" });
                 };
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
+                req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
             });
         }
-
         async function saveBookToDB(book) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).put(book);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
+            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).put(book); tx.oncomplete = res; tx.onerror = rej; });
         }
-
         async function getAllBooksFromDB() {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readonly");
-                const req = tx.objectStore(STORE_NAME).getAll();
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = () => reject(req.error);
-            });
+            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).getAll(); req.onsuccess = () => res(req.result || []); });
         }
-
         async function getBookById(id) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readonly");
-                const req = tx.objectStore(STORE_NAME).get(id);
-                req.onsuccess = () => resolve(req.result || null);
-                req.onerror = () => reject(req.error);
-            });
+            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readonly"); const req = tx.objectStore(STORE_NAME).get(id); req.onsuccess = () => res(req.result || null); });
         }
-
         async function deleteBookFromDB(id) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).delete(id);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
+            return new Promise((res, rej) => { const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).delete(id); tx.oncomplete = res; });
         }
-
         async function uploadBookToServer(book) {
-            try {
-                const res = await fetch(getBaseUrl() + "/books", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(book)
-                });
-                return res.ok;
-            } catch (e) {
-                return false;
-            }
+            try { return (await fetch(getBaseUrl() + "/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(book) })).ok; } catch(e) { return false; }
         }
-
         async function saveProgress() {
             if (!currentBookId || chapters.length === 0) return;
             const now = Date.now();
             try {
                 const book = await getBookById(currentBookId);
-                if (book) {
-                    book.lastChapter = currentChapterIndex;
-                    book.lastChunk = currentChunkIndex;
-                    book.updatedAt = now;
-                    await saveBookToDB(book);
-                }
+                if (book) { book.lastChapter = currentChapterIndex; book.lastChunk = currentChunkIndex; book.updatedAt = now; await saveBookToDB(book); }
             } catch (e) {}
-
-            fetch(getBaseUrl() + "/books/progress", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    id: currentBookId,
-                    lastChapter: currentChapterIndex,
-                    lastChunk: currentChunkIndex,
-                    updatedAt: now
-                })
-            }).catch(() => {});
+            fetch(getBaseUrl() + "/books/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: currentBookId, lastChapter: currentChapterIndex, lastChunk: currentChunkIndex, updatedAt: now }) }).catch(() => {});
         }
-
         async function openBookshelf() {
-            const modal = document.getElementById("bookshelfModal");
-            const listEl = document.getElementById("bookList");
-            modal.classList.add("open");
-            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang tải tủ sách...</div>";
-
-            const localBooks = await getAllBooksFromDB();
-            const bookMap = new Map();
-
-            localBooks.forEach(b => {
-                bookMap.set(b.id, {
-                    id: b.id,
-                    title: b.title,
-                    chapterCount: b.chapters ? b.chapters.length : 0,
-                    lastChapter: b.lastChapter || 0,
-                    lastChunk: b.lastChunk || 0,
-                    updatedAt: b.updatedAt || 0,
-                    hasLocal: true,
-                    hasServer: false,
-                    localObj: b
-                });
-            });
-
+            document.getElementById("bookshelfModal").classList.add("open");
+            const listEl = document.getElementById("bookList"); listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang tải...</div>";
+            const localBooks = await getAllBooksFromDB(); const bookMap = new Map();
+            localBooks.forEach(b => bookMap.set(b.id, { id: b.id, title: b.title, chapterCount: b.chapters?.length || 0, lastChapter: b.lastChapter || 0, lastChunk: b.lastChunk || 0, updatedAt: b.updatedAt || 0, hasLocal: true, hasServer: false, localObj: b }));
             try {
                 const res = await fetch(getBaseUrl() + "/books");
                 if (res.ok) {
-                    const data = await res.json();
-                    (data.books || []).forEach(sb => {
+                    (await res.json()).books?.forEach(sb => {
                         if (bookMap.has(sb.id)) {
-                            const existing = bookMap.get(sb.id);
-                            existing.hasServer = true;
-                            if ((sb.updatedAt || 0) > (existing.updatedAt || 0)) {
-                                existing.lastChapter = sb.lastChapter || 0;
-                                existing.lastChunk = sb.lastChunk || 0;
-                                existing.updatedAt = sb.updatedAt;
-                                if (existing.localObj) {
-                                    existing.localObj.lastChapter = existing.lastChapter;
-                                    existing.localObj.lastChunk = existing.lastChunk;
-                                    existing.localObj.updatedAt = existing.updatedAt;
-                                    saveBookToDB(existing.localObj);
-                                }
-                            }
-                        } else {
-                            bookMap.set(sb.id, {
-                                id: sb.id,
-                                title: sb.title,
-                                chapterCount: sb.chapterCount || 0,
-                                lastChapter: sb.lastChapter || 0,
-                                lastChunk: sb.lastChunk || 0,
-                                updatedAt: sb.updatedAt || 0,
-                                hasLocal: false,
-                                hasServer: true,
-                                localObj: null
-                            });
-                        }
+                            const ext = bookMap.get(sb.id); ext.hasServer = true;
+                            if (sb.updatedAt > ext.updatedAt) { ext.lastChapter = sb.lastChapter; ext.lastChunk = sb.lastChunk; ext.updatedAt = sb.updatedAt; if(ext.localObj) { ext.localObj.lastChapter = sb.lastChapter; ext.localObj.lastChunk = sb.lastChunk; saveBookToDB(ext.localObj); } }
+                        } else { bookMap.set(sb.id, { id: sb.id, title: sb.title, chapterCount: sb.chapterCount, lastChapter: sb.lastChapter, lastChunk: sb.lastChunk, updatedAt: sb.updatedAt, hasLocal: false, hasServer: true, localObj: null }); }
                     });
                 }
             } catch (e) {}
-
-            const mergedList = Array.from(bookMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-            if (mergedList.length === 0) {
-                listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b>!</div>";
-                return;
-            }
-
+            const mergedList = Array.from(bookMap.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+            if (mergedList.length === 0) { listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>Tủ sách trống. Hãy mở file nhé!</div>"; return; }
             listEl.innerHTML = "";
             mergedList.forEach(b => {
-                const item = document.createElement("div");
-                item.className = "book-item";
-                const chapNum = (b.lastChapter || 0) + 1;
-                const chunkNum = (b.lastChunk || 0) + 1;
-                const badge = b.hasServer ? "☁️ Server & Máy" : "📱 Chỉ trên máy này";
-
-                item.innerHTML = `
-                    <div class="book-info">
-                        <div class="book-title">${b.title}</div>
-                        <div class="book-meta">${badge} • ${b.chapterCount} chương • Đọc: Ch.${chapNum} (Đoạn ${chunkNum})</div>
-                    </div>
-                    <div class="book-actions">
-                        ${!b.hasServer && b.hasLocal ? `<button class="btn-sm btn-sync">☁️ Đẩy lên</button>` : ""}
-                        <button class="btn-sm btn-open">Đọc tiếp</button>
-                        <button class="btn-sm btn-del">Xóa</button>
-                    </div>
-                `;
-
-                const syncBtn = item.querySelector(".btn-sync");
-                if (syncBtn) {
-                    syncBtn.onclick = async () => {
-                        syncBtn.textContent = "⏳...";
-                        const ok = await uploadBookToServer(b.localObj);
-                        if (ok) openBookshelf();
-                        else syncBtn.textContent = "Lỗi!";
-                    };
-                }
-
+                const item = document.createElement("div"); item.className = "book-item";
+                item.innerHTML = `<div class="book-info"><div class="book-title">${b.title}</div><div class="book-meta">${b.hasServer ? "☁️ Server" : "📱 Máy"} • ${b.chapterCount} chương • Đọc: Ch.${b.lastChapter+1}</div></div>
+                                  <div class="book-actions">${b.hasLocal && !b.hasServer ? `<button class="btn-sm btn-sync">☁️ Up</button>` : ""}<button class="btn-sm btn-open">Đọc</button><button class="btn-sm btn-del">Xóa</button></div>`;
+                if(item.querySelector(".btn-sync")) item.querySelector(".btn-sync").onclick = async () => { if(await uploadBookToServer(b.localObj)) openBookshelf(); };
                 item.querySelector(".btn-open").onclick = async () => {
                     closeBookshelf();
-                    if (b.hasLocal && b.localObj) {
-                        loadBookObject(b.localObj);
-                    } else {
-                        status.textContent = `☁️ Đang tải "${b.title}" từ Server về máy...`;
-                        try {
-                            const res = await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id));
-                            if (!res.ok) throw new Error("Không tải được truyện");
-                            const fullBook = await res.json();
-                            await saveBookToDB(fullBook);
-                            loadBookObject(fullBook);
-                        } catch (err) {
-                            status.textContent = `❌ Lỗi: ${err.message}`;
-                        }
-                    }
+                    if (b.hasLocal) loadBookObject(b.localObj);
+                    else { status.textContent = `☁️ Đang tải từ Server...`; try { const fullBook = await (await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id))).json(); await saveBookToDB(fullBook); loadBookObject(fullBook); } catch (e) {} }
                 };
-
-                item.querySelector(".btn-del").onclick = async () => {
-                    if (b.hasLocal) await deleteBookFromDB(b.id);
-                    if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    if (currentBookId === b.id) {
-                        currentBookId = null;
-                        localStorage.removeItem("last_opened_book_id_v5");
-                    }
-                    openBookshelf();
-                };
+                item.querySelector(".btn-del").onclick = async () => { if (b.hasLocal) await deleteBookFromDB(b.id); if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {}); if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_v6"); } openBookshelf(); };
                 listEl.appendChild(item);
             });
         }
-
-        function closeBookshelf() {
-            document.getElementById("bookshelfModal").classList.remove("open");
-        }
-
+        function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
         function loadBookObject(book) {
-            stopTTS();
-            clearAudioCache();
-            currentBookId = book.id;
-            localStorage.setItem("last_opened_book_id_v5", book.id);
-            chapters = book.chapters;
-
-            chapterSelect.innerHTML = "";
-            chapters.forEach((chap, idx) => {
-                const opt = document.createElement("option");
-                opt.value = idx;
-                opt.textContent = chap.title;
-                chapterSelect.appendChild(opt);
-            });
+            stopTTS(); clearAudioCache(); currentBookId = book.id; localStorage.setItem("last_opened_book_v6", book.id); chapters = book.chapters;
+            chapterSelect.innerHTML = ""; chapters.forEach((chap, idx) => chapterSelect.appendChild(new Option(chap.title, idx)));
             document.getElementById("chapterBar").style.display = "flex";
-
-            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
-            chapterSelect.value = targetChap;
-            renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
+            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1); chapterSelect.value = targetChap; renderChapter(targetChap, book.lastChunk || 0);
+            status.textContent = `📖 Sẵn sàng`;
         }
 
-        // --- 3. BỘ DAO MỔ RÁC & CẮT KHỐI CHUẨN XÁC ---
+        // --- 3. BỘ BÓC TÁCH DOM EPUB CỐT LÕI (DOM TRAVERSAL) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -735,73 +333,65 @@
         const chunkCounter = document.getElementById('chunkCounter');
         const progressFill = document.getElementById('progressFill');
 
-        let chapters = [];
-        let currentChapterIndex = 0;
-        let chunks = [];
-        let currentChunkIndex = 0;
-
-        const mainPlayer = new Audio();
-        mainPlayer.playsInline = true;
-        mainPlayer.preload = "auto";
-
-        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+.*/i;
+        let chapters = []; let currentChapterIndex = 0; let chunks = []; let currentChunkIndex = 0;
+        const mainPlayer = new Audio(); mainPlayer.playsInline = true; mainPlayer.preload = "auto";
+        
+        const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
+        const WEB_JUNK_REGEX = /(?:www\.|https?:\/\/|[a-z0-9\-]+\.(?:com|vn|net|org|info|me|io|tk)|dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen|nguồn\s*:|nhóm\s*dịch|biên\s*tập|thực\s*hiện|trọn\s*bộ)/i;
 
-        // DAO MỔ RÁC: Xử lý chuỗi rác bị dán chặt vào câu văn (như ảnh của bạn)
-        function sanitizeParagraph(text, titleStr) {
-            let p = text;
+        function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
 
-            // 1. Phá hủy mọi link web và đuôi .com
-            p = p.replace(/(?:https?:\/\/)?(?:www\.)?(?:dtv-ebook|tangthuvien|truyenfull|wikidich|metruyenchu|bachngocsach|sstruyen)\.(?:com|vn|net|org|info|me|io|tk)[^\s]*/gi, '');
+        // Bóc tách text bằng cách chui vào TỪNG Node HTML (p, div, li) - BẢO TOÀN NGẮT DÒNG
+        function extractDOMBlocks(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, "text/html");
+            doc.querySelectorAll("script, style, nav, svg, img, table").forEach(el => el.remove());
 
-            // 2. Chém đứt tiêu đề nếu nó bị dán lén vào đầu đoạn văn
-            if (titleStr && titleStr.length > 3) {
-                const lowerP = p.toLowerCase();
-                const lowerT = titleStr.toLowerCase();
-                const idx = lowerP.indexOf(lowerT);
-                // Nếu tìm thấy tiêu đề bị nhét ở ngay đầu dòng (khoảng 100 ký tự đầu) -> cắt phăng phần trước nó
-                if (idx >= 0 && idx < 100) {
-                    p = p.substring(idx + titleStr.length);
-                    // Dọn dẹp nốt dấu câu hoặc chữ rác thừa ngay sau khi cắt tiêu đề
-                    p = p.replace(/^[\s.:,\-–—]+/, '');
-                }
-            }
-
-            // 3. Quét sạch các chữ prefix vớ vẩn
-            p = p.replace(/^(?:\s|-)*(?:Nội dung giản lược|Tóm tắt|Giới thiệu|Văn án|Tác giả|Nguồn)\s*:/gi, '');
+            const paragraphs = [];
+            const seenText = new Set();
             
-            // Xóa dấu cách thừa
-            return p.replace(/\s+/g, ' ').trim();
-        }
-
-        // HÀM CHIA KHỐI CHUẨN XÁC: Gộp câu ngắn, bảo toàn câu dài
-        function chunkCleanLines(lines) {
-            const mergedLines = [];
-            for (let line of lines) {
-                let trimmed = line.trim();
-                if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
-
-                if (mergedLines.length > 0) {
-                    const prev = mergedLines[mergedLines.length - 1];
-                    const isPrevHeading = CHAPTER_REGEX.test(prev) || prev.length < 75;
-                    const isCurrHeading = CHAPTER_REGEX.test(trimmed) || trimmed.length < 75;
-
-                    if (!isPrevHeading && !isCurrHeading && !/[.!?;:”"']$/.test(prev)) {
-                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
-                        continue;
+            // Tìm tất cả các thẻ có khả năng chứa text
+            const elements = doc.body.querySelectorAll("p, div, h1, h2, h3, h4, li, blockquote");
+            
+            elements.forEach(el => {
+                // Chỉ lấy những thẻ không chứa thẻ block khác bên trong (để tránh lặp content)
+                const hasBlockChild = Array.from(el.children).some(child => 
+                    ["P", "DIV", "H1", "H2", "H3", "H4", "LI", "BLOCKQUOTE"].includes(child.tagName)
+                );
+                
+                if (!hasBlockChild) {
+                    const text = el.textContent.replace(/\s+/g, ' ').trim();
+                    if (text.length > 0 && VALID_CHAR_REGEX.test(text) && !seenText.has(text)) {
+                        paragraphs.push(text);
+                        seenText.add(text);
                     }
                 }
-                mergedLines.push(trimmed);
+            });
+
+            // Fallback nếu HTML quá tệ, không dùng thẻ p/div mà text rải rác trong body
+            if (paragraphs.length === 0) {
+                doc.querySelectorAll("br").forEach(br => br.replaceWith("\n"));
+                const rawText = doc.body.textContent;
+                rawText.split(/\n/).forEach(line => {
+                    const t = line.replace(/\s+/g, ' ').trim();
+                    if (t.length > 0 && VALID_CHAR_REGEX.test(t)) paragraphs.push(t);
+                });
             }
+            return paragraphs;
+        }
 
+        // Không bao giờ gộp bừa bãi. Chỉ ngắt đoạn nếu 1 thẻ <p> dài hơn 400 ký tự
+        function chunkParagraphs(paragraphs) {
             const finalChunks = [];
-            const MAX_LEN = 400; // Ngắt để không sập AI Server
-            let currentBuf = "";
+            const MAX_LEN = 400;
 
-            for (let para of mergedLines) {
-                if (para.length > MAX_LEN) {
-                    if (currentBuf.trim()) { finalChunks.push(currentBuf.trim()); currentBuf = ""; }
-                    const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
+            for (let para of paragraphs) {
+                if (para.length <= MAX_LEN) {
+                    finalChunks.push(para);
+                } else {
+                    let currentBuf = "";
+                    const sentences = para.match(/[^.!?;…”"']+([.!?;…”"']+|\s*$)/g) || [para];
                     for (let s of sentences) {
                         if ((currentBuf + " " + s).trim().length > MAX_LEN) {
                             if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
@@ -810,72 +400,10 @@
                             currentBuf = (currentBuf + " " + s).trim();
                         }
                     }
-                } else {
-                    if ((currentBuf + " " + para).trim().length > MAX_LEN) {
-                        if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                        currentBuf = para;
-                    } else {
-                        currentBuf = (currentBuf + " " + para).trim();
-                    }
+                    if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
                 }
             }
-            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
             return finalChunks;
-        }
-
-        function extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, "text/html");
-            doc.querySelectorAll("script, style, nav, svg, img").forEach(el => el.remove());
-
-            // Chuyển thẻ thành \n để chống việc trình duyệt tự động đập bẹp văn bản
-            doc.querySelectorAll("br, hr").forEach(br => br.replaceWith("\n"));
-            doc.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, li, blockquote").forEach(el => {
-                el.insertAdjacentText('beforebegin', '\n');
-                el.insertAdjacentText('afterend', '\n');
-            });
-
-            const rawText = doc.body ? doc.body.textContent : doc.textContent;
-            let rawLines = rawText.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-
-            let detectedHeading = "";
-            const headingEls = doc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
-            for (let h of headingEls) {
-                const t = h.textContent.replace(/\s+/g, ' ').trim();
-                if (t && !/^(unknown|untitled|chương mới|mục lục|cover|title page)$/i.test(t) && t.length < 100) {
-                    detectedHeading = t;
-                    break;
-                }
-            }
-
-            let combinedChapHeading = "";
-            for (let i = 0; i < Math.min(6, rawLines.length); i++) {
-                if (CHAPTER_REGEX.test(rawLines[i]) && rawLines[i].length < 90) {
-                    combinedChapHeading = rawLines[i];
-                    break;
-                }
-            }
-
-            let finalTitle = "";
-            if (tocTitle && !/^(unknown|untitled)$/i.test(tocTitle)) finalTitle = tocTitle.trim();
-            else if (combinedChapHeading) finalTitle = combinedChapHeading;
-            else if (detectedHeading) finalTitle = detectedHeading;
-            else finalTitle = fallbackTitle;
-
-            // Chạy hàm "Dao mổ rác" cho 5 dòng đầu tiên để diệt sạch rác bị dán chặt
-            for (let i = 0; i < Math.min(5, rawLines.length); i++) {
-                rawLines[i] = sanitizeParagraph(rawLines[i], finalTitle);
-            }
-            // Xóa bỏ các dòng trống sinh ra sau khi rác bị chặt đứt
-            rawLines = rawLines.filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-
-            // Xóa tên tác giả lọt sàng (Ví dụ: "Nam Phái Tam Thúc" nằm chỏng chơ 1 dòng)
-            if (rawLines.length > 0 && rawLines[0].length < 35 && /^(?:Nam Phái Tam Thúc|Già Thiên Thần Đông|Thần Đông|Trọn Bộ)$/i.test(rawLines[0])) {
-                rawLines.shift();
-            }
-
-            const cleanChunks = chunkCleanLines(rawLines);
-            return { title: finalTitle.substring(0, 85), paragraphs: cleanChunks };
         }
 
         fileInput.addEventListener('change', async (e) => {
@@ -883,121 +411,69 @@
             if (!file) return;
 
             stopTTS();
-            status.textContent = `⏳ Đang bóc tách bằng bộ lọc V5: ${file.name}...`;
+            status.textContent = `⏳ Đang bóc tách bằng DOM Parser: ${file.name}...`;
+            const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, "");
+            const normBookName = normalizeCompare(cleanBookTitle);
             let parsedChapters = [];
 
             try {
-                if (file.name.toLowerCase().endsWith('.txt')) {
-                    const text = await file.text();
-                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
-                    
-                    if (splits.length <= 1) {
-                        const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-                        for (let i = 0; i < Math.min(5, rawLines.length); i++) rawLines[i] = sanitizeParagraph(rawLines[i], "");
-                        const chunks = chunkCleanLines(rawLines.filter(l => l.length > 0));
-                        parsedChapters.push({ title: "Toàn bộ nội dung", paragraphs: chunks });
-                    } else {
-                        for (let idx = 0; idx < splits.length; idx++) {
-                            const content = splits[idx].trim();
-                            if (!content) continue;
-                            let rawLines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-                            if (rawLines.length === 0) continue;
-
-                            let title = `Chương ${parsedChapters.length + 1}`;
-                            if (CHAPTER_REGEX.test(rawLines[0]) && rawLines[0].length < 90) {
-                                title = rawLines.shift();
-                            }
-                            
-                            for (let i = 0; i < Math.min(5, rawLines.length); i++) rawLines[i] = sanitizeParagraph(rawLines[i], title);
-                            rawLines = rawLines.filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
-
-                            const chunks = chunkCleanLines(rawLines);
-                            if (chunks.length > 0) parsedChapters.push({ title, paragraphs: chunks });
-                        }
-                    }
-                } else if (file.name.toLowerCase().endsWith('.epub')) {
+                if (file.name.toLowerCase().endsWith('.epub')) {
                     const zip = await JSZip.loadAsync(file);
                     const parser = new DOMParser();
 
                     const normalizeZipPath = (base, rel) => {
-                        if (!rel) return "";
-                        let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/');
-                        if (cleanRel.startsWith('/')) cleanRel = cleanRel.substring(1);
-                        const stack = base ? base.split('/').filter(Boolean) : [];
-                        for (const part of cleanRel.split('/')) {
-                            if (!part || part === '.') continue;
-                            if (part === '..') stack.pop();
-                            else stack.push(part);
-                        }
+                        if (!rel) return ""; let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/'); if (cleanRel.startsWith('/')) cleanRel = cleanRel.substring(1);
+                        const stack = base ? base.split('/').filter(Boolean) : []; for (const part of cleanRel.split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
                         return stack.join('/');
                     };
 
                     const allZipKeys = Object.keys(zip.files);
                     const findZipFile = (targetPath) => {
-                        if (!targetPath) return null;
-                        if (zip.file(targetPath)) return zip.file(targetPath);
-                        const lower = targetPath.toLowerCase();
-                        const matchedKey = allZipKeys.find(k => k.toLowerCase() === lower || k.toLowerCase().endsWith('/' + lower));
+                        if (!targetPath) return null; if (zip.file(targetPath)) return zip.file(targetPath);
+                        const lower = targetPath.toLowerCase(); const matchedKey = allZipKeys.find(k => k.toLowerCase() === lower || k.toLowerCase().endsWith('/' + lower));
                         return matchedKey ? zip.file(matchedKey) : null;
                     };
 
                     let opfPath = "";
                     const containerFile = findZipFile("META-INF/container.xml");
                     if (containerFile) {
-                        const containerXml = await containerFile.async("text");
-                        const containerDoc = parser.parseFromString(containerXml, "text/xml");
+                        const containerDoc = parser.parseFromString(await containerFile.async("text"), "text/xml");
                         const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
                         if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
                     }
                     if (!opfPath) opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
-
                     const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
-                    const tocMap = {};
-                    let spinePaths = [];
+                    
+                    const tocMap = {}; let spinePaths = [];
 
                     const opfFile = findZipFile(opfPath);
                     if (opfFile) {
-                        const opfXml = await opfFile.async("text");
-                        const opfDoc = parser.parseFromString(opfXml, "text/xml");
+                        const opfDoc = parser.parseFromString(await opfFile.async("text"), "text/xml");
                         const manifest = {};
-                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item")));
-                        items.forEach(item => {
-                            const id = item.getAttribute("id");
-                            const href = item.getAttribute("href");
-                            if (id && href) manifest[id] = normalizeZipPath(basePath, href);
+                        Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item"))).forEach(item => {
+                            const id = item.getAttribute("id"); const href = item.getAttribute("href"); if (id && href) manifest[id] = normalizeZipPath(basePath, href);
                         });
-                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref")));
-                        itemrefs.forEach(ref => {
-                            const idref = ref.getAttribute("idref");
-                            if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
+                        Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref"))).forEach(ref => {
+                            const idref = ref.getAttribute("idref"); if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
                         });
                     }
 
+                    // TÌM TIÊU ĐỀ CHUẨN XÁC TỪ FILE NCX
                     const ncxKey = allZipKeys.find(k => k.toLowerCase().endsWith(".ncx"));
                     if (ncxKey) {
                         const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
-                        const ncxXml = await zip.file(ncxKey).async("text");
-                        const ncxDoc = parser.parseFromString(ncxXml, "text/xml");
-                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint")));
-                        navPoints.forEach(np => {
+                        const ncxDoc = parser.parseFromString(await zip.file(ncxKey).async("text"), "text/xml");
+                        Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))).forEach(np => {
                             const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
                             const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
                             if (textEl && contentEl) {
-                                const label = textEl.textContent.replace(/\s+/g, ' ').trim();
-                                const src = contentEl.getAttribute("src");
-                                if (label && src) {
-                                    const normSrc = normalizeZipPath(ncxBase, src).toLowerCase();
-                                    if (!tocMap[normSrc]) tocMap[normSrc] = label;
-                                }
+                                const label = textEl.textContent.replace(/\s+/g, ' ').trim(); const src = contentEl.getAttribute("src");
+                                if (label && src && !/^(unknown|untitled)$/i.test(label)) tocMap[normalizeZipPath(ncxBase, src).toLowerCase()] = label;
                             }
                         });
                     }
 
-                    if (spinePaths.length === 0) {
-                        spinePaths = allZipKeys
-                            .filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k))
-                            .sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
-                    }
+                    if (spinePaths.length === 0) spinePaths = allZipKeys.filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k)).sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
 
                     for (let i = 0; i < spinePaths.length; i++) {
                         const pathKey = spinePaths[i];
@@ -1006,568 +482,201 @@
                         const fileInZip = findZipFile(pathKey);
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
-                            const cleanFileName = pathKey.split('/').pop().replace(/\.(x?html|htm)$/i, '');
-                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
-                            const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
-
-                            // GỌI HÀM "DAO MỔ" MỚI
-                            const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle);
                             
-                            if (extracted.paragraphs.length > 0) {
-                                parsedChapters.push(extracted);
+                            // Nhặt danh sách thẻ <p>
+                            const rawParagraphs = extractDOMBlocks(htmlContent);
+                            if (rawParagraphs.length === 0) continue;
+
+                            // Xác định tiêu đề (ưu tiên NCX -> File Header -> Fallback)
+                            let finalTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
+                            if (!finalTitle || /^(unknown|untitled)$/i.test(finalTitle)) {
+                                const headingMatch = rawParagraphs.find(p => CHAPTER_REGEX.test(p) && p.length < 80);
+                                finalTitle = headingMatch ? headingMatch : `Chương ${parsedChapters.length + 1}`;
                             }
+                            const normTitle = normalizeCompare(finalTitle);
+
+                            // BỘ LỌC RÁC CHUẨN XÁC THEO MẢNG
+                            let scanLimit = Math.min(10, rawParagraphs.length);
+                            for (let pIdx = 0; pIdx < scanLimit; pIdx++) {
+                                const pText = rawParagraphs[0];
+                                const normP = normalizeCompare(pText);
+                                
+                                // Diệt web lậu
+                                if (WEB_JUNK_REGEX.test(pText) && pText.length < 150) { rawParagraphs.shift(); continue; }
+                                // Diệt tên truyện lặp
+                                if (pText.length < 60 && (normP === normBookName || normP.includes(normBookName) || normBookName.includes(normP))) { rawParagraphs.shift(); continue; }
+                                // Diệt tên tác giả
+                                if (pText.length < 40 && /^(?:Nam Phái Tam Thúc|Thần Đông|Cố Mạn|Đường Gia Tam Thiếu)/i.test(pText)) { rawParagraphs.shift(); continue; }
+                                // Diệt tiêu đề lặp (Bên trong nội dung lại ghi 1 dòng trùng tiêu đề)
+                                if (normP === normTitle || (pText.length < 80 && normP.includes(normTitle)) || ONLY_CHAP_NUM_REGEX.test(pText)) { rawParagraphs.shift(); continue; }
+                                
+                                break; // Gặp đoạn văn chuẩn thì dừng gọt
+                            }
+
+                            const cleanChunks = chunkParagraphs(rawParagraphs);
+                            if (cleanChunks.length > 0) parsedChapters.push({ title: finalTitle.substring(0, 85), paragraphs: cleanChunks });
                         }
+                    }
+                } else if (file.name.toLowerCase().endsWith('.txt')) {
+                    // Xử lý TXT tương tự: Cắt theo dòng \n thay vì thẻ <p>
+                    const text = await file.text();
+                    const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
+                    if (splits.length <= 1) {
+                        const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
+                        parsedChapters.push({ title: "Toàn bộ nội dung", paragraphs: chunkParagraphs(rawLines) });
+                    } else {
+                        splits.forEach(content => {
+                            let rawLines = content.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0 && VALID_CHAR_REGEX.test(l));
+                            if (rawLines.length > 0) {
+                                let title = `Chương ${parsedChapters.length + 1}`;
+                                if (CHAPTER_REGEX.test(rawLines[0]) && rawLines[0].length < 90) title = rawLines.shift();
+                                parsedChapters.push({ title, paragraphs: chunkParagraphs(rawLines) });
+                            }
+                        });
                     }
                 }
 
-                if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản trong file.");
-
-                const bookObj = {
-                    id: file.name + "_" + file.size + "_v5", // Gắn version để phá vỡ Cache IndexedDB
-                    title: file.name.replace(/\.(txt|epub)$/i, ""),
-                    chapters: parsedChapters,
-                    lastChapter: 0,
-                    lastChunk: 0,
-                    updatedAt: Date.now()
-                };
-                await saveBookToDB(bookObj);
-                loadBookObject(bookObj);
-
-                status.textContent = `☁️ Đang đồng bộ "${bookObj.title}" lên Server...`;
+                if (parsedChapters.length === 0) throw new Error("File trống hoặc không bóc tách được.");
+                const bookObj = { id: file.name + "_" + file.size + "_v6", title: cleanBookTitle, chapters: parsedChapters, lastChapter: 0, lastChunk: 0, updatedAt: Date.now() };
+                await saveBookToDB(bookObj); loadBookObject(bookObj);
+                status.textContent = `☁️ Đang đồng bộ...`;
                 const uploaded = await uploadBookToServer(bookObj);
-                status.textContent = uploaded
-                    ? `✅ Đã lưu Tủ sách & Đồng bộ Server (${parsedChapters.length} chương)!`
-                    : `✅ Đã lưu Tủ sách trên máy (${parsedChapters.length} chương)!`;
-            } catch (err) {
-                status.textContent = `❌ Lỗi: ${err.message}`;
-            }
+                status.textContent = uploaded ? `✅ Đã lưu (${parsedChapters.length} chương)!` : `✅ Đã lưu trên máy (${parsedChapters.length} chương)!`;
+            } catch (err) { status.textContent = `❌ Lỗi: ${err.message}`; }
         });
 
         function onChapterChange() {
-            const wasPlaying = isPlaying;
-            stopTTS();
-            const targetIdx = parseInt(chapterSelect.value, 10);
-            renderChapter(targetIdx, 0);
-            saveProgress();
-            if (wasPlaying) startTTS(0);
+            const wasPlaying = isPlaying; stopTTS(); const targetIdx = parseInt(chapterSelect.value, 10); renderChapter(targetIdx, 0); saveProgress(); if (wasPlaying) startTTS(0);
         }
 
-        // TÁCH TIÊU ĐỀ LÀM THẺ <h1> GIỐNG APPLE BOOKS
+        // TÁCH TIÊU ĐỀ LÀM THẺ <h1> GIỐNG APPLE BOOKS (RENDER UI)
         function renderChapter(index, startChunk = 0) {
-            currentChapterIndex = index;
-            const chap = chapters[currentChapterIndex];
-            if (!chap) return;
-
+            currentChapterIndex = index; const chap = chapters[currentChapterIndex]; if (!chap) return;
             chunks = [chap.title, ...chap.paragraphs];
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
-            // Hiển thị h1 cho tiêu đề chính 
-            let html = `<h1 class="chap-heading" id="para-0" onclick="startTTS(0)">` + 
-                chunks[0].split(/(\s+)/).map((part, wIdx) => {
-                    if (/^\s+$/.test(part)) return part;
-                    return `<span class="word-span" id="w-0-${wIdx}">${part}</span>`;
-                }).join('') + `</h1>`;
+            // Chunk 0 là Tiêu đề
+            let html = `<h1 class="chap-heading" id="para-0" onclick="startTTS(0)">` + chunks[0].split(/(\s+)/).map((part, wIdx) => /^\s+$/.test(part) ? part : `<span class="word-span" id="w-0-${wIdx}">${part}</span>`).join('') + `</h1>`;
 
-            // Các đoạn nội dung (Sẽ được CSS thụt dòng text-indent: 1.5em)
+            // Đoạn văn bên dưới thụt đầu dòng (text-indent được set trong CSS)
             for (let idx = 1; idx < chunks.length; idx++) {
-                // Kiểm tra xem đoạn này có quá ngắn không để bỏ lùi lề
-                const isShortMeta = chunks[idx].length < 65;
+                // Nếu đoạn quá ngắn (<55 ký tự), không thụt lề mà căn giữa cho đẹp
+                const isShortMeta = chunks[idx].length < 55;
                 const pClass = isShortMeta ? "centered-meta" : "";
                 
-                html += `<p id="para-${idx}" class="${pClass}" onclick="startTTS(${idx})">` + 
-                    chunks[idx].split(/(\s+)/).map((part, wIdx) => {
-                        if (/^\s+$/.test(part)) return part;
-                        return `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`;
-                    }).join('') + `</p>`;
+                html += `<p id="para-${idx}" class="${pClass}" onclick="startTTS(${idx})">` + chunks[idx].split(/(\s+)/).map((part, wIdx) => /^\s+$/.test(part) ? part : `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`).join('') + `</p>`;
             }
-
-            storyContainer.innerHTML = html;
-            highlightParagraph(currentChunkIndex);
-            clearAudioCache(currentChapterIndex);
+            storyContainer.innerHTML = html; highlightParagraph(currentChunkIndex); clearAudioCache(currentChapterIndex);
         }
 
-        // BỘ GIỮ TIẾN TRÌNH NỀN
+        // AUDIO PLAYER & TTS BACKGROUND LOGIC
         function createRealKeepAliveWavUrl() {
-            const sampleRate = 8000;
-            const durationSeconds = 4;
-            const numSamples = sampleRate * durationSeconds;
-            const buffer = new ArrayBuffer(44 + numSamples * 2);
-            const view = new DataView(buffer);
-            const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-
-            writeStr(0, 'RIFF');
-            view.setUint32(4, 36 + numSamples * 2, true);
-            writeStr(8, 'WAVE');
-            writeStr(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeStr(36, 'data');
-            view.setUint32(40, numSamples * 2, true);
-
-            for (let i = 0; i < numSamples; i++) {
-                const sample = Math.round(Math.sin(2 * Math.PI * 1 * (i / sampleRate)) * 3);
-                view.setInt16(44 + i * 2, sample || 1, true);
-            }
-            return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+            const sr = 8000; const dur = 4; const ns = sr * dur; const buf = new ArrayBuffer(44 + ns * 2); const view = new DataView(buf);
+            const wStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+            wStr(0, 'RIFF'); view.setUint32(4, 36 + ns * 2, true); wStr(8, 'WAVE'); wStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sr, true); view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); wStr(36, 'data'); view.setUint32(40, ns * 2, true);
+            for (let i = 0; i < ns; i++) view.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 1 * (i / sr)) * 3) || 1, true);
+            return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
         }
-
-        const keepAliveBlobUrl = createRealKeepAliveWavUrl();
-        const silentKeepAlive = new Audio(keepAliveBlobUrl);
-        silentKeepAlive.loop = true;
-        silentKeepAlive.playsInline = true;
-        silentKeepAlive.volume = 0.05;
-
-        let audioCtx = null;
-        let wakeLockSentinel = null;
-
+        const silentKeepAlive = new Audio(createRealKeepAliveWavUrl()); silentKeepAlive.loop = true; silentKeepAlive.playsInline = true; silentKeepAlive.volume = 0.05;
+        let audioCtx = null; let wakeLockSentinel = null;
         function activateBackgroundKeepAlive() {
             silentKeepAlive.play().catch(() => {});
-            try {
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (AudioContextClass) {
-                    if (!audioCtx) {
-                        audioCtx = new AudioContextClass();
-                        const osc = audioCtx.createOscillator();
-                        const gain = audioCtx.createGain();
-                        osc.frequency.value = 1;
-                        gain.gain.value = 0.001;
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.start();
-                    }
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume().catch(() => {});
-                    }
-                }
-            } catch (e) {}
-
-            if ('wakeLock' in navigator && !wakeLockSentinel) {
-                navigator.wakeLock.request('screen').then(s => {
-                    wakeLockSentinel = s;
-                    s.addEventListener('release', () => { wakeLockSentinel = null; });
-                }).catch(() => {});
-            }
+            try { const AC = window.AudioContext || window.webkitAudioContext; if (AC && !audioCtx) { audioCtx = new AC(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.frequency.value = 1; gain.gain.value = 0.001; osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); } if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
+            if ('wakeLock' in navigator && !wakeLockSentinel) navigator.wakeLock.request('screen').then(s => { wakeLockSentinel = s; s.addEventListener('release', () => wakeLockSentinel = null); }).catch(() => {});
         }
+        function deactivateBackgroundKeepAlive() { silentKeepAlive.pause(); if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); if (wakeLockSentinel) { wakeLockSentinel.release(); wakeLockSentinel = null; } }
 
-        function deactivateBackgroundKeepAlive() {
-            silentKeepAlive.pause();
-            if (audioCtx && audioCtx.state === 'running') {
-                audioCtx.suspend().catch(() => {});
-            }
-            if (wakeLockSentinel) {
-                wakeLockSentinel.release().catch(() => {});
-                wakeLockSentinel = null;
-            }
-        }
-
-        let isPlaying = false;
-        let playSessionId = 0;
-        let audioCache = {};
-        let resolvedUrls = {};
-        let abortControllers = {};
-        let workerRunning = false;
-
-        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT ---
-        function getCacheKey(chapIdx, chunkIdx) {
-            return `${chapIdx}_${chunkIdx}`;
-        }
-
+        let isPlaying = false; let playSessionId = 0; let audioCache = {}; let resolvedUrls = {}; let abortControllers = {}; let workerRunning = false;
+        function getCacheKey(chapIdx, chunkIdx) { return `${chapIdx}_${chunkIdx}`; }
         function clearAudioCache(keepChapIdx = null) {
-            const prefixToKeep = keepChapIdx !== null ? `${keepChapIdx}_` : null;
-
-            Object.keys(abortControllers).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    abortControllers[key].abort();
-                    delete abortControllers[key];
-                }
-            });
-
-            Object.keys(audioCache).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    delete audioCache[key];
-                }
-            });
-
-            Object.keys(resolvedUrls).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    URL.revokeObjectURL(resolvedUrls[key]);
-                    delete resolvedUrls[key];
-                }
-            });
+            const pre = keepChapIdx !== null ? `${keepChapIdx}_` : null;
+            Object.keys(abortControllers).forEach(k => { if (!pre || !k.startsWith(pre)) { abortControllers[k].abort(); delete abortControllers[k]; } });
+            Object.keys(audioCache).forEach(k => { if (!pre || !k.startsWith(pre)) delete audioCache[k]; });
+            Object.keys(resolvedUrls).forEach(k => { if (!pre || !k.startsWith(pre)) { URL.revokeObjectURL(resolvedUrls[k]); delete resolvedUrls[k]; } });
         }
-
         async function fetchAudioSingle(text, key, session) {
-            const controller = new AbortController();
-            abortControllers[key] = controller;
-
+            const controller = new AbortController(); abortControllers[key] = controller;
             for (let attempt = 0; attempt < 3; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
-                try {
-                    const response = await fetch(getBaseUrl() + "/tts", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: text, voice: SELECTED_VOICE }),
-                        signal: controller.signal
-                    });
-                    if (!response.ok) throw new Error("HTTP " + response.status);
-                    const blob = await response.blob();
-                    if (blob.size < 32) throw new Error("Empty blob");
-                    delete abortControllers[key];
-                    return URL.createObjectURL(blob);
-                } catch (err) {
-                    if (err.name === "AbortError" || session !== playSessionId) throw err;
-                    if (attempt === 2) {
-                        delete abortControllers[key];
-                        throw err;
-                    }
-                    if (attempt === 0) {
-                        await syncTunnelUrlIfNeeded();
-                    }
-                    await new Promise(r => setTimeout(r, 800));
-                }
+                try { const res = await fetch(getBaseUrl() + "/tts", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, voice: SELECTED_VOICE }), signal: controller.signal }); if (!res.ok) throw new Error(); const blob = await res.blob(); delete abortControllers[key]; return URL.createObjectURL(blob); } catch (err) { if (err.name === "AbortError" || session !== playSessionId) throw err; if (attempt === 2) { delete abortControllers[key]; throw err; } if (attempt === 0) await syncTunnelUrlIfNeeded(); await new Promise(r => setTimeout(r, 800)); }
             }
         }
-
         function ensureChunkPromise(chapIdx, chunkIdx, session) {
-            const chap = chapters[chapIdx];
-            if (!chap || chunkIdx >= chunks.length) return null;
-
-            const key = getCacheKey(chapIdx, chunkIdx);
-            const text = chunks[chunkIdx];
-
-            if (!audioCache[key]) {
-                audioCache[key] = fetchAudioSingle(text, key, session).then(url => {
-                    if (session === playSessionId) {
-                        resolvedUrls[key] = url;
-                    }
-                    return url;
-                }).catch(err => {
-                    delete audioCache[key];
-                    throw err;
-                });
-            }
+            const chap = chapters[chapIdx]; if (!chap || chunkIdx >= chunks.length) return null;
+            const key = getCacheKey(chapIdx, chunkIdx); const text = chunks[chunkIdx];
+            if (!audioCache[key]) audioCache[key] = fetchAudioSingle(text, key, session).then(url => { if (session === playSessionId) resolvedUrls[key] = url; return url; }).catch(err => { delete audioCache[key]; throw err; });
             return audioCache[key];
         }
-
         async function startBackgroundWorker(session) {
-            if (workerRunning) return;
-            workerRunning = true;
-
+            if (workerRunning) return; workerRunning = true;
             try {
                 while (session === playSessionId && isPlaying) {
-                    const base = currentChunkIndex;
-                    const limit = Math.min(chunks.length - 1, base + 8);
-                    let targetChap = -1;
-                    let targetChunk = -1;
-
-                    for (let i = base; i <= limit; i++) {
-                        const k = getCacheKey(currentChapterIndex, i);
-                        if (!audioCache[k]) {
-                            targetChap = currentChapterIndex;
-                            targetChunk = i;
-                            break;
-                        }
-                    }
-
+                    const base = currentChunkIndex; const limit = Math.min(chunks.length - 1, base + 8); let targetChap = -1; let targetChunk = -1;
+                    for (let i = base; i <= limit; i++) { const k = getCacheKey(currentChapterIndex, i); if (!audioCache[k]) { targetChap = currentChapterIndex; targetChunk = i; break; } }
                     if (targetChap === -1 && (chunks.length - 1 - base) <= 4) {
                         const nextChapIdx = currentChapterIndex + 1;
-                        if (nextChapIdx < chapters.length) {
-                            const nextParas = chapters[nextChapIdx].paragraphs;
-                            const nextLimit = Math.min(nextParas.length, 2); 
-                            for (let j = 0; j <= nextLimit; j++) {
-                                const nk = getCacheKey(nextChapIdx, j);
-                                if (!audioCache[nk]) {
-                                    targetChap = nextChapIdx;
-                                    targetChunk = j;
-                                    break;
-                                }
-                            }
-                        }
+                        if (nextChapIdx < chapters.length) { for (let j = 0; j <= Math.min(chapters[nextChapIdx].paragraphs.length, 2); j++) { const nk = getCacheKey(nextChapIdx, j); if (!audioCache[nk]) { targetChap = nextChapIdx; targetChunk = j; break; } } }
                     }
-
                     if (targetChap === -1) break;
-
-                    try {
-                        await ensureChunkPromise(targetChap, targetChunk, session);
-                    } catch (e) {
-                        await new Promise(r => setTimeout(r, 500));
-                    }
+                    try { await ensureChunkPromise(targetChap, targetChunk, session); } catch (e) { await new Promise(r => setTimeout(r, 500)); }
                 }
-            } finally {
-                workerRunning = false;
-            }
+            } finally { workerRunning = false; }
         }
 
-        // --- 5. SINGLE-PLAYER PLAYBACK, LOCK-SCREEN RESILIENCE & KARAOKE ---
-        function updateMediaSession() {
-            if ('mediaSession' in navigator && chapters[currentChapterIndex]) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: chapters[currentChapterIndex].title,
-                    artist: `Đoạn ${currentChunkIndex + 1}/${chunks.length} • ${SELECTED_VOICE}`,
-                    album: "AI Story Reader"
-                });
-                navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-                navigator.mediaSession.setActionHandler('play', () => startTTS(currentChunkIndex));
-                navigator.mediaSession.setActionHandler('pause', () => stopTTS());
-                navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk());
-                navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk());
-            }
-        }
-
-        function togglePlayPause() {
-            if (isPlaying) {
-                stopTTS();
-            } else {
-                startTTS(currentChunkIndex);
-            }
-        }
-
-        function prevChunk() {
-            if (chunks.length === 0) return;
-            const prev = Math.max(0, currentChunkIndex - 1);
-            startTTS(prev);
-        }
-
-        function nextChunk() {
-            if (chunks.length === 0) return;
-            if (currentChunkIndex + 1 < chunks.length) {
-                startTTS(currentChunkIndex + 1);
-            } else if (currentChapterIndex + 1 < chapters.length) {
-                currentChapterIndex++;
-                chapterSelect.value = currentChapterIndex;
-                renderChapter(currentChapterIndex, 0);
-                startTTS(0);
-            }
-        }
-
+        function updateMediaSession() { if ('mediaSession' in navigator && chapters[currentChapterIndex]) { navigator.mediaSession.metadata = new MediaMetadata({ title: chapters[currentChapterIndex].title, artist: `Đoạn ${currentChunkIndex + 1}/${chunks.length} • ${SELECTED_VOICE}`, album: "AI Story Reader" }); navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused"; navigator.mediaSession.setActionHandler('play', () => startTTS(currentChunkIndex)); navigator.mediaSession.setActionHandler('pause', () => stopTTS()); navigator.mediaSession.setActionHandler('previoustrack', () => prevChunk()); navigator.mediaSession.setActionHandler('nexttrack', () => nextChunk()); } }
+        function togglePlayPause() { if (isPlaying) stopTTS(); else startTTS(currentChunkIndex); }
+        function prevChunk() { if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1)); }
+        function nextChunk() { if (chunks.length === 0) return; if (currentChunkIndex + 1 < chunks.length) startTTS(currentChunkIndex + 1); else if (currentChapterIndex + 1 < chapters.length) { currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); startTTS(0); } }
+        
         async function startTTS(startIndex = 0) {
-            if (chunks.length === 0) {
-                alert("Vui lòng mở file truyện trước!");
-                return;
-            }
-
-            playSessionId++;
-            const currentSession = playSessionId;
-            workerRunning = false;
-
-            const currentKey = getCacheKey(currentChapterIndex, startIndex);
-            const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
-
-            Object.keys(abortControllers).forEach(k => {
-                if (k !== currentKey && k !== nextChapKey0 && !resolvedUrls[k]) {
-                    abortControllers[k].abort();
-                    delete abortControllers[k];
-                    delete audioCache[k];
-                }
-            });
-
-            mainPlayer.onended = null;
-            mainPlayer.onerror = null;
-            mainPlayer.ontimeupdate = null;
-
-            currentChunkIndex = startIndex;
-            isPlaying = true;
-            playToggleBtn.textContent = "■";
-
-            activateBackgroundKeepAlive();
-
-            if (!resolvedUrls[currentKey]) {
-                mainPlayer.src = keepAliveBlobUrl;
-                mainPlayer.loop = true;
-                mainPlayer.play().catch(() => {});
-            }
-
-            updateMediaSession();
-            await playLoop(currentSession);
+            if (chunks.length === 0) return alert("Vui lòng mở file truyện trước!");
+            playSessionId++; const currentSession = playSessionId; workerRunning = false;
+            const currentKey = getCacheKey(currentChapterIndex, startIndex); const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
+            Object.keys(abortControllers).forEach(k => { if (k !== currentKey && k !== nextChapKey0 && !resolvedUrls[k]) { abortControllers[k].abort(); delete abortControllers[k]; delete audioCache[k]; } });
+            mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
+            currentChunkIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■"; activateBackgroundKeepAlive();
+            if (!resolvedUrls[currentKey]) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); }
+            updateMediaSession(); await playLoop(currentSession);
         }
 
         async function playLoop(session) {
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
-                const idx = currentChunkIndex;
-                const key = getCacheKey(currentChapterIndex, idx);
-
-                highlightParagraph(idx);
-                saveProgress();
-                updateMediaSession();
-
-                startBackgroundWorker(session);
-
-                if (!resolvedUrls[key]) {
-                    status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
-                    if (mainPlayer.paused && isPlaying) {
-                        mainPlayer.src = keepAliveBlobUrl;
-                        mainPlayer.loop = true;
-                        mainPlayer.play().catch(() => {});
-                    }
-                }
-
-                let audioUrl;
-                try {
-                    audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session);
-                } catch (err) {
-                    if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang thử kết nối lại đoạn ${idx + 1}...`;
-                    await new Promise(r => setTimeout(r, 1200));
-                    continue; 
-                }
-
-                if (session !== playSessionId || !isPlaying) return;
-
-                startBackgroundWorker(session);
-
-                status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
-                const playResult = await playOnMainPlayer(key, idx, audioUrl, session);
-
-                if (session !== playSessionId || !isPlaying) return;
-
-                if (playResult === "blocked") {
-                    stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe tiếp từ đoạn này)");
-                    return;
-                }
-
-                const oldIdx = idx - 3;
-                if (oldIdx >= 0) {
-                    const oldKey = getCacheKey(currentChapterIndex, oldIdx);
-                    if (resolvedUrls[oldKey]) {
-                        URL.revokeObjectURL(resolvedUrls[oldKey]);
-                        delete resolvedUrls[oldKey];
-                        delete audioCache[oldKey];
-                    }
-                }
-
+                const idx = currentChunkIndex; const key = getCacheKey(currentChapterIndex, idx);
+                highlightParagraph(idx); saveProgress(); updateMediaSession(); startBackgroundWorker(session);
+                if (!resolvedUrls[key]) { status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`; if (mainPlayer.paused && isPlaying) { mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {}); } }
+                let audioUrl; try { audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session); } catch (err) { if (session !== playSessionId || !isPlaying) return; status.textContent = `⚠️ Đang kết nối lại...`; await new Promise(r => setTimeout(r, 1200)); continue; }
+                if (session !== playSessionId || !isPlaying) return; startBackgroundWorker(session); status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
+                const playResult = await playOnMainPlayer(key, idx, audioUrl, session); if (session !== playSessionId || !isPlaying) return;
+                if (playResult === "blocked") return stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe)");
+                const oldIdx = idx - 3; if (oldIdx >= 0) { const oldKey = getCacheKey(currentChapterIndex, oldIdx); if (resolvedUrls[oldKey]) { URL.revokeObjectURL(resolvedUrls[oldKey]); delete resolvedUrls[oldKey]; delete audioCache[oldKey]; } }
                 currentChunkIndex++;
             }
-
             if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
-                if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển chương...";
-                    currentChapterIndex++;
-                    chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex, 0);
-                    saveProgress();
-                    await playLoop(session);
-                    return;
-                } else {
-                    status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
-                    stopTTS();
-                }
+                if (currentChapterIndex < chapters.length - 1) { status.textContent = "⏭ Đang chuyển chương..."; currentChapterIndex++; chapterSelect.value = currentChapterIndex; renderChapter(currentChapterIndex, 0); saveProgress(); await playLoop(session); return; } else stopTTS("✅ Đã đọc hết truyện!");
             }
         }
 
         function playOnMainPlayer(key, idx, url, session) {
-            return new Promise((resolve) => {
-                if (session !== playSessionId || !isPlaying) {
-                    resolve("cancelled");
-                    return;
-                }
-
-                mainPlayer.onended = null;
-                mainPlayer.onerror = null;
-                mainPlayer.ontimeupdate = null;
-                mainPlayer.loop = false;
-
-                if (mainPlayer.dataset.loadedKey !== key) {
-                    mainPlayer.src = url;
-                    mainPlayer.dataset.loadedKey = key;
-                }
+            return new Promise((res) => {
+                if (session !== playSessionId || !isPlaying) return res("cancelled");
+                mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.loop = false;
+                if (mainPlayer.dataset.loadedKey !== key) { mainPlayer.src = url; mainPlayer.dataset.loadedKey = key; }
                 mainPlayer.playbackRate = parseFloat(speedSelect.value);
-
-                const paraEl = document.getElementById(`para-${idx}`);
-                const wordSpans = paraEl ? paraEl.querySelectorAll(".word-span") : [];
-
+                const wordSpans = document.getElementById(`para-${idx}`)?.querySelectorAll(".word-span") || [];
                 mainPlayer.ontimeupdate = () => {
                     if (!mainPlayer.duration || wordSpans.length === 0) return;
-                    const ratio = Math.min(1, mainPlayer.currentTime / mainPlayer.duration);
-                    progressFill.style.width = `${(ratio * 100).toFixed(1)}%`;
-
-                    const spokenCount = Math.floor(ratio * wordSpans.length);
-                    wordSpans.forEach((sp, wIdx) => {
-                        if (wIdx <= spokenCount) sp.classList.add("spoken");
-                        else sp.classList.remove("spoken");
-                    });
+                    const r = Math.min(1, mainPlayer.currentTime / mainPlayer.duration); progressFill.style.width = `${(r * 100).toFixed(1)}%`;
+                    const c = Math.floor(r * wordSpans.length); wordSpans.forEach((sp, wIdx) => sp.classList.toggle("spoken", wIdx <= c));
                 };
-
-                const finish = (resType = "ended") => {
-                    mainPlayer.onended = null;
-                    mainPlayer.onerror = null;
-                    mainPlayer.ontimeupdate = null;
-                    progressFill.style.width = "0%";
-                    resolve(resType);
-                };
-
-                mainPlayer.onended = () => finish("ended");
-                mainPlayer.onerror = () => finish("error");
-
-                mainPlayer.play().catch((err) => {
-                    if (err && err.name === "NotAllowedError") {
-                        finish("blocked");
-                    } else {
-                        finish("error");
-                    }
-                });
+                const finish = (t) => { mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; progressFill.style.width = "0%"; res(t); };
+                mainPlayer.onended = () => finish("ended"); mainPlayer.onerror = () => finish("error"); mainPlayer.play().catch((err) => finish(err && err.name === "NotAllowedError" ? "blocked" : "error"));
             });
         }
-
-        function highlightParagraph(index) {
-            document.querySelectorAll('#storyContainer p.active-chunk, #storyContainer h1.active-chunk').forEach(p => {
-                p.classList.remove('active-chunk');
-            });
-            document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
-
-            chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0";
-            const activePara = document.getElementById(`para-${index}`);
-            if (activePara) {
-                activePara.classList.add('active-chunk');
-                if (document.visibilityState === 'visible') {
-                    activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-        }
-
-        function updateSpeed() {
-            const rate = parseFloat(speedSelect.value);
-            mainPlayer.playbackRate = rate;
-        }
-
-        function stopTTS(customMessage = "⏹ Đã tạm dừng.") {
-            playSessionId++;
-            isPlaying = false;
-            workerRunning = false;
-            playToggleBtn.textContent = "▶";
-            progressFill.style.width = "0%";
-            deactivateBackgroundKeepAlive();
-
-            mainPlayer.onended = null;
-            mainPlayer.onerror = null;
-            mainPlayer.ontimeupdate = null;
-            mainPlayer.pause();
-            mainPlayer.dataset.loadedKey = "";
-
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "paused";
-            }
-            status.textContent = customMessage;
-        }
-
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible" && isPlaying) {
-                activateBackgroundKeepAlive();
-                const activePara = document.getElementById(`para-${currentChunkIndex}`);
-                if (activePara) activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        });
-
-        (async () => {
-            if (currentBookId) {
-                const savedBook = await getBookById(currentBookId);
-                if (savedBook) loadBookObject(savedBook);
-            }
-        })();
+        function highlightParagraph(index) { document.querySelectorAll('#storyContainer p.active-chunk, #storyContainer h1.active-chunk').forEach(p => p.classList.remove('active-chunk')); document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken')); chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0"; const activePara = document.getElementById(`para-${index}`); if (activePara) { activePara.classList.add('active-chunk'); if (document.visibilityState === 'visible') activePara.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
+        function updateSpeed() { mainPlayer.playbackRate = parseFloat(speedSelect.value); }
+        function stopTTS(msg = "⏹ Đã tạm dừng.") { playSessionId++; isPlaying = false; workerRunning = false; playToggleBtn.textContent = "▶"; progressFill.style.width = "0%"; deactivateBackgroundKeepAlive(); mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.pause(); mainPlayer.dataset.loadedKey = ""; if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused"; status.textContent = msg; }
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && isPlaying) { activateBackgroundKeepAlive(); document.getElementById(`para-${currentChunkIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } });
+        (async () => { if (currentBookId) { const b = await getBookById(currentBookId); if (b) loadBookObject(b); } })();
     </script>
 </body>
 </html>
