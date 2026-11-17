@@ -107,6 +107,23 @@
             width: 100%;
             margin: 0 auto;
         }
+        /* Style cho tiêu đề chương riêng biệt giống Apple Books */
+        #storyContainer h1.chap-heading {
+            font-size: 1.6em;
+            font-weight: 700;
+            line-height: 1.3;
+            text-align: center;
+            color: var(--text);
+            margin: 18px 0 32px 0;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        #storyContainer h1.chap-heading.active-chunk {
+            background: rgba(16, 185, 129, 0.12);
+        }
+
         #storyContainer p {
             margin: 0 0 14px 0;
             padding: 10px 12px;
@@ -709,7 +726,7 @@
             status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
         }
 
-        // --- 3. BỘ ĐỌC VÀ LỌC FILE TRUYỆN THÔNG MINH (ADVANCED PARSER) ---
+        // --- 3. BỘ BÓC TÁCH DOM & LỌC SẠCH RÁC ĐẦU CHƯƠNG (DTV-EBOOK, TÊN TRUYỆN, TÁC GIẢ) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -719,12 +736,12 @@
         const chunkCounter = document.getElementById('chunkCounter');
         const progressFill = document.getElementById('progressFill');
 
+        let displayList = [];
         let chapters = [];
         let currentChapterIndex = 0;
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // SINGLE MASTER PLAYER: Đảm bảo iOS/Android giữ nguyên quyền phát
         const mainPlayer = new Audio();
         mainPlayer.playsInline = true;
         mainPlayer.preload = "auto";
@@ -738,58 +755,6 @@
             return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, '');
         }
 
-        // Hàm gốc của bạn dùng để gom đoạn tránh việc Server TTS bị quá tải
-        function processRawTextToChunks(rawText) {
-            const rawLines = rawText.split(/\r?\n/);
-            const mergedLines = [];
-
-            for (let line of rawLines) {
-                let trimmed = line.replace(/\s+/g, ' ').trim();
-                if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
-
-                if (mergedLines.length > 0) {
-                    const prev = mergedLines[mergedLines.length - 1];
-                    if (!/[.!?;:”"']$/.test(prev) && !CHAPTER_REGEX.test(trimmed)) {
-                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
-                        continue;
-                    }
-                }
-                mergedLines.push(trimmed);
-            }
-
-            const finalChunks = [];
-            const MAX_LEN = 400; // Ngắt câu gửi lên Flask Server ko quá 400 ký tự
-            let currentBuf = "";
-
-            for (let para of mergedLines) {
-                if (para.length > MAX_LEN) {
-                    if (currentBuf.trim()) {
-                        finalChunks.push(currentBuf.trim());
-                        currentBuf = "";
-                    }
-                    const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
-                    for (let s of sentences) {
-                        if ((currentBuf + " " + s).trim().length > MAX_LEN) {
-                            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                            currentBuf = s;
-                        } else {
-                            currentBuf = (currentBuf + " " + s).trim();
-                        }
-                    }
-                } else {
-                    if ((currentBuf + " " + para).trim().length > MAX_LEN) {
-                        if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-                        currentBuf = para;
-                    } else {
-                        currentBuf = (currentBuf + " " + para).trim();
-                    }
-                }
-            }
-            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
-            return finalChunks;
-        }
-
-        // BỘ LỌC THÔNG MINH MỚI ĐƯỢC CHÈN VÀO (Kết hợp với hàm processRawTextToChunks của bạn)
         function extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, bookNameClean) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, "text/html");
@@ -821,7 +786,7 @@
                 paragraphs.push(trimmed);
             }
 
-            // Gộp tiêu đề nếu bị tách 2 dòng (Ví dụ: "Chương 3" rồi xuống dòng "Kim Tích")
+            // Gộp tiêu đề nếu bị tách 2 dòng
             let combinedChapHeading = "";
             for (let i = 0; i < Math.min(6, paragraphs.length); i++) {
                 if (ONLY_CHAP_NUM_REGEX.test(paragraphs[i])) {
@@ -855,46 +820,80 @@
                 .map(s => normalizeCompare(s))
                 .filter(s => s.length >= 3);
 
-            // Quét tối đa 7 dòng đầu tiên để lọc sạch rác đầu chương
             let scanCount = 0;
             while (paragraphs.length > 0 && scanCount < 7) {
                 scanCount++;
                 const firstLine = paragraphs[0];
                 const normFirst = normalizeCompare(firstLine);
 
-                // Lọc dòng web rác
                 if (WEB_JUNK_REGEX.test(firstLine) && firstLine.length < 85) {
-                    paragraphs.shift();
-                    continue;
+                    paragraphs.shift(); continue;
                 }
-                // Lọc dòng chứa mỗi tên truyện / tác giả
                 if (firstLine.length < 45 && normBookParts.some(part => normFirst === part || (part.includes(normFirst) && normFirst.length >= 4))) {
-                    paragraphs.shift();
-                    continue;
+                    paragraphs.shift(); continue;
                 }
-                // Lọc dòng trùng tiêu đề
                 if (normFirst === normTitle || ONLY_CHAP_NUM_REGEX.test(firstLine) || (firstLine.length < 55 && normTitle.includes(normFirst) && normFirst.length >= 3)) {
-                    paragraphs.shift();
-                    continue;
+                    paragraphs.shift(); continue;
                 }
-                // Dòng dính chữ tiêu đề vào nội dung
                 if (finalTitle.length > 3 && firstLine.toLowerCase().startsWith(finalTitle.toLowerCase())) {
                     const remainder = firstLine.substring(finalTitle.length).replace(/^[\s.:,\-–—]+/, '').trim();
                     if (remainder.length > 0) {
                         paragraphs[0] = remainder;
                     } else {
-                        paragraphs.shift();
-                        continue;
+                        paragraphs.shift(); continue;
                     }
                 }
                 break;
             }
 
-            // Gửi dữ liệu sạch vào bộ chia Max_Len 400 của bạn để gửi lên Flask server 
-            const finalCleanedText = paragraphs.join('\n');
-            const finalChunks = processRawTextToChunks(finalCleanedText);
+            return { title: finalTitle.substring(0, 85), paragraphs };
+        }
 
-            return { title: finalTitle.substring(0, 85), paragraphs: finalChunks };
+        function processRawTextToChunks(rawText) {
+            const rawLines = rawText.split(/\r?\n/);
+            const mergedLines = [];
+
+            for (let line of rawLines) {
+                let trimmed = line.replace(/\s+/g, ' ').trim();
+                if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
+
+                if (mergedLines.length > 0) {
+                    const prev = mergedLines[mergedLines.length - 1];
+                    if (!/[.!?;:”"']$/.test(prev) && !CHAPTER_REGEX.test(trimmed)) {
+                        mergedLines[mergedLines.length - 1] = prev + " " + trimmed;
+                        continue;
+                    }
+                }
+                mergedLines.push(trimmed);
+            }
+
+            const finalChunks = [];
+            const MAX_LEN = 400;
+            let currentBuf = "";
+
+            for (let para of mergedLines) {
+                if (para.length > MAX_LEN) {
+                    if (currentBuf.trim()) { finalChunks.push(currentBuf.trim()); currentBuf = ""; }
+                    const sentences = para.split(/(?<=[.?!;…”"'])\s+/);
+                    for (let s of sentences) {
+                        if ((currentBuf + " " + s).trim().length > MAX_LEN) {
+                            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+                            currentBuf = s;
+                        } else {
+                            currentBuf = (currentBuf + " " + s).trim();
+                        }
+                    }
+                } else {
+                    if ((currentBuf + " " + para).trim().length > MAX_LEN) {
+                        if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+                        currentBuf = para;
+                    } else {
+                        currentBuf = (currentBuf + " " + para).trim();
+                    }
+                }
+            }
+            if (currentBuf.trim()) finalChunks.push(currentBuf.trim());
+            return finalChunks;
         }
 
         fileInput.addEventListener('change', async (e) => {
@@ -902,7 +901,7 @@
             if (!file) return;
 
             stopTTS();
-            status.textContent = `⏳ Đang lọc sạch rác: ${file.name}...`;
+            status.textContent = `⏳ Đang lọc và phân tích: ${file.name}...`;
             const cleanBookTitle = file.name.replace(/\.(txt|epub)$/i, "");
             let parsedChapters = [];
 
@@ -910,12 +909,10 @@
                 if (file.name.toLowerCase().endsWith('.txt')) {
                     const text = await file.text();
                     const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
+                    
                     if (splits.length <= 1) {
                         const chunks = processRawTextToChunks(text);
-                        parsedChapters.push({
-                            title: "Toàn bộ nội dung",
-                            paragraphs: chunks
-                        });
+                        parsedChapters.push({ title: "Toàn bộ nội dung", paragraphs: chunks });
                     } else {
                         for (let idx = 0; idx < splits.length; idx++) {
                             const content = splits[idx].trim();
@@ -928,7 +925,6 @@
                                 title = lines.shift();
                             }
                             
-                            // Gửi vào chunk cho an toàn 
                             const cleanText = lines.join('\n');
                             const chunks = processRawTextToChunks(cleanText);
                             if (chunks.length > 0) parsedChapters.push({ title, paragraphs: chunks });
@@ -968,7 +964,9 @@
                         const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
                         if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
                     }
-                    if (!opfPath) opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
+                    if (!opfPath) {
+                        opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
+                    }
 
                     const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
                     const tocMap = {};
@@ -978,14 +976,20 @@
                     if (opfFile) {
                         const opfXml = await opfFile.async("text");
                         const opfDoc = parser.parseFromString(opfXml, "text/xml");
+
                         const manifest = {};
-                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item")));
+                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(
+                            Array.from(opfDoc.getElementsByTagName("opf:item"))
+                        );
                         items.forEach(item => {
                             const id = item.getAttribute("id");
                             const href = item.getAttribute("href");
                             if (id && href) manifest[id] = normalizeZipPath(basePath, href);
                         });
-                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref")));
+
+                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(
+                            Array.from(opfDoc.getElementsByTagName("opf:itemref"))
+                        );
                         itemrefs.forEach(ref => {
                             const idref = ref.getAttribute("idref");
                             if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
@@ -997,14 +1001,16 @@
                         const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
                         const ncxXml = await zip.file(ncxKey).async("text");
                         const ncxDoc = parser.parseFromString(ncxXml, "text/xml");
-                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint")));
+                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(
+                            Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))
+                        );
                         navPoints.forEach(np => {
                             const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
                             const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
                             if (textEl && contentEl) {
                                 const label = textEl.textContent.replace(/\s+/g, ' ').trim();
                                 const src = contentEl.getAttribute("src");
-                                if (label && src && !/^(unknown|untitled)$/i.test(label)) {
+                                if (label && src) {
                                     const normSrc = normalizeZipPath(ncxBase, src).toLowerCase();
                                     if (!tocMap[normSrc]) tocMap[normSrc] = label;
                                 }
@@ -1026,12 +1032,19 @@
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
                             const cleanFileName = pathKey.split('/').pop().replace(/\.(x?html|htm)$/i, '');
-                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()] || "";
-                            const fallbackTitle = CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`;
+                            const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
+                            const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
 
-                            // GỌI BỘ LỌC SẠCH MỚI Ở ĐÂY (Vừa lọc sạch, vừa tự gọi Max_Len 400 ở bước cuối)
+                            // SỬ DỤNG BỘ LỌC DOM THÔNG MINH MỚI
                             const extracted = extractCleanBlocksFromHtml(htmlContent, tocTitle, fallbackTitle, cleanBookTitle);
-                            if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
+                            
+                            // Gửi dữ liệu sạch vào hàm chia chunk
+                            const cleanText = extracted.paragraphs.join('\n');
+                            const chunks = processRawTextToChunks(cleanText);
+
+                            if (chunks.length > 0) {
+                                parsedChapters.push({ title: extracted.title, paragraphs: chunks });
+                            }
                         }
                     }
                 }
@@ -1040,7 +1053,7 @@
 
                 const bookObj = {
                     id: file.name + "_" + file.size,
-                    title: file.name.replace(/\.(txt|epub)$/i, ""),
+                    title: cleanBookTitle,
                     chapters: parsedChapters,
                     lastChapter: 0,
                     lastChunk: 0,
@@ -1068,22 +1081,32 @@
             if (wasPlaying) startTTS(0);
         }
 
+        // TÁCH TIÊU ĐỀ LÀM THẺ <h1> GIỐNG APPLE BOOKS
         function renderChapter(index, startChunk = 0) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            chunks = chap.paragraphs;
+            chunks = [chap.title, ...chap.paragraphs];
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
-            storyContainer.innerHTML = chunks.map((text, idx) => {
-                const wordsHtml = text.split(/(\s+)/).map((part, wIdx) => {
+            // Đoạn index 0 luôn luôn là Tiêu đề
+            let html = `<h1 class="chap-heading" id="para-0" onclick="startTTS(0)">` + 
+                chunks[0].split(/(\s+)/).map((part, wIdx) => {
                     if (/^\s+$/.test(part)) return part;
-                    return `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`;
-                }).join('');
-                return `<p id="para-${idx}" onclick="startTTS(${idx})">${wordsHtml}</p>`;
-            }).join('');
+                    return `<span class="word-span" id="w-0-${wIdx}">${part}</span>`;
+                }).join('') + `</h1>`;
 
+            // Các đoạn nội dung từ index 1 trở đi
+            for (let idx = 1; idx < chunks.length; idx++) {
+                html += `<p id="para-${idx}" onclick="startTTS(${idx})">` + 
+                    chunks[idx].split(/(\s+)/).map((part, wIdx) => {
+                        if (/^\s+$/.test(part)) return part;
+                        return `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`;
+                    }).join('') + `</p>`;
+            }
+
+            storyContainer.innerHTML = html;
             highlightParagraph(currentChunkIndex);
             clearAudioCache(currentChapterIndex);
         }
@@ -1174,7 +1197,7 @@
         let abortControllers = {};
         let workerRunning = false;
 
-        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT (Giữ nguyên của Flask Server) ---
+        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT ---
         function getCacheKey(chapIdx, chunkIdx) {
             return `${chapIdx}_${chunkIdx}`;
         }
@@ -1237,10 +1260,10 @@
 
         function ensureChunkPromise(chapIdx, chunkIdx, session) {
             const chap = chapters[chapIdx];
-            if (!chap || chunkIdx >= chap.paragraphs.length) return null;
+            if (!chap || chunkIdx >= chunks.length) return null;
 
             const key = getCacheKey(chapIdx, chunkIdx);
-            const text = chap.paragraphs[chunkIdx];
+            const text = chunks[chunkIdx];
 
             if (!audioCache[key]) {
                 audioCache[key] = fetchAudioSingle(text, key, session).then(url => {
@@ -1280,7 +1303,7 @@
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length) {
                             const nextParas = chapters[nextChapIdx].paragraphs;
-                            const nextLimit = Math.min(nextParas.length - 1, 2);
+                            const nextLimit = Math.min(nextParas.length, 2); 
                             for (let j = 0; j <= nextLimit; j++) {
                                 const nk = getCacheKey(nextChapIdx, j);
                                 if (!audioCache[nk]) {
@@ -1516,7 +1539,7 @@
         }
 
         function highlightParagraph(index) {
-            document.querySelectorAll('#storyContainer p.active-chunk').forEach(p => {
+            document.querySelectorAll('#storyContainer .active-chunk').forEach(p => {
                 p.classList.remove('active-chunk');
             });
             document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
