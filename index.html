@@ -118,10 +118,10 @@
         #storyContainer {
             flex: 1;
             overflow-y: auto;
-            padding: 18px 24px 115px 24px;
-            font-family: var(--reader-font, Georgia, "New York", "Times New Roman", serif);
-            font-size: var(--reader-font-size, 19.5px);
-            line-height: 1.58;
+            padding: 16px 24px 115px 24px;
+            font-family: var(--reader-font, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif);
+            font-size: var(--reader-font-size, 19px);
+            line-height: 1.56;
             max-width: 720px;
             width: 100%;
             margin: 0 auto;
@@ -129,64 +129,71 @@
         }
         #storyContainer p {
             margin: 0;
-            padding: 3px 6px;
+            padding: 2px 6px;
             border-radius: 8px;
             border-left: 3px solid transparent;
             cursor: pointer;
             transition: background 0.2s, border-color 0.2s;
         }
 
-        /* 1. Tên truyện in hoa đậm ở đầu trang (VD: GIÀ THIÊN) */
+        /* 1. Tên truyện in hoa màu nâu đồng đặc trưng Apple Books (VD: GIÀ THIÊN) */
         #storyContainer p.book-hero-title {
-            font-size: 1.85em;
+            font-family: "New York", "Iowan Old Style", Georgia, serif;
+            font-size: 1.65em;
             font-weight: 700;
             line-height: 1.25;
-            text-align: center;
-            text-indent: 0;
+            text-align: center !important;
+            text-indent: 0 !important;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.03em;
             color: var(--book-brand);
-            margin: 8px 0 8px 0;
-            padding: 4px 8px;
-        }
-
-        /* 2. Thông tin tác giả / nguồn sách căn giữa (VD: Thần Đông, www.dtv-ebook.com) */
-        #storyContainer p.meta-center {
-            font-size: 0.88em;
-            font-weight: 500;
-            line-height: 1.35;
-            text-align: center;
-            text-indent: 0;
-            color: var(--text-muted);
-            margin: 0 0 2px 0;
+            margin: 6px 0 6px 0;
             padding: 2px 8px;
         }
 
-        /* 3. Số thứ tự chương đậm đen (VD: Chương 1) */
+        /* 2. Tác giả & nguồn sách căn giữa chữ nhỏ thanh mảnh (VD: Thần Đông, www.dtv-ebook.com) */
+        #storyContainer p.meta-center {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "New York", Georgia, serif;
+            font-size: 0.82em;
+            font-weight: 400;
+            line-height: 1.35;
+            text-align: center !important;
+            text-indent: 0 !important;
+            color: var(--text-muted);
+            margin: 0 0 2px 0;
+            padding: 1px 8px;
+        }
+
+        /* 3. Số thứ tự chương đậm đen KHÔNG HỘP KHUNG (VD: Chương 1) */
         #storyContainer p.chap-number {
-            font-size: 1.55em;
+            font-family: "New York", "Iowan Old Style", Georgia, serif;
+            font-size: 1.42em;
             font-weight: 700;
             line-height: 1.3;
-            text-align: center;
-            text-indent: 0;
+            text-align: center !important;
+            text-indent: 0 !important;
             color: var(--text);
-            margin: 10px 0 14px 0;
-            padding: 4px 8px;
+            background: transparent !important;
+            border: none !important;
+            border-left: 3px solid transparent !important;
+            margin: 10px 0 12px 0;
+            padding: 2px 8px;
         }
 
-        /* 4. Tên tiêu đề chương màu nâu rêu đậm (VD: Quan Tài Lớn Bằng Đồng Thau Ở Trong Tinh Không) */
+        /* 4. Tên tiêu đề chương màu nâu rêu đậm căn giữa (VD: Quan Tài Lớn Bằng Đồng Thau Ở Trong Tinh Không) */
         #storyContainer p.chap-subtitle {
-            font-size: 1.12em;
+            font-family: "New York", "Iowan Old Style", Georgia, serif;
+            font-size: 1.05em;
             font-weight: 700;
             line-height: 1.35;
-            text-align: center;
-            text-indent: 0;
+            text-align: center !important;
+            text-indent: 0 !important;
             color: var(--chap-sub);
-            margin: 0 0 24px 0;
-            padding: 4px 10px;
+            margin: 0 0 26px 0;
+            padding: 2px 12px;
         }
 
-        /* 5. Các đoạn nội dung truyện chuẩn sách giấy (sát nhau, thụt đầu dòng) */
+        /* 5. Các đoạn nội dung truyện chuẩn sách in (sát nhau, thụt đầu dòng) */
         #storyContainer p.story-p {
             text-indent: 1.5em;
             text-align: justify;
@@ -599,7 +606,7 @@
                 <div class="settings-row">
                     <span>Aa Phông chữ</span>
                     <select id="fontFamilySelect" onchange="changeFontFamily()">
-                        <option value="Georgia, 'New York', 'Times New Roman', serif">Nguyên bản (New York)</option>
+                        <option value="'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif">Nguyên bản (New York)</option>
                         <option value="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif">Hiện đại (San Francisco)</option>
                         <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Sách cổ điển (Palatino)</option>
                     </select>
@@ -625,13 +632,13 @@
 
     <script>
         // --- THEME & TYPOGRAPHY SETTINGS ---
-        let currentTheme = localStorage.getItem("my_apple_book_theme_v4") || "nguyen-ban";
-        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19.5;
-        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "Georgia, 'New York', 'Times New Roman', serif";
+        let currentTheme = localStorage.getItem("my_apple_book_theme_v5") || "nguyen-ban";
+        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19;
+        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif";
 
         function applyTheme(themeName) {
             currentTheme = themeName;
-            localStorage.setItem("my_apple_book_theme_v4", themeName);
+            localStorage.setItem("my_apple_book_theme_v5", themeName);
             document.documentElement.className = `theme-${themeName}`;
             document.body.className = `theme-${themeName}`;
             document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
@@ -747,9 +754,9 @@
         })();
 
         // --- 2. INDEXEDDB & BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB_AppleBooks_V4";
+        const DB_NAME = "AIStoryReaderDB_AppleBooks_V5";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_apple_v4") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_apple_v5") || null;
         let currentBookTitle = "";
 
         function openDB() {
@@ -930,7 +937,7 @@
                 item.querySelector(".btn-del").onclick = async () => {
                     if (b.hasLocal) await deleteBookFromDB(b.id);
                     if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v4"); }
+                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v5"); }
                     openBookshelf();
                 };
                 listEl.appendChild(item);
@@ -944,7 +951,7 @@
             clearAudioCache();
             currentBookId = book.id;
             currentBookTitle = book.title || "";
-            localStorage.setItem("last_opened_book_apple_v4", book.id);
+            localStorage.setItem("last_opened_book_apple_v5", book.id);
             chapters = book.chapters;
             document.getElementById("headerBookTitle").textContent = book.title;
 
@@ -1048,6 +1055,16 @@
         const CHAPTER_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Phiên\s*ngoại|Ngoại\s*truyện|Chapter)\s*[\dIVXLCDM\-]+.*/i;
         const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
+
+        // Hàm chuẩn hóa bỏ dấu tiếng Việt để nhận diện tên truyện (VD: "Già Thiên" khớp với "Gia Thien")
+        function normalizeVi(str) {
+            return (str || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d").replace(/Đ/g, "D")
+                .toLowerCase()
+                .replace(/[\s\p{P}]/gu, '');
+        }
 
         function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
 
@@ -1246,7 +1263,7 @@
                 if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size + "_apple_v4",
+                    id: file.name + "_" + file.size + "_apple_v5",
                     title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
                     lastChapter: 0, lastChunk: 0, updatedAt: Date.now()
@@ -1278,7 +1295,7 @@
             chunks = chap.paragraphs;
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
-            const normBook = normalizeCompare(currentBookTitle.split(/[-–_|]/)[0]);
+            const normBook = normalizeVi(currentBookTitle.split(/[-–_|]/)[0]);
             let chapNumIdx = -1;
             for (let i = 0; i < Math.min(8, chunks.length); i++) {
                 if (CHAPTER_REGEX.test(chunks[i].trim())) {
@@ -1310,9 +1327,8 @@
                 } else if (idx === chapSubIdx) {
                     cls = "chap-subtitle";
                 } else if (headerEndLimit !== -1 && idx < chapNumIdx) {
-                    const normLine = normalizeCompare(trimmed);
-                    // Dòng tên bộ truyện chính (VD: GIÀ THIÊN) -> Cỡ chữ to in hoa màu nâu vàng
-                    if ((normBook && normLine === normBook) || (idx === 0 && trimmed.length < 40 && !/www\.|\.com|\.vn/i.test(trimmed))) {
+                    const normLine = normalizeVi(trimmed);
+                    if ((normBook && (normLine === normBook || normBook.includes(normLine))) || (idx === 0 && trimmed.length < 40 && !/www\.|\.com|\.vn/i.test(trimmed))) {
                         cls = "book-hero-title";
                     } else {
                         cls = "meta-center";
