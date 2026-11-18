@@ -3,27 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Story Reader Pro - Apple Books Theme</title>
+    <title>AI Story Reader - Apple Books Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* APPLE BOOKS THEMES PALETTE */
+        /* APPLE BOOKS 6 THEMES */
         :root.theme-nguyen-ban {
-            --bg: #f5efe6; --surface: #eae2d5; --surface-2: #dfd5c5; --border: #d3c7b5; --text: #2c241d; --text-muted: #786c60; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.2);
+            --bg: #ffffff; --surface: #f5f5f7; --surface-2: #e8e8ed; --border: #dcdce0;
+            --text: #1d1d1f; --text-muted: #6e6e73; --pill-dark: #1d1d1f; --pill-dark-text: #ffffff;
+            --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.16);
         }
         :root.theme-yen-tinh {
-            --bg: #121212; --surface: #1e1e1e; --surface-2: #2c2c2c; --border: #383838; --text: #e0e0e0; --text-muted: #9e9e9e; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+            --bg: #1c1c1e; --surface: #2c2c2e; --surface-2: #3a3a3c; --border: #48484a;
+            --text: #f2f2f7; --text-muted: #98989d; --pill-dark: #f2f2f7; --pill-dark-text: #1c1c1e;
+            --accent: #34d399; --accent-glow: rgba(52, 211, 153, 0.18);
         }
         :root.theme-giay {
-            --bg: #fbf0d9; --surface: #f3e5c8; --surface-2: #e8d7b5; --border: #dac59e; --text: #3b2f2f; --text-muted: #827264; --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.2);
+            --bg: #f8f5ee; --surface: #efeae0; --surface-2: #e4ddd0; --border: #d5cdbe;
+            --text: #2b2926; --text-muted: #78736a; --pill-dark: #2b2926; --pill-dark-text: #f8f5ee;
+            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.16);
         }
         :root.theme-dam {
-            --bg: #0b0f19; --surface: #131a2a; --surface-2: #1e293b; --border: #283548; --text: #e2e8f0; --text-muted: #94a3b8; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+            --bg: #000000; --surface: #161618; --surface-2: #242427; --border: #333338;
+            --text: #f5f5f7; --text-muted: #8e8e93; --pill-dark: #f5f5f7; --pill-dark-text: #000000;
+            --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.22);
         }
         :root.theme-em-diu {
-            --bg: #f4ecd8; --surface: #e6dcbf; --surface-2: #d8cca8; --border: #c9bc93; --text: #4a3b32; --text-muted: #8c7a6b; --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.2);
+            --bg: #efe5d1; --surface: #e4d8c1; --surface-2: #d6c8ad; --border: #c5b699;
+            --text: #382e24; --text-muted: #7a6d5f; --pill-dark: #2e251c; --pill-dark-text: #f5ece0;
+            --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.18);
         }
         :root.theme-tap-trung {
-            --bg: #18181b; --surface: #27272a; --surface-2: #3f3f46; --border: #52525b; --text: #f4f4f5; --text-muted: #a1a1aa; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+            --bg: #fbfbf9; --surface: #f2f2ee; --surface-2: #e6e6e0; --border: #d8d8d0;
+            --text: #18181b; --text-muted: #71717a; --pill-dark: #18181b; --pill-dark-text: #ffffff;
+            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.15);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -31,248 +43,230 @@
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
             display: flex;
             flex-direction: column;
             height: 100dvh;
             overflow: hidden;
-            transition: background 0.3s, color 0.3s;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
-        /* Top Header */
+        /* MINIMALIST APPLE BOOKS TOP BAR */
         header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 14px;
+            padding: 10px 16px 6px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 12px;
             flex-shrink: 0;
-            transition: background 0.3s, border-color 0.3s;
+            background: var(--bg);
         }
-        .brand {
-            font-weight: 700;
-            font-size: 15px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .pill-btn {
-            background: var(--surface-2);
-            color: var(--text);
+        .circle-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 11px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 500;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: transform 0.15s, background 0.2s;
         }
-        .pill-btn:active { opacity: 0.75; }
-        .pill-accent {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent);
-            border-color: rgba(16, 185, 129, 0.35);
+        .circle-icon-btn:active { transform: scale(0.92); }
+        #headerBookTitle {
+            flex: 1;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.2px;
         }
 
-        /* Chapter Bar */
+        /* SUBTLE CHAPTER PILL BAR */
         .chapter-bar {
-            background: var(--surface);
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 4px 16px 10px 16px;
             flex-shrink: 0;
+            background: var(--bg);
         }
         #chapterSelect {
-            flex: 1;
-            background: var(--surface-2);
+            width: 100%;
+            background: var(--surface);
             color: var(--text);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 10px;
-            font-size: 13px;
+            border-radius: 12px;
+            padding: 9px 14px;
+            font-size: 13.5px;
+            font-weight: 600;
             outline: none;
-            min-width: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
 
-        /* Reading Area - Apple Books Typography & Font Sizes */
+        /* READING CANVAS */
         #storyContainer {
             flex: 1;
             overflow-y: auto;
-            padding: 28px 20px 48px 20px;
-            font-family: var(--reader-font, Georgia, "Times New Roman", serif);
-            font-size: var(--reader-font-size, 19.5px);
-            line-height: 1.7;
-            max-width: 780px;
+            padding: 12px 22px 110px 22px;
+            font-family: var(--reader-font, Georgia, "New York", "Times New Roman", serif);
+            font-size: var(--reader-font-size, 20px);
+            line-height: 1.75;
+            max-width: 720px;
             width: 100%;
             margin: 0 auto;
-            transition: font-size 0.2s;
+            scroll-behavior: smooth;
         }
         #storyContainer p {
-            margin: 0 0 16px 0;
-            padding: 6px 10px;
-            border-radius: 8px;
+            margin: 0 0 18px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
             border-left: 3px solid transparent;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, border-color 0.2s;
         }
-        #storyContainer p.story-p {
-            text-indent: 1.6em;
-            text-align: justify;
-        }
-        #storyContainer p.meta-text {
-            font-size: 0.88em;
-            font-weight: 600;
-            text-align: center;
-            text-indent: 0;
-            color: var(--text-muted);
-            margin: 2px 0;
-            padding: 4px 8px;
-        }
-        #storyContainer p.chap-title {
-            font-size: 1.65em;
+        /* Banner tiêu đề chương giống hệt ảnh mẫu */
+        #storyContainer p.chap-banner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 1.35em;
             font-weight: 700;
             line-height: 1.35;
             text-align: center;
             text-indent: 0;
-            margin: 20px 0 10px 0;
-            padding: 8px 10px;
+            padding: 16px 18px;
+            margin: 6px 0 26px 0;
+            color: var(--text);
         }
-        #storyContainer p.chap-subtitle {
-            font-size: 1.2em;
-            font-weight: 700;
-            line-height: 1.4;
-            text-align: center;
+        /* Dòng tiêu đề / tác giả / nguồn căn trái thoáng như ảnh 2 */
+        #storyContainer p.meta-line {
+            font-size: 1.02em;
+            font-weight: 500;
+            text-align: left;
             text-indent: 0;
-            color: var(--text-muted);
-            margin: 0 0 32px 0;
-            padding: 6px 10px;
+            color: var(--text);
+            margin: 0 0 14px 0;
+            padding: 4px 12px;
+        }
+        /* Đoạn nội dung truyện chuẩn sách in */
+        #storyContainer p.story-p {
+            text-indent: 1.5em;
+            text-align: justify;
         }
         #storyContainer p.toc-line {
-            font-size: 0.95em;
             font-weight: 600;
-            text-align: center;
+            text-align: left;
             text-indent: 0;
-            margin: 8px 0;
-            padding: 6px 10px;
+            margin: 6px 0;
         }
         #storyContainer p.active-chunk {
-            background: var(--accent-glow);
-            border-left-color: var(--accent);
+            background: var(--accent-glow) !important;
+            border-left: 3px solid var(--accent) !important;
         }
-        .word-span { transition: color 0.1s, text-shadow 0.1s; }
+        .word-span { transition: color 0.1s; }
         .word-span.spoken {
             color: var(--accent);
             font-weight: 600;
-            text-shadow: 0 0 12px var(--accent-glow);
         }
 
-        /* Bottom Player Dock */
-        .player-dock {
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            padding: 10px 14px calc(12px + env(safe-area-inset-bottom)) 14px;
+        /* FLOATING BOTTOM CONTROLS (APPLE BOOKS STYLE) */
+        .floating-dock {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 18px calc(14px + env(safe-area-inset-bottom)) 18px;
+            background: linear-gradient(to top, var(--bg) 72%, transparent);
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            flex-shrink: 0;
-            transition: background 0.3s, border-color 0.3s;
+            gap: 6px;
+            pointer-events: none;
+            z-index: 20;
         }
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
+        .floating-status-pill {
+            align-self: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
             color: var(--text-muted);
-            gap: 8px;
-        }
-        #status {
-            color: var(--accent);
+            font-size: 11px;
             font-weight: 600;
+            padding: 3px 12px;
+            border-radius: 999px;
+            max-width: 85%;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            pointer-events: auto;
+            opacity: 0.92;
+            transition: opacity 0.2s;
         }
-        .progress-track {
-            width: 100%;
-            height: 4px;
-            background: var(--surface-2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            transition: width 0.15s linear;
-        }
-        .controls-row {
+        .floating-bar-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
+            max-width: 720px;
+            width: 100%;
+            margin: 0 auto;
+            pointer-events: auto;
         }
-        .dock-select {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 8px;
-            font-size: 12px;
+        .listen-pill-btn {
+            background: var(--pill-dark);
+            color: var(--pill-dark-text);
+            border: none;
+            border-radius: 999px;
+            padding: 11px 20px;
+            font-size: 14px;
             font-weight: 600;
-            outline: none;
-            max-width: 120px;
-        }
-        .transport {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
-        }
-        .ctrl-btn {
-            background: var(--surface-2);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            font-size: 15px;
             cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+            transition: transform 0.15s, opacity 0.2s;
+        }
+        .listen-pill-btn:active { transform: scale(0.95); }
+        .page-counter-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 999px;
+            padding: 7px 16px;
+            font-size: 12.5px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .more-circle-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s, color 0.2s;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        .ctrl-btn:active { transform: scale(0.94); }
-        .play-btn {
-            background: var(--accent);
-            color: #ffffff;
-            border: none;
-            width: 46px;
-            height: 46px;
-            font-size: 18px;
-            font-weight: 700;
-            box-shadow: 0 0 16px var(--accent-glow);
-        }
+        .more-circle-btn:active { transform: scale(0.93); }
 
-        /* Modal Sheets (Bookshelf & Settings) */
+        /* MODAL BOTTOM SHEETS */
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(3px);
             display: none;
             align-items: flex-end;
             justify-content: center;
@@ -282,16 +276,17 @@
         .modal-sheet {
             background: var(--surface);
             border-top: 1px solid var(--border);
-            border-radius: 20px 20px 0 0;
+            border-radius: 24px 24px 0 0;
             width: 100%;
-            max-width: 640px;
-            max-height: 85dvh;
+            max-width: 580px;
+            max-height: 86dvh;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            gap: 16px;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
-            animation: slideUp 0.25s ease-out;
+            padding: 20px 20px calc(22px + env(safe-area-inset-bottom)) 20px;
+            gap: 14px;
+            box-shadow: 0 -10px 35px rgba(0,0,0,0.22);
+            animation: slideUp 0.22s ease-out;
         }
         @keyframes slideUp {
             from { transform: translateY(100%); }
@@ -302,17 +297,134 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 17px;
             color: var(--text);
         }
+        .close-circle-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        /* A- / A+ ROW */
+        .font-size-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .font-size-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 11px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .font-size-btn:active { opacity: 0.75; }
+
+        /* 6 THEMES GRID (EXACT APPLE BOOKS LAYOUT) */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .theme-card {
+            border-radius: 14px;
+            padding: 14px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transition: transform 0.15s, border-color 0.2s;
+        }
+        .theme-card:active { transform: scale(0.96); }
+        .theme-card.active {
+            border-color: var(--text);
+        }
+        .theme-card .aa-label {
+            font-family: Georgia, serif;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .theme-card .theme-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* SETTINGS LIST GROUP */
+        .settings-group {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text);
+            gap: 10px;
+        }
+        .settings-row:last-child { border-bottom: none; }
+        .settings-row select, .settings-link-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-size: 13.5px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            text-align: right;
+            max-width: 62%;
+        }
+
+        /* MINI TRANSPORT INSIDE SETTINGS */
+        .mini-transport-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 14px;
+        }
+        .mini-nav-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* BOOKSHELF ITEMS */
         .book-list {
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
         .book-item {
-            background: var(--surface-2);
+            background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px 14px;
@@ -333,247 +445,166 @@
         .book-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
         .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .btn-sm {
-            padding: 6px 10px;
+            padding: 6px 11px;
             border-radius: 8px;
             border: none;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
         }
-        .btn-open { background: var(--accent); color: #fff; }
+        .btn-open { background: var(--pill-dark); color: var(--pill-dark-text); }
         .btn-sync { background: #3b82f6; color: #fff; }
         .btn-del { background: #ef4444; color: #fff; }
-
-        /* Apple Books Settings Panel Customization */
-        .settings-section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .font-size-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .font-size-btn {
-            flex: 1;
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px;
-            font-weight: 700;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 15px;
-        }
-        .themes-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .theme-card {
-            background: var(--surface-2);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .theme-card.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
-        }
-        .theme-preview-box {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 15px;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
-        }
-        .theme-card span {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text);
-        }
-        .settings-options-list {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .settings-option-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text);
-        }
-        .settings-option-item:last-child { border-bottom: none; }
-        .settings-option-item select {
-            background: transparent;
-            color: var(--text);
-            border: none;
-            font-size: 13px;
-            font-weight: 600;
-            outline: none;
-            cursor: pointer;
-            text-align: right;
-        }
     </style>
 </head>
-<body class="theme-dam">
+<body class="theme-em-diu">
 
+    <!-- MINIMALIST HEADER -->
     <header>
-        <div class="brand">🎧 Story Reader</div>
-        <div class="header-actions">
-            <button class="pill-btn" onclick="openSettingsModal()" title="Chủ đề & Cài đặt">🎨 Giao diện</button>
-            <button class="pill-btn" onclick="openBookshelf()">📚 Tủ sách</button>
-            <label class="pill-btn pill-accent">
-                ＋ Mở file
-                <input type="file" id="fileInput" accept=".txt,.epub" style="display:none;" onclick="this.value=null;">
-            </label>
-            <button class="pill-btn" id="serverBtn" onclick="changeServerUrl()">🔗 Server</button>
-        </div>
+        <label class="circle-icon-btn" title="Mở file truyện">
+            ＋
+            <input type="file" id="fileInput" accept=".txt,.epub" style="display:none;" onclick="this.value=null;">
+        </label>
+
+        <div id="headerBookTitle">Story Reader</div>
+
+        <button class="circle-icon-btn" onclick="openBookshelf()" title="Tủ sách">📚</button>
     </header>
 
+    <!-- CHAPTER SELECTOR PILL -->
     <div class="chapter-bar" id="chapterBar" style="display:none;">
         <select id="chapterSelect" onchange="onChapterChange()"></select>
     </div>
 
+    <!-- MAIN READER -->
     <main id="storyContainer">
-        <div style="text-align:center; padding: 40px 16px; color: var(--text-muted); font-family: sans-serif;">
-            <div style="font-size: 40px; margin-bottom: 12px;">📖</div>
+        <div style="text-align:center; padding: 60px 16px; color: var(--text-muted); font-family: -apple-system, sans-serif;">
+            <div style="font-size: 44px; margin-bottom: 14px;">📖</div>
             <div style="font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Chưa có truyện nào đang mở</div>
-            <div style="font-size: 13px;">Bấm <b>＋ Mở file</b> (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b> (đồng bộ cả máy & Server).</div>
+            <div style="font-size: 13.5px;">Bấm nút <b>＋</b> góc trái để mở file (.txt / .epub) hoặc chọn từ <b>📚 Tủ sách</b>.</div>
         </div>
     </main>
 
-    <footer class="player-dock">
-        <div class="status-row">
-            <span id="status">Sẵn sàng!</span>
-            <span id="chunkCounter">0 / 0</span>
-        </div>
-        <div class="progress-track">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div class="controls-row">
-            <select id="voiceSelect" class="dock-select" onchange="onVoiceChange()" title="Chọn giọng đọc">
-                <option value="default">🎙 Mặc định</option>
-            </select>
+    <!-- FLOATING BOTTOM BAR (APPLE BOOKS STYLE) -->
+    <div class="floating-dock">
+        <div class="floating-status-pill" id="status">Sẵn sàng!</div>
+        <div class="floating-bar-row">
+            <button class="listen-pill-btn" id="playToggleBtn" onclick="togglePlayPause()">
+                <span id="playIcon">▶</span>
+                <span id="playLabel">Nghe trang</span>
+            </button>
 
-            <div class="transport">
-                <button class="ctrl-btn" onclick="prevChunk()" title="Đoạn trước">⏮</button>
-                <button class="ctrl-btn play-btn" id="playToggleBtn" onclick="togglePlayPause()" title="Đọc / Dừng">▶</button>
-                <button class="ctrl-btn" onclick="nextChunk()" title="Đoạn tiếp">⏭</button>
-            </div>
+            <div class="page-counter-pill" id="chunkCounter">0 / 0</div>
 
-            <select id="speedSelect" class="dock-select" onchange="updateSpeed()" style="max-width:75px;">
-                <option value="0.8">0.8x</option>
-                <option value="1.0" selected>1.0x</option>
-                <option value="1.2">1.2x</option>
-                <option value="1.5">1.5x</option>
-                <option value="1.75">1.75x</option>
-                <option value="2.0">2.0x</option>
-            </select>
+            <button class="more-circle-btn" onclick="openSettingsModal()" title="Chủ đề & Cài đặt">•••</button>
         </div>
-    </footer>
+    </div>
 
-    <!-- Bookshelf Modal -->
+    <!-- BOOKSHELF MODAL -->
     <div class="modal-backdrop" id="bookshelfModal" onclick="if(event.target===this) closeBookshelf()">
         <div class="modal-sheet">
             <div class="modal-header">
                 <span>📚 Tủ sách (Máy & Server)</span>
-                <button class="pill-btn" onclick="closeBookshelf()">✕ Đóng</button>
+                <button class="close-circle-btn" onclick="closeBookshelf()">✕</button>
             </div>
             <div class="book-list" id="bookList"></div>
         </div>
     </div>
 
-    <!-- Apple Books Settings & Theme Modal -->
+    <!-- APPLE BOOKS SETTINGS & THEMES MODAL -->
     <div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-sheet">
             <div class="modal-header">
                 <span>Chủ đề & Cài đặt</span>
-                <button class="pill-btn" onclick="closeSettingsModal()">✕</button>
+                <button class="close-circle-btn" onclick="closeSettingsModal()">✕</button>
             </div>
 
-            <!-- Cỡ chữ -->
+            <!-- Cỡ chữ A- / A+ -->
             <div class="font-size-row">
                 <button class="font-size-btn" onclick="adjustFontSize(-1)">A−</button>
-                <button class="font-size-btn" onclick="adjustFontSize(1)">A＋</button>
+                <button class="font-size-btn" onclick="adjustFontSize(1)">A+</button>
             </div>
 
-            <!-- 6 Chủ đề màu sắc -->
-            <div class="settings-section-title">Giao diện màu</div>
+            <!-- 6 Thẻ giao diện màu giống hệt ảnh mẫu -->
             <div class="themes-grid">
-                <div class="theme-card" id="card-nguyen-ban" onclick="setTheme('nguyen-ban')">
-                    <div class="theme-preview-box" style="background:#f5efe6; color:#2c241d;">Aa</div>
-                    <span>Nguyên bản</span>
+                <div class="theme-card" id="card-nguyen-ban" style="background:#ffffff; color:#1d1d1f; border-color:#e5e5ea;" onclick="setTheme('nguyen-ban')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Nguyên bản</span>
                 </div>
-                <div class="theme-card" id="card-yen-tinh" onclick="setTheme('yen-tinh')">
-                    <div class="theme-preview-box" style="background:#121212; color:#e0e0e0; border:1px solid #333;">Aa</div>
-                    <span>Yên tĩnh</span>
+                <div class="theme-card" id="card-yen-tinh" style="background:#2c2c2e; color:#f2f2f7;" onclick="setTheme('yen-tinh')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Yên tĩnh</span>
                 </div>
-                <div class="theme-card" id="card-giay" onclick="setTheme('giay')">
-                    <div class="theme-preview-box" style="background:#fbf0d9; color:#3b2f2f;">Aa</div>
-                    <span>Giấy</span>
+                <div class="theme-card" id="card-giay" style="background:#f8f5ee; color:#2b2926; border-color:#e5dfd3;" onclick="setTheme('giay')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Giấy</span>
                 </div>
-                <div class="theme-card" id="card-dam" onclick="setTheme('dam')">
-                    <div class="theme-preview-box" style="background:#0b0f19; color:#e2e8f0; border:1px solid #283548;">Aa</div>
-                    <span>Đậm</span>
+                <div class="theme-card" id="card-dam" style="background:#141416; color:#ffffff;" onclick="setTheme('dam')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Đậm</span>
                 </div>
-                <div class="theme-card" id="card-em-diu" onclick="setTheme('em-diu')">
-                    <div class="theme-preview-box" style="background:#f4ecd8; color:#4a3b32;">Aa</div>
-                    <span>Êm dịu</span>
+                <div class="theme-card" id="card-em-diu" style="background:#efe5d1; color:#382e24;" onclick="setTheme('em-diu')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Êm dịu</span>
                 </div>
-                <div class="theme-card" id="card-tap-trung" onclick="setTheme('tap-trung')">
-                    <div class="theme-preview-box" style="background:#18181b; color:#f4f4f5; border:1px solid #3f3f46;">Aa</div>
-                    <span>Tập trung</span>
+                <div class="theme-card" id="card-tap-trung" style="background:#fbfbf9; color:#18181b; border-color:#e4e4e0;" onclick="setTheme('tap-trung')">
+                    <span class="aa-label">Aa</span>
+                    <span class="theme-name">Tập trung</span>
                 </div>
             </div>
 
-            <!-- Tùy chọn khác -->
-            <div class="settings-options-list">
-                <div class="settings-option-item">
-                    <span>🎧 Nguồn phát</span>
-                    <span>Luồng Audio (Chạy ngầm + Tắt màn hình)</span>
+            <!-- Điều hướng đoạn nhanh -->
+            <div class="mini-transport-row">
+                <button class="mini-nav-btn" onclick="prevChunk()">⏮ Đoạn trước</button>
+                <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Điều hướng đọc</span>
+                <button class="mini-nav-btn" onclick="nextChunk()">Đoạn tiếp ⏭</button>
+            </div>
+
+            <!-- Bảng thiết lập giọng đọc, phông chữ, tốc độ, server -->
+            <div class="settings-group">
+                <div class="settings-row">
+                    <span>🎙 Giọng đọc AI</span>
+                    <select id="voiceSelect" onchange="onVoiceChange()">
+                        <option value="default">Mặc định</option>
+                    </select>
                 </div>
-                <div class="settings-option-item">
+                <div class="settings-row">
                     <span>Aa Phông chữ</span>
                     <select id="fontFamilySelect" onchange="changeFontFamily()">
-                        <option value="Georgia, 'Times New Roman', serif">Nguyên bản (Georgia)</option>
-                        <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Hiện đại (Sans)</option>
-                        <option value="'Courier New', Courier, monospace">Máy đánh chữ (Mono)</option>
+                        <option value="Georgia, 'New York', 'Times New Roman', serif">Nguyên bản (New York)</option>
+                        <option value="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif">Hiện đại (San Francisco)</option>
+                        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Sách cổ điển (Palatino)</option>
                     </select>
+                </div>
+                <div class="settings-row">
+                    <span>⚡ Tốc độ đọc</span>
+                    <select id="speedSelect" onchange="updateSpeed()">
+                        <option value="0.8">0.8x</option>
+                        <option value="1.0" selected>1.0x</option>
+                        <option value="1.2">1.2x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="1.75">1.75x</option>
+                        <option value="2.0">2.0x</option>
+                    </select>
+                </div>
+                <div class="settings-row" onclick="changeServerUrl()" style="cursor:pointer;">
+                    <span>🔊 Nguồn phát</span>
+                    <span id="serverBtn" style="color:var(--text-muted);">Luồng Audio (Chạy ngầm) ⌄</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- THEME & FONT MANAGEMENT ---
-        let currentTheme = localStorage.getItem("my_apple_book_theme") || "dam";
-        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19.5;
-        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "Georgia, 'Times New Roman', serif";
+        // --- THEME & TYPOGRAPHY SETTINGS ---
+        let currentTheme = localStorage.getItem("my_apple_book_theme") || "em-diu";
+        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 20;
+        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "Georgia, 'New York', 'Times New Roman', serif";
 
         function applyTheme(themeName) {
             currentTheme = themeName;
             localStorage.setItem("my_apple_book_theme", themeName);
+            document.documentElement.className = `theme-${themeName}`;
             document.body.className = `theme-${themeName}`;
             document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
             const activeCard = document.getElementById(`card-${themeName}`);
@@ -583,7 +614,7 @@
         function setTheme(name) { applyTheme(name); }
 
         function adjustFontSize(delta) {
-            currentFontSize = Math.min(28, Math.max(14, currentFontSize + delta * 1.5));
+            currentFontSize = Math.min(28, Math.max(15, currentFontSize + delta * 1.5));
             localStorage.setItem("my_apple_book_fontsize", currentFontSize);
             document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
         }
@@ -598,10 +629,10 @@
         function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
         function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
 
-        // Khởi tạo giao diện cá nhân hóa
         applyTheme(currentTheme);
         document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
         document.getElementById('storyContainer').style.setProperty('--reader-font', currentFontFamily);
+        document.getElementById('fontFamilySelect').value = currentFontFamily;
 
         // --- 1. SERVER & TUNNEL AUTO-SYNC CONFIG ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
@@ -613,7 +644,7 @@
         function getBaseUrl() { return SERVER_BASE.replace(/\/$/, ""); }
         function updateServerBadge() {
             const isTunnel = SERVER_BASE.includes("trycloudflare.com");
-            serverBtn.textContent = isTunnel ? "● Tunnel" : "🔗 Server";
+            serverBtn.textContent = isTunnel ? "● Tunnel (Chạy ngầm) ⌄" : "🔗 Local Server ⌄";
             localStorage.setItem("my_tts_server_url", SERVER_BASE);
         }
 
@@ -688,9 +719,9 @@
         })();
 
         // --- 2. INDEXEDDB & BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB_AppleBooks_V2";
+        const DB_NAME = "AIStoryReaderDB_AppleBooks_V3";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_apple_v2") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_apple_v3") || null;
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -825,7 +856,7 @@
             const mergedList = Array.from(bookMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
             if (mergedList.length === 0) {
-                listEl.innerHTML = "<div style='color:var(--text-muted);font-size:13px;'>Tủ sách trống. Bấm <b>＋ Mở file</b> để thêm truyện!</div>";
+                listEl.innerHTML = "<div style='color:var(--text-muted);font-size:13px;'>Tủ sách trống. Bấm <b>＋</b> góc trái để thêm truyện!</div>";
                 return;
             }
 
@@ -870,7 +901,7 @@
                 item.querySelector(".btn-del").onclick = async () => {
                     if (b.hasLocal) await deleteBookFromDB(b.id);
                     if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v2"); }
+                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v3"); }
                     openBookshelf();
                 };
                 listEl.appendChild(item);
@@ -883,8 +914,9 @@
             stopTTS();
             clearAudioCache();
             currentBookId = book.id;
-            localStorage.setItem("last_opened_book_apple_v2", book.id);
+            localStorage.setItem("last_opened_book_apple_v3", book.id);
             chapters = book.chapters;
+            document.getElementById("headerBookTitle").textContent = book.title;
 
             chapterSelect.innerHTML = "";
             chapters.forEach((chap, idx) => {
@@ -893,23 +925,23 @@
                 opt.textContent = chap.title;
                 chapterSelect.appendChild(opt);
             });
-            document.getElementById("chapterBar").style.display = "flex";
+            document.getElementById("chapterBar").style.display = "block";
 
             const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
             chapterSelect.value = targetChap;
             renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `📖 ${book.title}`;
+            status.textContent = `Sẵn sàng đọc`;
         }
 
-        // --- 3. PARSER & AUDIO ENGINE ---
+        // --- 3. PARSER & AUDIO ENGINE (CORE UNTOUCHED) ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
         const chapterSelect = document.getElementById('chapterSelect');
         const speedSelect = document.getElementById('speedSelect');
-        const playToggleBtn = document.getElementById('playToggleBtn');
+        const playIcon = document.getElementById('playIcon');
+        const playLabel = document.getElementById('playLabel');
         const chunkCounter = document.getElementById('chunkCounter');
-        const progressFill = document.getElementById('progressFill');
 
         let chapters = [];
         let currentChapterIndex = 0;
@@ -1184,7 +1216,7 @@
                 if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size + "_apple_v2",
+                    id: file.name + "_" + file.size + "_apple_v3",
                     title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
                     lastChapter: 0, lastChunk: 0, updatedAt: Date.now()
@@ -1194,7 +1226,7 @@
 
                 status.textContent = `☁️ Đang đồng bộ lên Server...`;
                 const uploaded = await uploadBookToServer(bookObj);
-                status.textContent = uploaded ? `✅ Đã lưu Tủ sách & Đồng bộ Server!` : `✅ Đã lưu Tủ sách trên máy!`;
+                status.textContent = uploaded ? `✅ Đã lưu & Đồng bộ Server!` : `✅ Đã lưu trên máy!`;
             } catch (err) { status.textContent = `❌ Lỗi: ${err.message}`; }
         });
 
@@ -1217,20 +1249,12 @@
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
             const normChapTitle = normalizeCompare(chap.title);
-            let headingIdx = -1;
-            for (let i = 0; i < Math.min(8, chunks.length); i++) {
+            let bannerIdx = -1;
+            for (let i = 0; i < Math.min(6, chunks.length); i++) {
                 const t = chunks[i].trim();
                 const normT = normalizeCompare(t);
                 if (CHAPTER_REGEX.test(t) || (normChapTitle && normT === normChapTitle)) {
-                    headingIdx = i; break;
-                }
-            }
-
-            let subtitleIdx = -1;
-            if (headingIdx !== -1 && headingIdx + 1 < chunks.length) {
-                const nextLine = chunks[headingIdx + 1].trim();
-                if (ONLY_CHAP_NUM_REGEX.test(chunks[headingIdx].trim()) && nextLine.length < 95 && !/[.!?]$/.test(nextLine)) {
-                    subtitleIdx = headingIdx + 1;
+                    bannerIdx = i; break;
                 }
             }
 
@@ -1241,11 +1265,13 @@
                 }).join('');
 
                 let cls = "story-p";
-                if (idx === headingIdx) cls = "chap-title";
-                else if (idx === subtitleIdx) cls = "chap-subtitle";
-                else if (headingIdx !== -1 && idx < headingIdx && text.length < 85) cls = "meta-text";
-                else if (idx < 4 && text.length < 60 && !/[.!?]$/.test(text)) cls = "meta-text";
-                else if (CHAPTER_REGEX.test(text) && text.length < 95) cls = "toc-line";
+                if (idx === bannerIdx) {
+                    cls = "chap-banner";
+                } else if (idx < 8 && text.length < 75 && !/[.!?]$/.test(text)) {
+                    cls = "meta-line";
+                } else if (CHAPTER_REGEX.test(text) && text.length < 95) {
+                    cls = "toc-line";
+                }
 
                 return `<p id="para-${idx}" class="${cls}" onclick="startTTS(${idx})">${wordsHtml}</p>`;
             }).join('');
@@ -1351,6 +1377,11 @@
             }
         }
 
+        function setPlayButtonState(playing) {
+            playIcon.textContent = playing ? "■" : "▶";
+            playLabel.textContent = playing ? "Dừng đọc" : "Nghe trang";
+        }
+
         function togglePlayPause() { if (isPlaying) stopTTS(); else startTTS(currentChunkIndex); }
         function prevChunk() { if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1)); }
         function nextChunk() {
@@ -1363,7 +1394,7 @@
         }
 
         async function startTTS(startIndex = 0) {
-            if (chunks.length === 0) { alert("Mở file trước!"); return; }
+            if (chunks.length === 0) { alert("Bấm dấu ＋ góc trái để mở file truyện trước!"); return; }
             playSessionId++;
             const currentSession = playSessionId;
             workerRunning = false;
@@ -1374,7 +1405,7 @@
             });
 
             mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
-            currentChunkIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■";
+            currentChunkIndex = startIndex; isPlaying = true; setPlayButtonState(true);
             activateBackgroundKeepAlive();
 
             if (!resolvedUrls[currentKey]) {
@@ -1414,7 +1445,7 @@
                 const playResult = await playOnMainPlayer(key, idx, audioUrl, session);
 
                 if (session !== playSessionId || !isPlaying) return;
-                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe)"); return; }
+                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng (Bấm Nghe trang)"); return; }
 
                 const oldIdx = idx - 3;
                 if (oldIdx >= 0) {
@@ -1447,7 +1478,6 @@
                 mainPlayer.ontimeupdate = () => {
                     if (!mainPlayer.duration || wordSpans.length === 0) return;
                     const ratio = Math.min(1, mainPlayer.currentTime / mainPlayer.duration);
-                    progressFill.style.width = `${(ratio * 100).toFixed(1)}%`;
                     const spokenCount = Math.floor(ratio * wordSpans.length);
                     wordSpans.forEach((sp, wIdx) => {
                         if (wIdx <= spokenCount) sp.classList.add("spoken");
@@ -1457,7 +1487,7 @@
 
                 const finish = (resType = "ended") => {
                     mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
-                    progressFill.style.width = "0%"; resolve(resType);
+                    resolve(resType);
                 };
                 mainPlayer.onended = () => finish("ended");
                 mainPlayer.onerror = () => finish("error");
@@ -1478,9 +1508,9 @@
 
         function updateSpeed() { mainPlayer.playbackRate = parseFloat(speedSelect.value); }
 
-        function stopTTS(customMessage = "⏹ Đã tạm dừng.") {
+        function stopTTS(customMessage = "Đã tạm dừng") {
             playSessionId++; isPlaying = false; workerRunning = false;
-            playToggleBtn.textContent = "▶"; progressFill.style.width = "0%";
+            setPlayButtonState(false);
             deactivateBackgroundKeepAlive();
             mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
             mainPlayer.pause(); mainPlayer.dataset.loadedKey = "";
