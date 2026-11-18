@@ -118,7 +118,7 @@
         #storyContainer {
             flex: 1;
             overflow-y: auto;
-            padding: 22px 24px 115px 24px;
+            padding: 22px 24px 96px 24px;
             font-family: var(--reader-font, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif);
             font-size: var(--reader-font-size, 19px);
             line-height: 1.56;
@@ -136,7 +136,7 @@
             transition: background 0.2s, border-color 0.2s;
         }
 
-        /* 1. Tên truyện in hoa màu nâu đồng đặc trưng Apple Books (VD: GIÀ THIÊN) */
+        /* 1. Tên truyện in hoa màu nâu đồng đặc trưng Apple Books */
         #storyContainer p.book-hero-title {
             font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.65em;
@@ -164,7 +164,7 @@
             padding: 1px 8px;
         }
 
-        /* 3. Tiêu đề chương đậm đen chuẩn Apple Books (VD: Chương 238: Chiếc điện thoại màu đen) */
+        /* 3. Tiêu đề chương đậm đen chuẩn Apple Books */
         #storyContainer p.chap-number {
             font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.45em;
@@ -179,7 +179,6 @@
             margin: 12px 0 24px 0;
             padding: 4px 10px;
         }
-        /* Nếu có dòng tiêu đề phụ đi kèm ngay sau (VD: Chương 1 / Quan Tài Lớn...) */
         #storyContainer p.chap-number.has-sub {
             margin-bottom: 10px;
         }
@@ -197,7 +196,7 @@
             padding: 2px 12px;
         }
 
-        /* 5. Các đoạn nội dung truyện chuẩn sách in (sát nhau, thụt đầu dòng) */
+        /* 5. Các đoạn nội dung truyện chuẩn sách in */
         #storyContainer p.story-p {
             text-indent: 1.5em;
             text-align: justify;
@@ -221,40 +220,22 @@
             font-weight: 600;
         }
 
-        /* FLOATING BOTTOM CONTROLS (APPLE BOOKS STYLE) */
+        /* SINGLE-ROW FLOATING BOTTOM BAR (APPLE BOOKS STYLE) */
         .floating-dock {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 10px 18px calc(14px + env(safe-area-inset-bottom)) 18px;
-            background: linear-gradient(to top, var(--bg) 75%, transparent);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            padding: 12px 18px calc(14px + env(safe-area-inset-bottom)) 18px;
+            background: linear-gradient(to top, var(--bg) 78%, transparent);
             pointer-events: none;
             z-index: 20;
-        }
-        .floating-status-pill {
-            align-self: center;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 600;
-            padding: 3px 12px;
-            border-radius: 999px;
-            max-width: 85%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            pointer-events: auto;
-            opacity: 0.92;
         }
         .floating-bar-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
             max-width: 720px;
             width: 100%;
             margin: 0 auto;
@@ -265,25 +246,32 @@
             color: var(--pill-dark-text);
             border: none;
             border-radius: 999px;
-            padding: 11px 20px;
+            padding: 11px 18px;
             font-size: 14px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
             cursor: pointer;
+            flex-shrink: 0;
             box-shadow: 0 4px 14px rgba(0,0,0,0.14);
             transition: transform 0.15s, opacity 0.2s;
         }
         .listen-pill-btn:active { transform: scale(0.95); }
-        .page-counter-pill {
+        .status-center-pill {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
             background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text-muted);
             border-radius: 999px;
-            padding: 7px 16px;
-            font-size: 12.5px;
+            padding: 8px 14px;
+            font-size: 12px;
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .more-circle-btn {
@@ -300,6 +288,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            flex-shrink: 0;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .more-circle-btn:active { transform: scale(0.93); }
@@ -528,16 +517,15 @@
         </div>
     </main>
 
-    <!-- FLOATING BOTTOM BAR -->
+    <!-- SINGLE-ROW FLOATING BOTTOM BAR -->
     <div class="floating-dock">
-        <div class="floating-status-pill" id="status">Sẵn sàng!</div>
         <div class="floating-bar-row">
             <button class="listen-pill-btn" id="playToggleBtn" onclick="togglePlayPause()">
                 <span id="playIcon">▶</span>
                 <span id="playLabel">Nghe trang</span>
             </button>
 
-            <div class="page-counter-pill" id="chunkCounter">0 / 0</div>
+            <div class="status-center-pill" id="status">Sẵn sàng!</div>
 
             <button class="more-circle-btn" onclick="openSettingsModal()" title="Chủ đề & Cài đặt">•••</button>
         </div>
@@ -974,7 +962,7 @@
             status.textContent = `Sẵn sàng đọc`;
         }
 
-        // --- 3. PARSER & AUDIO ENGINE (CORE UNTOUCHED) ---
+        // --- 3. PARSER & AUDIO ENGINE ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -982,7 +970,6 @@
         const speedSelect = document.getElementById('speedSelect');
         const playIcon = document.getElementById('playIcon');
         const playLabel = document.getElementById('playLabel');
-        const chunkCounter = document.getElementById('chunkCounter');
 
         let chapters = [];
         let currentChapterIndex = 0;
@@ -1245,7 +1232,6 @@
                             const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
                             if (tocTitle) extracted.title = tocTitle.substring(0, 85);
 
-                            // Đảm bảo tiêu đề chương luôn có mặt ở đầu văn bản (chống mất chương khi EPUB giấu thẻ title)
                             if (extracted.paragraphs.length > 0 && extracted.title) {
                                 const normT = normalizeVi(extracted.title);
                                 let hasHeading = false;
@@ -1298,7 +1284,6 @@
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            // Bảo vệ kép: nếu dữ liệu chương từ server/cache bị thiếu dòng tiêu đề, tự động chèn lại từ chap.title
             const rawParas = chap.paragraphs || [];
             let workingChunks = [...rawParas];
             if (workingChunks.length > 0 && chap.title) {
@@ -1460,7 +1445,7 @@
             if ('mediaSession' in navigator && chapters[currentChapterIndex]) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: chapters[currentChapterIndex].title,
-                    artist: `Đoạn ${currentChunkIndex + 1}/${chunks.length} • ${SELECTED_VOICE}`,
+                    artist: `${currentBookTitle} • ${SELECTED_VOICE}`,
                     album: "AI Story Reader"
                 });
                 navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
@@ -1517,7 +1502,7 @@
                 startBackgroundWorker(session);
 
                 if (!resolvedUrls[key]) {
-                    status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
+                    status.textContent = `⏳ Đang tạo giọng...`;
                     if (mainPlayer.paused && isPlaying) {
                         mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {});
                     }
@@ -1528,7 +1513,7 @@
                     audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang thử kết nối lại...`;
+                    status.textContent = `⚠️ Đang kết nối lại...`;
                     await new Promise(r => setTimeout(r, 1200));
                     continue;
                 }
@@ -1539,7 +1524,7 @@
                 const playResult = await playOnMainPlayer(key, idx, audioUrl, session);
 
                 if (session !== playSessionId || !isPlaying) return;
-                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng (Bấm Nghe trang)"); return; }
+                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng"); return; }
 
                 const oldIdx = idx - 3;
                 if (oldIdx >= 0) {
@@ -1592,7 +1577,6 @@
         function highlightParagraph(index) {
             document.querySelectorAll('#storyContainer .active-chunk').forEach(p => p.classList.remove('active-chunk'));
             document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
-            chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0";
             const activePara = document.getElementById(`para-${index}`);
             if (activePara) {
                 activePara.classList.add('active-chunk');
