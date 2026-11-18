@@ -118,7 +118,7 @@
         #storyContainer {
             flex: 1;
             overflow-y: auto;
-            padding: 16px 24px 115px 24px;
+            padding: 22px 24px 115px 24px;
             font-family: var(--reader-font, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif);
             font-size: var(--reader-font-size, 19px);
             line-height: 1.56;
@@ -151,7 +151,7 @@
             padding: 2px 8px;
         }
 
-        /* 2. Tác giả & nguồn sách căn giữa chữ nhỏ thanh mảnh (VD: Thần Đông, www.dtv-ebook.com) */
+        /* 2. Tác giả & nguồn sách căn giữa chữ nhỏ thanh mảnh */
         #storyContainer p.meta-center {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "New York", Georgia, serif;
             font-size: 0.82em;
@@ -164,23 +164,27 @@
             padding: 1px 8px;
         }
 
-        /* 3. Số thứ tự chương đậm đen KHÔNG HỘP KHUNG (VD: Chương 1) */
+        /* 3. Tiêu đề chương đậm đen chuẩn Apple Books (VD: Chương 238: Chiếc điện thoại màu đen) */
         #storyContainer p.chap-number {
             font-family: "New York", "Iowan Old Style", Georgia, serif;
-            font-size: 1.42em;
+            font-size: 1.45em;
             font-weight: 700;
-            line-height: 1.3;
+            line-height: 1.28;
             text-align: center !important;
             text-indent: 0 !important;
             color: var(--text);
-            background: transparent !important;
-            border: none !important;
-            border-left: 3px solid transparent !important;
-            margin: 10px 0 12px 0;
-            padding: 2px 8px;
+            background: transparent;
+            border: none;
+            border-left: 3px solid transparent;
+            margin: 12px 0 24px 0;
+            padding: 4px 10px;
+        }
+        /* Nếu có dòng tiêu đề phụ đi kèm ngay sau (VD: Chương 1 / Quan Tài Lớn...) */
+        #storyContainer p.chap-number.has-sub {
+            margin-bottom: 10px;
         }
 
-        /* 4. Tên tiêu đề chương màu nâu rêu đậm căn giữa (VD: Quan Tài Lớn Bằng Đồng Thau Ở Trong Tinh Không) */
+        /* 4. Tên tiêu đề chương phụ màu nâu rêu đậm căn giữa */
         #storyContainer p.chap-subtitle {
             font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.05em;
@@ -197,7 +201,7 @@
         #storyContainer p.story-p {
             text-indent: 1.5em;
             text-align: justify;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         #storyContainer p.toc-line {
@@ -632,13 +636,13 @@
 
     <script>
         // --- THEME & TYPOGRAPHY SETTINGS ---
-        let currentTheme = localStorage.getItem("my_apple_book_theme_v5") || "nguyen-ban";
+        let currentTheme = localStorage.getItem("my_apple_book_theme_v6") || "nguyen-ban";
         let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19;
         let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif";
 
         function applyTheme(themeName) {
             currentTheme = themeName;
-            localStorage.setItem("my_apple_book_theme_v5", themeName);
+            localStorage.setItem("my_apple_book_theme_v6", themeName);
             document.documentElement.className = `theme-${themeName}`;
             document.body.className = `theme-${themeName}`;
             document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
@@ -754,9 +758,9 @@
         })();
 
         // --- 2. INDEXEDDB & BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB_AppleBooks_V5";
+        const DB_NAME = "AIStoryReaderDB_AppleBooks_V6";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_apple_v5") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_apple_v6") || null;
         let currentBookTitle = "";
 
         function openDB() {
@@ -937,7 +941,7 @@
                 item.querySelector(".btn-del").onclick = async () => {
                     if (b.hasLocal) await deleteBookFromDB(b.id);
                     if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v5"); }
+                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v6"); }
                     openBookshelf();
                 };
                 listEl.appendChild(item);
@@ -951,7 +955,7 @@
             clearAudioCache();
             currentBookId = book.id;
             currentBookTitle = book.title || "";
-            localStorage.setItem("last_opened_book_apple_v5", book.id);
+            localStorage.setItem("last_opened_book_apple_v6", book.id);
             chapters = book.chapters;
             document.getElementById("headerBookTitle").textContent = book.title;
 
@@ -1056,7 +1060,6 @@
         const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
 
-        // Hàm chuẩn hóa bỏ dấu tiếng Việt để nhận diện tên truyện (VD: "Già Thiên" khớp với "Gia Thien")
         function normalizeVi(str) {
             return (str || "")
                 .normalize("NFD")
@@ -1065,8 +1068,6 @@
                 .toLowerCase()
                 .replace(/[\s\p{P}]/gu, '');
         }
-
-        function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
 
         function splitLongParagraph(text, maxLen = 400) {
             if (text.length <= maxLen) return [text];
@@ -1244,16 +1245,21 @@
                             const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
                             if (tocTitle) extracted.title = tocTitle.substring(0, 85);
 
+                            // Đảm bảo tiêu đề chương luôn có mặt ở đầu văn bản (chống mất chương khi EPUB giấu thẻ title)
                             if (extracted.paragraphs.length > 0 && extracted.title) {
-                                const normT = normalizeCompare(extracted.title);
+                                const normT = normalizeVi(extracted.title);
                                 let hasHeading = false;
-                                for (let k = 0; k < Math.min(8, extracted.paragraphs.length); k++) {
-                                    const normP = normalizeCompare(extracted.paragraphs[k]);
-                                    if (CHAPTER_REGEX.test(extracted.paragraphs[k]) || normP === normT || normT.includes(normP)) {
-                                        hasHeading = true; break;
+                                for (let k = 0; k < Math.min(6, extracted.paragraphs.length); k++) {
+                                    const line = extracted.paragraphs[k].trim();
+                                    const normP = normalizeVi(line);
+                                    if (line.length < 100 && (CHAPTER_REGEX.test(line) || normP === normT || (normP.length > 4 && normT.includes(normP)))) {
+                                        hasHeading = true;
+                                        break;
                                     }
                                 }
-                                if (!hasHeading) extracted.paragraphs.unshift(extracted.title);
+                                if (!hasHeading) {
+                                    extracted.paragraphs.unshift(extracted.title);
+                                }
                             }
                             if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
                         }
@@ -1263,7 +1269,7 @@
                 if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size + "_apple_v5",
+                    id: file.name + "_" + file.size + "_apple_v6",
                     title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
                     lastChapter: 0, lastChunk: 0, updatedAt: Date.now()
@@ -1292,7 +1298,26 @@
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            chunks = chap.paragraphs;
+            // Bảo vệ kép: nếu dữ liệu chương từ server/cache bị thiếu dòng tiêu đề, tự động chèn lại từ chap.title
+            const rawParas = chap.paragraphs || [];
+            let workingChunks = [...rawParas];
+            if (workingChunks.length > 0 && chap.title) {
+                const normT = normalizeVi(chap.title);
+                let hasHeading = false;
+                for (let k = 0; k < Math.min(6, workingChunks.length); k++) {
+                    const line = workingChunks[k].trim();
+                    const normP = normalizeVi(line);
+                    if (line.length < 100 && (CHAPTER_REGEX.test(line) || normP === normT || (normP.length > 4 && normT.includes(normP)))) {
+                        hasHeading = true;
+                        break;
+                    }
+                }
+                if (!hasHeading) {
+                    workingChunks.unshift(chap.title);
+                }
+            }
+
+            chunks = workingChunks;
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
             const normBook = normalizeVi(currentBookTitle.split(/[-–_|]/)[0]);
@@ -1323,7 +1348,7 @@
 
                 let cls = "story-p";
                 if (idx === chapNumIdx) {
-                    cls = "chap-number";
+                    cls = chapSubIdx !== -1 ? "chap-number has-sub" : "chap-number";
                 } else if (idx === chapSubIdx) {
                     cls = "chap-subtitle";
                 } else if (headerEndLimit !== -1 && idx < chapNumIdx) {
@@ -1387,10 +1412,13 @@
         }
 
         function ensureChunkPromise(chapIdx, chunkIdx, session) {
+            if (chunkIdx >= chunks.length && chapIdx === currentChapterIndex) return null;
             const chap = chapters[chapIdx];
-            if (!chap || chunkIdx >= chap.paragraphs.length) return null;
+            if (!chap) return null;
+            const text = (chapIdx === currentChapterIndex) ? chunks[chunkIdx] : chap.paragraphs[chunkIdx];
+            if (!text) return null;
+
             const key = getCacheKey(chapIdx, chunkIdx);
-            const text = chap.paragraphs[chunkIdx];
             if (!audioCache[key]) {
                 audioCache[key] = fetchAudioSingle(text, key, session).then(url => {
                     if (session === playSessionId) resolvedUrls[key] = url;
