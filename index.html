@@ -9,33 +9,39 @@
         /* APPLE BOOKS 6 THEMES */
         :root.theme-nguyen-ban {
             --bg: #ffffff; --surface: #f5f5f7; --surface-2: #e8e8ed; --border: #dcdce0;
-            --text: #1d1d1f; --text-muted: #6e6e73; --pill-dark: #1d1d1f; --pill-dark-text: #ffffff;
-            --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.16);
+            --text: #1d1d1f; --text-muted: #78787d; --book-brand: #635334; --chap-sub: #535943;
+            --pill-dark: #1d1d1f; --pill-dark-text: #ffffff;
+            --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.14);
         }
         :root.theme-yen-tinh {
             --bg: #1c1c1e; --surface: #2c2c2e; --surface-2: #3a3a3c; --border: #48484a;
-            --text: #f2f2f7; --text-muted: #98989d; --pill-dark: #f2f2f7; --pill-dark-text: #1c1c1e;
+            --text: #f2f2f7; --text-muted: #98989d; --book-brand: #d4b982; --chap-sub: #a8b596;
+            --pill-dark: #f2f2f7; --pill-dark-text: #1c1c1e;
             --accent: #34d399; --accent-glow: rgba(52, 211, 153, 0.18);
         }
         :root.theme-giay {
             --bg: #f8f5ee; --surface: #efeae0; --surface-2: #e4ddd0; --border: #d5cdbe;
-            --text: #2b2926; --text-muted: #78736a; --pill-dark: #2b2926; --pill-dark-text: #f8f5ee;
-            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.16);
+            --text: #2b2926; --text-muted: #78736a; --book-brand: #635334; --chap-sub: #535943;
+            --pill-dark: #2b2926; --pill-dark-text: #f8f5ee;
+            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.15);
         }
         :root.theme-dam {
             --bg: #000000; --surface: #161618; --surface-2: #242427; --border: #333338;
-            --text: #f5f5f7; --text-muted: #8e8e93; --pill-dark: #f5f5f7; --pill-dark-text: #000000;
+            --text: #f5f5f7; --text-muted: #8e8e93; --book-brand: #d4b982; --chap-sub: #a8b596;
+            --pill-dark: #f5f5f7; --pill-dark-text: #000000;
             --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.22);
         }
         :root.theme-em-diu {
             --bg: #efe5d1; --surface: #e4d8c1; --surface-2: #d6c8ad; --border: #c5b699;
-            --text: #382e24; --text-muted: #7a6d5f; --pill-dark: #2e251c; --pill-dark-text: #f5ece0;
-            --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.18);
+            --text: #382e24; --text-muted: #7a6d5f; --book-brand: #635334; --chap-sub: #535943;
+            --pill-dark: #2e251c; --pill-dark-text: #f5ece0;
+            --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.16);
         }
         :root.theme-tap-trung {
             --bg: #fbfbf9; --surface: #f2f2ee; --surface-2: #e6e6e0; --border: #d8d8d0;
-            --text: #18181b; --text-muted: #71717a; --pill-dark: #18181b; --pill-dark-text: #ffffff;
-            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.15);
+            --text: #18181b; --text-muted: #71717a; --book-brand: #635334; --chap-sub: #535943;
+            --pill-dark: #18181b; --pill-dark-text: #ffffff;
+            --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.14);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -53,7 +59,7 @@
 
         /* MINIMALIST APPLE BOOKS TOP BAR */
         header {
-            padding: 10px 16px 6px 16px;
+            padding: 8px 16px 4px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -62,20 +68,19 @@
             background: var(--bg);
         }
         .circle-icon-btn {
-            width: 36px;
-            height: 36px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: var(--surface);
             border: 1px solid var(--border);
             color: var(--text);
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             flex-shrink: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             transition: transform 0.15s, background 0.2s;
         }
         .circle-icon-btn:active { transform: scale(0.92); }
@@ -83,7 +88,7 @@
             flex: 1;
             text-align: center;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text-muted);
             white-space: nowrap;
             overflow: hidden;
@@ -93,7 +98,7 @@
 
         /* SUBTLE CHAPTER PILL BAR */
         .chapter-bar {
-            padding: 4px 16px 10px 16px;
+            padding: 2px 16px 8px 16px;
             flex-shrink: 0;
             background: var(--bg);
         }
@@ -102,71 +107,99 @@
             background: var(--surface);
             color: var(--text);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 9px 14px;
-            font-size: 13.5px;
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 13px;
             font-weight: 600;
             outline: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
         }
 
-        /* READING CANVAS */
+        /* APPLE BOOKS EXACT TYPOGRAPHY CANVAS */
         #storyContainer {
             flex: 1;
             overflow-y: auto;
-            padding: 12px 22px 110px 22px;
+            padding: 18px 24px 115px 24px;
             font-family: var(--reader-font, Georgia, "New York", "Times New Roman", serif);
-            font-size: var(--reader-font-size, 20px);
-            line-height: 1.75;
+            font-size: var(--reader-font-size, 19.5px);
+            line-height: 1.58;
             max-width: 720px;
             width: 100%;
             margin: 0 auto;
             scroll-behavior: smooth;
         }
         #storyContainer p {
-            margin: 0 0 18px 0;
-            padding: 8px 12px;
-            border-radius: 12px;
+            margin: 0;
+            padding: 3px 6px;
+            border-radius: 8px;
             border-left: 3px solid transparent;
             cursor: pointer;
             transition: background 0.2s, border-color 0.2s;
         }
-        /* Banner tiêu đề chương giống hệt ảnh mẫu */
-        #storyContainer p.chap-banner {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-left: 1px solid var(--border);
-            border-radius: 14px;
-            font-size: 1.35em;
+
+        /* 1. Tên truyện in hoa đậm ở đầu trang (VD: GIÀ THIÊN) */
+        #storyContainer p.book-hero-title {
+            font-size: 1.85em;
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: center;
+            text-indent: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--book-brand);
+            margin: 8px 0 8px 0;
+            padding: 4px 8px;
+        }
+
+        /* 2. Thông tin tác giả / nguồn sách căn giữa (VD: Thần Đông, www.dtv-ebook.com) */
+        #storyContainer p.meta-center {
+            font-size: 0.88em;
+            font-weight: 500;
+            line-height: 1.35;
+            text-align: center;
+            text-indent: 0;
+            color: var(--text-muted);
+            margin: 0 0 2px 0;
+            padding: 2px 8px;
+        }
+
+        /* 3. Số thứ tự chương đậm đen (VD: Chương 1) */
+        #storyContainer p.chap-number {
+            font-size: 1.55em;
+            font-weight: 700;
+            line-height: 1.3;
+            text-align: center;
+            text-indent: 0;
+            color: var(--text);
+            margin: 10px 0 14px 0;
+            padding: 4px 8px;
+        }
+
+        /* 4. Tên tiêu đề chương màu nâu rêu đậm (VD: Quan Tài Lớn Bằng Đồng Thau Ở Trong Tinh Không) */
+        #storyContainer p.chap-subtitle {
+            font-size: 1.12em;
             font-weight: 700;
             line-height: 1.35;
             text-align: center;
             text-indent: 0;
-            padding: 16px 18px;
-            margin: 6px 0 26px 0;
-            color: var(--text);
+            color: var(--chap-sub);
+            margin: 0 0 24px 0;
+            padding: 4px 10px;
         }
-        /* Dòng tiêu đề / tác giả / nguồn căn trái thoáng như ảnh 2 */
-        #storyContainer p.meta-line {
-            font-size: 1.02em;
-            font-weight: 500;
-            text-align: left;
-            text-indent: 0;
-            color: var(--text);
-            margin: 0 0 14px 0;
-            padding: 4px 12px;
-        }
-        /* Đoạn nội dung truyện chuẩn sách in */
+
+        /* 5. Các đoạn nội dung truyện chuẩn sách giấy (sát nhau, thụt đầu dòng) */
         #storyContainer p.story-p {
             text-indent: 1.5em;
             text-align: justify;
+            margin-bottom: 4px;
         }
+
         #storyContainer p.toc-line {
             font-weight: 600;
-            text-align: left;
+            text-align: center;
             text-indent: 0;
             margin: 6px 0;
         }
+
         #storyContainer p.active-chunk {
             background: var(--accent-glow) !important;
             border-left: 3px solid var(--accent) !important;
@@ -184,7 +217,7 @@
             left: 0;
             right: 0;
             padding: 10px 18px calc(14px + env(safe-area-inset-bottom)) 18px;
-            background: linear-gradient(to top, var(--bg) 72%, transparent);
+            background: linear-gradient(to top, var(--bg) 75%, transparent);
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -206,7 +239,6 @@
             text-overflow: ellipsis;
             pointer-events: auto;
             opacity: 0.92;
-            transition: opacity 0.2s;
         }
         .floating-bar-row {
             display: flex;
@@ -333,7 +365,7 @@
         }
         .font-size-btn:active { opacity: 0.75; }
 
-        /* 6 THEMES GRID (EXACT APPLE BOOKS LAYOUT) */
+        /* 6 THEMES GRID */
         .themes-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -384,7 +416,7 @@
             gap: 10px;
         }
         .settings-row:last-child { border-bottom: none; }
-        .settings-row select, .settings-link-btn {
+        .settings-row select {
             background: transparent;
             color: var(--text-muted);
             border: none;
@@ -457,7 +489,7 @@
         .btn-del { background: #ef4444; color: #fff; }
     </style>
 </head>
-<body class="theme-em-diu">
+<body class="theme-nguyen-ban">
 
     <!-- MINIMALIST HEADER -->
     <header>
@@ -485,7 +517,7 @@
         </div>
     </main>
 
-    <!-- FLOATING BOTTOM BAR (APPLE BOOKS STYLE) -->
+    <!-- FLOATING BOTTOM BAR -->
     <div class="floating-dock">
         <div class="floating-status-pill" id="status">Sẵn sàng!</div>
         <div class="floating-bar-row">
@@ -519,13 +551,11 @@
                 <button class="close-circle-btn" onclick="closeSettingsModal()">✕</button>
             </div>
 
-            <!-- Cỡ chữ A- / A+ -->
             <div class="font-size-row">
                 <button class="font-size-btn" onclick="adjustFontSize(-1)">A−</button>
                 <button class="font-size-btn" onclick="adjustFontSize(1)">A+</button>
             </div>
 
-            <!-- 6 Thẻ giao diện màu giống hệt ảnh mẫu -->
             <div class="themes-grid">
                 <div class="theme-card" id="card-nguyen-ban" style="background:#ffffff; color:#1d1d1f; border-color:#e5e5ea;" onclick="setTheme('nguyen-ban')">
                     <span class="aa-label">Aa</span>
@@ -553,14 +583,12 @@
                 </div>
             </div>
 
-            <!-- Điều hướng đoạn nhanh -->
             <div class="mini-transport-row">
                 <button class="mini-nav-btn" onclick="prevChunk()">⏮ Đoạn trước</button>
                 <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Điều hướng đọc</span>
                 <button class="mini-nav-btn" onclick="nextChunk()">Đoạn tiếp ⏭</button>
             </div>
 
-            <!-- Bảng thiết lập giọng đọc, phông chữ, tốc độ, server -->
             <div class="settings-group">
                 <div class="settings-row">
                     <span>🎙 Giọng đọc AI</span>
@@ -597,13 +625,13 @@
 
     <script>
         // --- THEME & TYPOGRAPHY SETTINGS ---
-        let currentTheme = localStorage.getItem("my_apple_book_theme") || "em-diu";
-        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 20;
+        let currentTheme = localStorage.getItem("my_apple_book_theme_v4") || "nguyen-ban";
+        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19.5;
         let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "Georgia, 'New York', 'Times New Roman', serif";
 
         function applyTheme(themeName) {
             currentTheme = themeName;
-            localStorage.setItem("my_apple_book_theme", themeName);
+            localStorage.setItem("my_apple_book_theme_v4", themeName);
             document.documentElement.className = `theme-${themeName}`;
             document.body.className = `theme-${themeName}`;
             document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
@@ -719,9 +747,10 @@
         })();
 
         // --- 2. INDEXEDDB & BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB_AppleBooks_V3";
+        const DB_NAME = "AIStoryReaderDB_AppleBooks_V4";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_apple_v3") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_apple_v4") || null;
+        let currentBookTitle = "";
 
         function openDB() {
             return new Promise((resolve, reject) => {
@@ -901,7 +930,7 @@
                 item.querySelector(".btn-del").onclick = async () => {
                     if (b.hasLocal) await deleteBookFromDB(b.id);
                     if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v3"); }
+                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v4"); }
                     openBookshelf();
                 };
                 listEl.appendChild(item);
@@ -914,7 +943,8 @@
             stopTTS();
             clearAudioCache();
             currentBookId = book.id;
-            localStorage.setItem("last_opened_book_apple_v3", book.id);
+            currentBookTitle = book.title || "";
+            localStorage.setItem("last_opened_book_apple_v4", book.id);
             chapters = book.chapters;
             document.getElementById("headerBookTitle").textContent = book.title;
 
@@ -1216,7 +1246,7 @@
                 if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size + "_apple_v3",
+                    id: file.name + "_" + file.size + "_apple_v4",
                     title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
                     lastChapter: 0, lastChunk: 0, updatedAt: Date.now()
@@ -1248,28 +1278,48 @@
             chunks = chap.paragraphs;
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
-            const normChapTitle = normalizeCompare(chap.title);
-            let bannerIdx = -1;
-            for (let i = 0; i < Math.min(6, chunks.length); i++) {
-                const t = chunks[i].trim();
-                const normT = normalizeCompare(t);
-                if (CHAPTER_REGEX.test(t) || (normChapTitle && normT === normChapTitle)) {
-                    bannerIdx = i; break;
+            const normBook = normalizeCompare(currentBookTitle.split(/[-–_|]/)[0]);
+            let chapNumIdx = -1;
+            for (let i = 0; i < Math.min(8, chunks.length); i++) {
+                if (CHAPTER_REGEX.test(chunks[i].trim())) {
+                    chapNumIdx = i;
+                    break;
                 }
             }
 
+            let chapSubIdx = -1;
+            if (chapNumIdx !== -1 && chapNumIdx + 1 < chunks.length) {
+                const nextLine = chunks[chapNumIdx + 1].trim();
+                if (ONLY_CHAP_NUM_REGEX.test(chunks[chapNumIdx].trim()) && nextLine.length < 95 && !/[.!?]$/.test(nextLine)) {
+                    chapSubIdx = chapNumIdx + 1;
+                }
+            }
+
+            const headerEndLimit = chapSubIdx !== -1 ? chapSubIdx : (chapNumIdx !== -1 ? chapNumIdx : -1);
+
             storyContainer.innerHTML = chunks.map((text, idx) => {
+                const trimmed = text.trim();
                 const wordsHtml = text.split(/(\s+)/).map((part, wIdx) => {
                     if (/^\s+$/.test(part)) return part;
                     return `<span class="word-span" id="w-${idx}-${wIdx}">${part}</span>`;
                 }).join('');
 
                 let cls = "story-p";
-                if (idx === bannerIdx) {
-                    cls = "chap-banner";
-                } else if (idx < 8 && text.length < 75 && !/[.!?]$/.test(text)) {
-                    cls = "meta-line";
-                } else if (CHAPTER_REGEX.test(text) && text.length < 95) {
+                if (idx === chapNumIdx) {
+                    cls = "chap-number";
+                } else if (idx === chapSubIdx) {
+                    cls = "chap-subtitle";
+                } else if (headerEndLimit !== -1 && idx < chapNumIdx) {
+                    const normLine = normalizeCompare(trimmed);
+                    // Dòng tên bộ truyện chính (VD: GIÀ THIÊN) -> Cỡ chữ to in hoa màu nâu vàng
+                    if ((normBook && normLine === normBook) || (idx === 0 && trimmed.length < 40 && !/www\.|\.com|\.vn/i.test(trimmed))) {
+                        cls = "book-hero-title";
+                    } else {
+                        cls = "meta-center";
+                    }
+                } else if (headerEndLimit === -1 && idx < 4 && trimmed.length < 65 && !/[.!?]$/.test(trimmed)) {
+                    cls = idx === 0 ? "chap-number" : "meta-center";
+                } else if (CHAPTER_REGEX.test(trimmed) && trimmed.length < 95) {
                     cls = "toc-line";
                 }
 
