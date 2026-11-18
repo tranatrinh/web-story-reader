@@ -3,20 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Story Reader Pro - Multi Voice</title>
+    <title>AI Story Reader Pro - Apple Books Theme</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        :root {
-            --bg: #0b0f19;
-            --surface: #131a2a;
-            --surface-2: #1e293b;
-            --border: #283548;
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
-            --accent: #10b981;
-            --accent-glow: rgba(16, 185, 129, 0.25);
-            --reader-font: Georgia, "Times New Roman", serif;
+        /* APPLE BOOKS THEMES PALETTE */
+        :root.theme-nguyen-ban {
+            --bg: #f5efe6; --surface: #eae2d5; --surface-2: #dfd5c5; --border: #d3c7b5; --text: #2c241d; --text-muted: #786c60; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.2);
         }
+        :root.theme-yen-tinh {
+            --bg: #121212; --surface: #1e1e1e; --surface-2: #2c2c2c; --border: #383838; --text: #e0e0e0; --text-muted: #9e9e9e; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+        }
+        :root.theme-giay {
+            --bg: #fbf0d9; --surface: #f3e5c8; --surface-2: #e8d7b5; --border: #dac59e; --text: #3b2f2f; --text-muted: #827264; --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.2);
+        }
+        :root.theme-dam {
+            --bg: #0b0f19; --surface: #131a2a; --surface-2: #1e293b; --border: #283548; --text: #e2e8f0; --text-muted: #94a3b8; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+        }
+        :root.theme-em-diu {
+            --bg: #f4ecd8; --surface: #e6dcbf; --surface-2: #d8cca8; --border: #c9bc93; --text: #4a3b32; --text-muted: #8c7a6b; --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.2);
+        }
+        :root.theme-tap-trung {
+            --bg: #18181b; --surface: #27272a; --surface-2: #3f3f46; --border: #52525b; --text: #f4f4f5; --text-muted: #a1a1aa; --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.25);
+        }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0;
@@ -27,7 +36,9 @@
             flex-direction: column;
             height: 100dvh;
             overflow: hidden;
+            transition: background 0.3s, color 0.3s;
         }
+
         /* Top Header */
         header {
             background: var(--surface);
@@ -38,6 +49,7 @@
             justify-content: space-between;
             gap: 8px;
             flex-shrink: 0;
+            transition: background 0.3s, border-color 0.3s;
         }
         .brand {
             font-weight: 700;
@@ -65,17 +77,18 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
         .pill-btn:active { opacity: 0.75; }
         .pill-accent {
             background: rgba(16, 185, 129, 0.15);
-            color: #6ee7b7;
+            color: var(--accent);
             border-color: rgba(16, 185, 129, 0.35);
         }
 
         /* Chapter Bar */
         .chapter-bar {
-            background: #0f1523;
+            background: var(--surface);
             padding: 8px 14px;
             border-bottom: 1px solid var(--border);
             display: flex;
@@ -95,18 +108,18 @@
             min-width: 0;
         }
 
-        /* Reading Area - Apple Books Typography */
+        /* Reading Area - Apple Books Typography & Font Sizes */
         #storyContainer {
             flex: 1;
             overflow-y: auto;
             padding: 28px 20px 48px 20px;
-            font-family: var(--reader-font);
-            font-size: 19.5px;
+            font-family: var(--reader-font, Georgia, "Times New Roman", serif);
+            font-size: var(--reader-font-size, 19.5px);
             line-height: 1.7;
-            color: #cbd5e1;
             max-width: 780px;
             width: 100%;
             margin: 0 auto;
+            transition: font-size 0.2s;
         }
         #storyContainer p {
             margin: 0 0 16px 0;
@@ -116,12 +129,10 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        /* Đoạn nội dung truyện chuẩn sách in */
         #storyContainer p.story-p {
             text-indent: 1.6em;
             text-align: justify;
         }
-        /* Thông tin phụ đầu trang (Tên truyện, tác giả, nguồn) */
         #storyContainer p.meta-text {
             font-size: 0.88em;
             font-weight: 600;
@@ -130,20 +141,16 @@
             color: var(--text-muted);
             margin: 2px 0;
             padding: 4px 8px;
-            letter-spacing: 0.3px;
         }
-        /* Tiêu đề chương chính (Chương 1, Chương 2...) */
         #storyContainer p.chap-title {
             font-size: 1.65em;
             font-weight: 700;
             line-height: 1.35;
             text-align: center;
             text-indent: 0;
-            color: var(--text);
             margin: 20px 0 10px 0;
             padding: 8px 10px;
         }
-        /* Tiêu đề phụ của chương */
         #storyContainer p.chap-subtitle {
             font-size: 1.2em;
             font-weight: 700;
@@ -154,24 +161,21 @@
             margin: 0 0 32px 0;
             padding: 6px 10px;
         }
-        /* Các dòng danh sách chương ở trang Mục lục / Quyển */
         #storyContainer p.toc-line {
             font-size: 0.95em;
             font-weight: 600;
             text-align: center;
             text-indent: 0;
-            color: #cbd5e1;
             margin: 8px 0;
             padding: 6px 10px;
         }
         #storyContainer p.active-chunk {
-            background: rgba(16, 185, 129, 0.12);
+            background: var(--accent-glow);
             border-left-color: var(--accent);
-            color: #f8fafc;
         }
         .word-span { transition: color 0.1s, text-shadow 0.1s; }
         .word-span.spoken {
-            color: #34d399;
+            color: var(--accent);
             font-weight: 600;
             text-shadow: 0 0 12px var(--accent-glow);
         }
@@ -185,6 +189,7 @@
             flex-direction: column;
             gap: 8px;
             flex-shrink: 0;
+            transition: background 0.3s, border-color 0.3s;
         }
         .status-row {
             display: flex;
@@ -195,7 +200,7 @@
             gap: 8px;
         }
         #status {
-            color: #fcd34d;
+            color: var(--accent);
             font-weight: 600;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -229,7 +234,7 @@
             font-size: 12px;
             font-weight: 600;
             outline: none;
-            max-width: 135px;
+            max-width: 120px;
         }
         .transport {
             display: flex;
@@ -248,11 +253,12 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            transition: background 0.2s, color 0.2s;
         }
         .ctrl-btn:active { transform: scale(0.94); }
         .play-btn {
             background: var(--accent);
-            color: #042f2e;
+            color: #ffffff;
             border: none;
             width: 46px;
             height: 46px;
@@ -261,11 +267,12 @@
             box-shadow: 0 0 16px var(--accent-glow);
         }
 
-        /* Bookshelf Modal */
+        /* Modal Sheets (Bookshelf & Settings) */
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
             display: none;
             align-items: flex-end;
             justify-content: center;
@@ -275,14 +282,20 @@
         .modal-sheet {
             background: var(--surface);
             border-top: 1px solid var(--border);
-            border-radius: 18px 18px 0 0;
+            border-radius: 20px 20px 0 0;
             width: 100%;
             max-width: 640px;
-            max-height: 75dvh;
+            max-height: 85dvh;
             display: flex;
             flex-direction: column;
-            padding: 16px;
-            gap: 12px;
+            padding: 20px;
+            gap: 16px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
         }
         .modal-header {
             display: flex;
@@ -290,6 +303,7 @@
             align-items: center;
             font-weight: 700;
             font-size: 16px;
+            color: var(--text);
         }
         .book-list {
             overflow-y: auto;
@@ -300,8 +314,8 @@
         .book-item {
             background: var(--surface-2);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
+            border-radius: 12px;
+            padding: 12px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -311,6 +325,7 @@
         .book-title {
             font-weight: 600;
             font-size: 14px;
+            color: var(--text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -319,22 +334,114 @@
         .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .btn-sm {
             padding: 6px 10px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: none;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
         }
-        .btn-open { background: var(--accent); color: #042f2e; }
+        .btn-open { background: var(--accent); color: #fff; }
         .btn-sync { background: #3b82f6; color: #fff; }
-        .btn-del { background: #e11d48; color: #fff; }
+        .btn-del { background: #ef4444; color: #fff; }
+
+        /* Apple Books Settings Panel Customization */
+        .settings-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .font-size-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .font-size-btn {
+            flex: 1;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .theme-card {
+            background: var(--surface-2);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        .theme-preview-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+        .theme-card span {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .settings-options-list {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .settings-option-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .settings-option-item:last-child { border-bottom: none; }
+        .settings-option-item select {
+            background: transparent;
+            color: var(--text);
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            text-align: right;
+        }
     </style>
 </head>
-<body>
+<body class="theme-dam">
 
     <header>
         <div class="brand">🎧 Story Reader</div>
         <div class="header-actions">
+            <button class="pill-btn" onclick="openSettingsModal()" title="Chủ đề & Cài đặt">🎨 Giao diện</button>
             <button class="pill-btn" onclick="openBookshelf()">📚 Tủ sách</button>
             <label class="pill-btn pill-accent">
                 ＋ Mở file
@@ -375,7 +482,7 @@
                 <button class="ctrl-btn" onclick="nextChunk()" title="Đoạn tiếp">⏭</button>
             </div>
 
-            <select id="speedSelect" class="dock-select" onchange="updateSpeed()" style="max-width:72px;">
+            <select id="speedSelect" class="dock-select" onchange="updateSpeed()" style="max-width:75px;">
                 <option value="0.8">0.8x</option>
                 <option value="1.0" selected>1.0x</option>
                 <option value="1.2">1.2x</option>
@@ -397,7 +504,105 @@
         </div>
     </div>
 
+    <!-- Apple Books Settings & Theme Modal -->
+    <div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <span>Chủ đề & Cài đặt</span>
+                <button class="pill-btn" onclick="closeSettingsModal()">✕</button>
+            </div>
+
+            <!-- Cỡ chữ -->
+            <div class="font-size-row">
+                <button class="font-size-btn" onclick="adjustFontSize(-1)">A−</button>
+                <button class="font-size-btn" onclick="adjustFontSize(1)">A＋</button>
+            </div>
+
+            <!-- 6 Chủ đề màu sắc -->
+            <div class="settings-section-title">Giao diện màu</div>
+            <div class="themes-grid">
+                <div class="theme-card" id="card-nguyen-ban" onclick="setTheme('nguyen-ban')">
+                    <div class="theme-preview-box" style="background:#f5efe6; color:#2c241d;">Aa</div>
+                    <span>Nguyên bản</span>
+                </div>
+                <div class="theme-card" id="card-yen-tinh" onclick="setTheme('yen-tinh')">
+                    <div class="theme-preview-box" style="background:#121212; color:#e0e0e0; border:1px solid #333;">Aa</div>
+                    <span>Yên tĩnh</span>
+                </div>
+                <div class="theme-card" id="card-giay" onclick="setTheme('giay')">
+                    <div class="theme-preview-box" style="background:#fbf0d9; color:#3b2f2f;">Aa</div>
+                    <span>Giấy</span>
+                </div>
+                <div class="theme-card" id="card-dam" onclick="setTheme('dam')">
+                    <div class="theme-preview-box" style="background:#0b0f19; color:#e2e8f0; border:1px solid #283548;">Aa</div>
+                    <span>Đậm</span>
+                </div>
+                <div class="theme-card" id="card-em-diu" onclick="setTheme('em-diu')">
+                    <div class="theme-preview-box" style="background:#f4ecd8; color:#4a3b32;">Aa</div>
+                    <span>Êm dịu</span>
+                </div>
+                <div class="theme-card" id="card-tap-trung" onclick="setTheme('tap-trung')">
+                    <div class="theme-preview-box" style="background:#18181b; color:#f4f4f5; border:1px solid #3f3f46;">Aa</div>
+                    <span>Tập trung</span>
+                </div>
+            </div>
+
+            <!-- Tùy chọn khác -->
+            <div class="settings-options-list">
+                <div class="settings-option-item">
+                    <span>🎧 Nguồn phát</span>
+                    <span>Luồng Audio (Chạy ngầm + Tắt màn hình)</span>
+                </div>
+                <div class="settings-option-item">
+                    <span>Aa Phông chữ</span>
+                    <select id="fontFamilySelect" onchange="changeFontFamily()">
+                        <option value="Georgia, 'Times New Roman', serif">Nguyên bản (Georgia)</option>
+                        <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">Hiện đại (Sans)</option>
+                        <option value="'Courier New', Courier, monospace">Máy đánh chữ (Mono)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // --- THEME & FONT MANAGEMENT ---
+        let currentTheme = localStorage.getItem("my_apple_book_theme") || "dam";
+        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19.5;
+        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "Georgia, 'Times New Roman', serif";
+
+        function applyTheme(themeName) {
+            currentTheme = themeName;
+            localStorage.setItem("my_apple_book_theme", themeName);
+            document.body.className = `theme-${themeName}`;
+            document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
+            const activeCard = document.getElementById(`card-${themeName}`);
+            if (activeCard) activeCard.classList.add('active');
+        }
+
+        function setTheme(name) { applyTheme(name); }
+
+        function adjustFontSize(delta) {
+            currentFontSize = Math.min(28, Math.max(14, currentFontSize + delta * 1.5));
+            localStorage.setItem("my_apple_book_fontsize", currentFontSize);
+            document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
+        }
+
+        function changeFontFamily() {
+            const select = document.getElementById('fontFamilySelect');
+            currentFontFamily = select.value;
+            localStorage.setItem("my_apple_book_fontfamily", currentFontFamily);
+            document.getElementById('storyContainer').style.setProperty('--reader-font', currentFontFamily);
+        }
+
+        function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
+
+        // Khởi tạo giao diện cá nhân hóa
+        applyTheme(currentTheme);
+        document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
+        document.getElementById('storyContainer').style.setProperty('--reader-font', currentFontFamily);
+
         // --- 1. SERVER & TUNNEL AUTO-SYNC CONFIG ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
         let SELECTED_VOICE = localStorage.getItem("my_tts_selected_voice") || "default";
@@ -405,10 +610,7 @@
         const voiceSelect = document.getElementById('voiceSelect');
         const serverBtn = document.getElementById('serverBtn');
 
-        function getBaseUrl() {
-            return SERVER_BASE.replace(/\/$/, "");
-        }
-
+        function getBaseUrl() { return SERVER_BASE.replace(/\/$/, ""); }
         function updateServerBadge() {
             const isTunnel = SERVER_BASE.includes("trycloudflare.com");
             serverBtn.textContent = isTunnel ? "● Tunnel" : "🔗 Server";
@@ -421,24 +623,15 @@
                 "./tunnel.json?t=" + Date.now(),
                 "https://raw.githubusercontent.com/tranatrinh/web-story-reader/main/tunnel.json?t=" + Date.now()
             ];
-
             for (const url of urlsToTry) {
                 try {
-                    const headers = url.includes("api.github.com")
-                        ? { "Accept": "application/vnd.github.raw+json" }
-                        : {};
+                    const headers = url.includes("api.github.com") ? { "Accept": "application/vnd.github.raw+json" } : {};
                     const res = await fetch(url, { cache: "no-store", headers });
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.url && data.url.trim()) {
-                            const newTunnel = data.url.trim();
-                            if (newTunnel !== SERVER_BASE) {
-                                SERVER_BASE = newTunnel;
-                                updateServerBadge();
-                                console.log("[+] Đã đồng bộ Tunnel mới:", SERVER_BASE);
-                            } else {
-                                updateServerBadge();
-                            }
+                            SERVER_BASE = data.url.trim();
+                            updateServerBadge();
                             return true;
                         }
                     }
@@ -467,35 +660,24 @@
                         localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
                     }
                 }
-            } catch (e) {
-                console.log("Chưa kết nối được /voices:", e);
-            }
+            } catch (e) {}
         }
 
         function onVoiceChange() {
             SELECTED_VOICE = voiceSelect.value;
             localStorage.setItem("my_tts_selected_voice", SELECTED_VOICE);
             clearAudioCache();
-            if (isPlaying) {
-                startTTS(currentChunkIndex);
-            } else {
-                status.textContent = `🎙 Đã đổi sang: ${voiceSelect.options[voiceSelect.selectedIndex]?.text || SELECTED_VOICE}`;
-            }
+            if (isPlaying) startTTS(currentChunkIndex);
         }
 
         async function changeServerUrl() {
             await syncTunnelUrlIfNeeded();
-            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel (Để trống và bấm OK để tự đồng bộ từ GitHub):", SERVER_BASE);
+            let newUrl = prompt("Nhập link Server / Cloudflare Tunnel:", SERVER_BASE);
             if (newUrl !== null) {
-                if (newUrl.trim() === "") {
-                    await syncTunnelUrlIfNeeded();
-                } else {
-                    SERVER_BASE = newUrl.trim();
-                }
+                SERVER_BASE = newUrl.trim() === "" ? SERVER_BASE : newUrl.trim();
                 updateServerBadge();
                 clearAudioCache();
                 await loadVoicesFromServer();
-                status.textContent = `🔗 Đã kết nối: ${SERVER_BASE}`;
             }
         }
 
@@ -505,19 +687,17 @@
             await loadVoicesFromServer();
         })();
 
-        // --- 2. INDEXEDDB & CLOUD SERVER BOOKSHELF ---
-        const DB_NAME = "AIStoryReaderDB_AppleV1";
+        // --- 2. INDEXEDDB & BOOKSHELF ---
+        const DB_NAME = "AIStoryReaderDB_AppleBooks_V2";
         const STORE_NAME = "books";
-        let currentBookId = localStorage.getItem("last_opened_book_apple_v1") || null;
+        let currentBookId = localStorage.getItem("last_opened_book_apple_v2") || null;
 
         function openDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open(DB_NAME, 1);
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-                    }
+                    if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: "id" });
                 };
                 req.onsuccess = () => resolve(req.result);
                 req.onerror = () => reject(req.error);
@@ -572,10 +752,7 @@
                     body: JSON.stringify(book)
                 });
                 return res.ok;
-            } catch (e) {
-                console.log("Chưa đẩy được truyện lên server:", e);
-                return false;
-            }
+            } catch (e) { return false; }
         }
 
         async function saveProgress() {
@@ -594,12 +771,7 @@
             fetch(getBaseUrl() + "/books/progress", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    id: currentBookId,
-                    lastChapter: currentChapterIndex,
-                    lastChunk: currentChunkIndex,
-                    updatedAt: now
-                })
+                body: JSON.stringify({ id: currentBookId, lastChapter: currentChapterIndex, lastChunk: currentChunkIndex, updatedAt: now })
             }).catch(() => {});
         }
 
@@ -607,22 +779,16 @@
             const modal = document.getElementById("bookshelfModal");
             const listEl = document.getElementById("bookList");
             modal.classList.add("open");
-            listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;'>⏳ Đang đồng bộ tủ sách từ máy & Server...</div>";
+            listEl.innerHTML = "<div style='color:var(--text-muted);font-size:13px;'>⏳ Đang tải tủ sách...</div>";
 
             const localBooks = await getAllBooksFromDB();
             const bookMap = new Map();
 
             localBooks.forEach(b => {
                 bookMap.set(b.id, {
-                    id: b.id,
-                    title: b.title,
-                    chapterCount: b.chapters ? b.chapters.length : 0,
-                    lastChapter: b.lastChapter || 0,
-                    lastChunk: b.lastChunk || 0,
-                    updatedAt: b.updatedAt || 0,
-                    hasLocal: true,
-                    hasServer: false,
-                    localObj: b
+                    id: b.id, title: b.title, chapterCount: b.chapters ? b.chapters.length : 0,
+                    lastChapter: b.lastChapter || 0, lastChunk: b.lastChunk || 0, updatedAt: b.updatedAt || 0,
+                    hasLocal: true, hasServer: false, localObj: b
                 });
             });
 
@@ -647,15 +813,9 @@
                             }
                         } else {
                             bookMap.set(sb.id, {
-                                id: sb.id,
-                                title: sb.title,
-                                chapterCount: sb.chapterCount || 0,
-                                lastChapter: sb.lastChapter || 0,
-                                lastChunk: sb.lastChunk || 0,
-                                updatedAt: sb.updatedAt || 0,
-                                hasLocal: false,
-                                hasServer: true,
-                                localObj: null
+                                id: sb.id, title: sb.title, chapterCount: sb.chapterCount || 0,
+                                lastChapter: sb.lastChapter || 0, lastChunk: sb.lastChunk || 0, updatedAt: sb.updatedAt || 0,
+                                hasLocal: false, hasServer: true, localObj: null
                             });
                         }
                     });
@@ -665,7 +825,7 @@
             const mergedList = Array.from(bookMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
             if (mergedList.length === 0) {
-                listEl.innerHTML = "<div style='color:#94a3b8;font-size:13px;padding:12px 0;'>Tủ sách trống. Hãy bấm <b>＋ Mở file</b> để thêm truyện!</div>";
+                listEl.innerHTML = "<div style='color:var(--text-muted);font-size:13px;'>Tủ sách trống. Bấm <b>＋ Mở file</b> để thêm truyện!</div>";
                 return;
             }
 
@@ -673,74 +833,57 @@
             mergedList.forEach(b => {
                 const item = document.createElement("div");
                 item.className = "book-item";
-                const chapNum = (b.lastChapter || 0) + 1;
-                const chunkNum = (b.lastChunk || 0) + 1;
-                const badge = b.hasServer ? "☁️ Server & Máy" : "📱 Chỉ trên máy này";
-
+                const badge = b.hasServer ? "☁️ Server & Máy" : "📱 Chỉ trên máy";
                 item.innerHTML = `
                     <div class="book-info">
                         <div class="book-title">${b.title}</div>
-                        <div class="book-meta">${badge} • ${b.chapterCount} chương • Đọc: Ch.${chapNum} (Đoạn ${chunkNum})</div>
+                        <div class="book-meta">${badge} • ${b.chapterCount} chương • Ch.${(b.lastChapter||0)+1}</div>
                     </div>
                     <div class="book-actions">
-                        ${!b.hasServer && b.hasLocal ? `<button class="btn-sm btn-sync">☁️ Đẩy lên</button>` : ""}
-                        <button class="btn-sm btn-open">Đọc tiếp</button>
+                        ${!b.hasServer && b.hasLocal ? `<button class="btn-sm btn-sync">☁️ Đẩy</button>` : ""}
+                        <button class="btn-sm btn-open">Đọc</button>
                         <button class="btn-sm btn-del">Xóa</button>
                     </div>
                 `;
-
                 const syncBtn = item.querySelector(".btn-sync");
                 if (syncBtn) {
                     syncBtn.onclick = async () => {
-                        syncBtn.textContent = "⏳...";
+                        syncBtn.textContent = "⏳";
                         const ok = await uploadBookToServer(b.localObj);
                         if (ok) openBookshelf();
-                        else syncBtn.textContent = "Lỗi!";
                     };
                 }
-
                 item.querySelector(".btn-open").onclick = async () => {
                     closeBookshelf();
                     if (b.hasLocal && b.localObj) {
                         loadBookObject(b.localObj);
                     } else {
-                        status.textContent = `☁️ Đang tải "${b.title}" từ Server về máy...`;
                         try {
                             const res = await fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id));
-                            if (!res.ok) throw new Error("Không tải được truyện");
+                            if (!res.ok) throw new Error();
                             const fullBook = await res.json();
                             await saveBookToDB(fullBook);
                             loadBookObject(fullBook);
-                        } catch (err) {
-                            status.textContent = `❌ Lỗi tải truyện từ server: ${err.message}`;
-                        }
+                        } catch (err) { alert("Lỗi tải truyện từ server"); }
                     }
                 };
-
                 item.querySelector(".btn-del").onclick = async () => {
                     if (b.hasLocal) await deleteBookFromDB(b.id);
-                    if (b.hasServer) {
-                        fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
-                    }
-                    if (currentBookId === b.id) {
-                        currentBookId = null;
-                        localStorage.removeItem("last_opened_book_apple_v1");
-                    }
+                    if (b.hasServer) fetch(getBaseUrl() + "/books/" + encodeURIComponent(b.id), { method: "DELETE" }).catch(() => {});
+                    if (currentBookId === b.id) { currentBookId = null; localStorage.removeItem("last_opened_book_apple_v2"); }
                     openBookshelf();
                 };
                 listEl.appendChild(item);
             });
         }
 
-        function closeBookshelf() {
-            document.getElementById("bookshelfModal").classList.remove("open");
-        }
+        function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
 
         function loadBookObject(book) {
             stopTTS();
             clearAudioCache();
             currentBookId = book.id;
-            localStorage.setItem("last_opened_book_apple_v1", book.id);
+            localStorage.setItem("last_opened_book_apple_v2", book.id);
             chapters = book.chapters;
 
             chapterSelect.innerHTML = "";
@@ -755,10 +898,10 @@
             const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
             chapterSelect.value = targetChap;
             renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `📖 ${book.title} (Ch.${targetChap + 1})`;
+            status.textContent = `📖 ${book.title}`;
         }
 
-        // --- 3. PARSE TXT & EPUB (CHUẨN BỐ CỤC APPLE BOOKS & GIỮ NGUYÊN MẢNG CHUNKS) ---
+        // --- 3. PARSER & AUDIO ENGINE ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -773,12 +916,10 @@
         let chunks = [];
         let currentChunkIndex = 0;
 
-        // SINGLE MASTER PLAYER: Đảm bảo iOS/Android giữ nguyên quyền phát xuyên suốt khi khóa màn hình
         const mainPlayer = new Audio();
         mainPlayer.playsInline = true;
         mainPlayer.preload = "auto";
 
-        // BỘ GIỮ TIẾN TRÌNH NỀN (REAL NON-ZERO SUB-AUDIBLE WAVE + WEB AUDIO LOCK)
         function createRealKeepAliveWavUrl() {
             const sampleRate = 8000;
             const durationSeconds = 4;
@@ -786,21 +927,10 @@
             const buffer = new ArrayBuffer(44 + numSamples * 2);
             const view = new DataView(buffer);
             const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-
-            writeStr(0, 'RIFF');
-            view.setUint32(4, 36 + numSamples * 2, true);
-            writeStr(8, 'WAVE');
-            writeStr(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeStr(36, 'data');
-            view.setUint32(40, numSamples * 2, true);
-
+            writeStr(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true); writeStr(8, 'WAVE');
+            writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+            writeStr(36, 'data'); view.setUint32(40, numSamples * 2, true);
             for (let i = 0; i < numSamples; i++) {
                 const sample = Math.round(Math.sin(2 * Math.PI * 1 * (i / sampleRate)) * 3);
                 view.setInt16(44 + i * 2, sample || 1, true);
@@ -810,9 +940,7 @@
 
         const keepAliveBlobUrl = createRealKeepAliveWavUrl();
         const silentKeepAlive = new Audio(keepAliveBlobUrl);
-        silentKeepAlive.loop = true;
-        silentKeepAlive.playsInline = true;
-        silentKeepAlive.volume = 0.05;
+        silentKeepAlive.loop = true; silentKeepAlive.playsInline = true; silentKeepAlive.volume = 0.05;
 
         let audioCtx = null;
         let wakeLockSentinel = null;
@@ -826,15 +954,11 @@
                         audioCtx = new AudioContextClass();
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
-                        osc.frequency.value = 1;
-                        gain.gain.value = 0.001;
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
+                        osc.frequency.value = 1; gain.gain.value = 0.001;
+                        osc.connect(gain); gain.connect(audioCtx.destination);
                         osc.start();
                     }
-                    if (audioCtx.state === 'suspended') {
-                        audioCtx.resume().catch(() => {});
-                    }
+                    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
                 }
             } catch (e) {}
 
@@ -848,13 +972,8 @@
 
         function deactivateBackgroundKeepAlive() {
             silentKeepAlive.pause();
-            if (audioCtx && audioCtx.state === 'running') {
-                audioCtx.suspend().catch(() => {});
-            }
-            if (wakeLockSentinel) {
-                wakeLockSentinel.release().catch(() => {});
-                wakeLockSentinel = null;
-            }
+            if (audioCtx && audioCtx.state === 'running') audioCtx.suspend().catch(() => {});
+            if (wakeLockSentinel) { wakeLockSentinel.release().catch(() => {}); wakeLockSentinel = null; }
         }
 
         let isPlaying = false;
@@ -868,35 +987,18 @@
         const ONLY_CHAP_NUM_REGEX = /^(?:Chương|Hồi|Quyển|Phần|Tiết|Tập|Chapter)\s*[\dIVXLCDM]+[\s:.\-]*$/i;
         const VALID_CHAR_REGEX = /[a-zA-Z0-9àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđĐ]/;
 
-        function normalizeCompare(str) {
-            return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, '');
-        }
+        function normalizeCompare(str) { return (str || "").toLowerCase().replace(/[\s\p{P}]/gu, ''); }
 
-        // Chỉ cắt nhỏ khi 1 đoạn văn đơn lẻ dài quá 400 ký tự, TUYỆT ĐỐI không gộp 2 dòng độc lập lại với nhau
         function splitLongParagraph(text, maxLen = 400) {
             if (text.length <= maxLen) return [text];
             const result = [];
             let currentBuf = "";
             const sentences = text.split(/(?<=[.?!;…”"'])\s+/);
-
             for (let s of sentences) {
                 if (!s.trim()) continue;
                 if ((currentBuf + " " + s).trim().length > maxLen) {
                     if (currentBuf.trim()) result.push(currentBuf.trim());
-                    if (s.trim().length > maxLen) {
-                        const words = s.trim().split(/\s+/);
-                        currentBuf = "";
-                        for (let w of words) {
-                            if ((currentBuf + " " + w).trim().length > maxLen) {
-                                if (currentBuf.trim()) result.push(currentBuf.trim());
-                                currentBuf = w;
-                            } else {
-                                currentBuf = (currentBuf + " " + w).trim();
-                            }
-                        }
-                    } else {
-                        currentBuf = s.trim();
-                    }
+                    currentBuf = s.trim();
                 } else {
                     currentBuf = (currentBuf + " " + s).trim();
                 }
@@ -908,7 +1010,6 @@
         function processRawTextToChunks(rawText) {
             const rawLines = rawText.split(/\r?\n/);
             const finalChunks = [];
-
             for (let line of rawLines) {
                 const trimmed = line.replace(/\s+/g, ' ').trim();
                 if (!trimmed || trimmed.toLowerCase() === "unknown" || !VALID_CHAR_REGEX.test(trimmed)) continue;
@@ -928,9 +1029,7 @@
                     }
                     return line.substring(0, 85);
                 }
-                if (CHAPTER_REGEX.test(line) && line.length < 95) {
-                    return line.substring(0, 85);
-                }
+                if (CHAPTER_REGEX.test(line) && line.length < 95) return line.substring(0, 85);
             }
             if (htmlDoc) {
                 const headings = htmlDoc.querySelectorAll("h1, h2, h3, .chapter-title, .title");
@@ -951,11 +1050,9 @@
                 el.insertAdjacentText('beforebegin', '\n');
                 el.insertAdjacentText('afterend', '\n');
             });
-
             const rawText = doc.body ? doc.body.textContent : doc.textContent;
             const paragraphs = processRawTextToChunks(rawText);
             const title = detectChapterTitleFromParagraphs(paragraphs, doc, fallbackTitle);
-
             return { title, paragraphs };
         }
 
@@ -973,19 +1070,13 @@
                     const splits = text.split(/(?=^(?:Chương|Hồi|Quyển|Phần|Tiết|Chapter)\s*[\dIVXLCDM]+)/im);
                     if (splits.length <= 1) {
                         const paras = processRawTextToChunks(text);
-                        parsedChapters.push({
-                            title: detectChapterTitleFromParagraphs(paras, null, "Toàn bộ nội dung"),
-                            paragraphs: paras
-                        });
+                        parsedChapters.push({ title: detectChapterTitleFromParagraphs(paras, null, "Toàn bộ nội dung"), paragraphs: paras });
                     } else {
                         splits.forEach((content, idx) => {
                             if (content.trim()) {
                                 const paras = processRawTextToChunks(content);
                                 if (paras.length > 0) {
-                                    parsedChapters.push({
-                                        title: detectChapterTitleFromParagraphs(paras, null, `Chương ${idx + 1}`),
-                                        paragraphs: paras
-                                    });
+                                    parsedChapters.push({ title: detectChapterTitleFromParagraphs(paras, null, `Chương ${idx + 1}`), paragraphs: paras });
                                 }
                             }
                         });
@@ -993,7 +1084,6 @@
                 } else if (file.name.toLowerCase().endsWith('.epub')) {
                     const zip = await JSZip.loadAsync(file);
                     const parser = new DOMParser();
-
                     const normalizeZipPath = (base, rel) => {
                         if (!rel) return "";
                         let cleanRel = decodeURIComponent(rel.split('#')[0]).replace(/\\/g, '/');
@@ -1001,12 +1091,10 @@
                         const stack = base ? base.split('/').filter(Boolean) : [];
                         for (const part of cleanRel.split('/')) {
                             if (!part || part === '.') continue;
-                            if (part === '..') stack.pop();
-                            else stack.push(part);
+                            if (part === '..') stack.pop(); else stack.push(part);
                         }
                         return stack.join('/');
                     };
-
                     const allZipKeys = Object.keys(zip.files);
                     const findZipFile = (targetPath) => {
                         if (!targetPath) return null;
@@ -1019,14 +1107,11 @@
                     let opfPath = "";
                     const containerFile = findZipFile("META-INF/container.xml");
                     if (containerFile) {
-                        const containerXml = await containerFile.async("text");
-                        const containerDoc = parser.parseFromString(containerXml, "text/xml");
+                        const containerDoc = parser.parseFromString(await containerFile.async("text"), "text/xml");
                         const rootfile = containerDoc.getElementsByTagName("rootfile")[0] || containerDoc.getElementsByTagName("opf:rootfile")[0];
                         if (rootfile) opfPath = rootfile.getAttribute("full-path") || "";
                     }
-                    if (!opfPath) {
-                        opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
-                    }
+                    if (!opfPath) opfPath = allZipKeys.find(k => k.toLowerCase().endsWith(".opf")) || "";
 
                     const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : "";
                     const tocMap = {};
@@ -1034,23 +1119,13 @@
 
                     const opfFile = findZipFile(opfPath);
                     if (opfFile) {
-                        const opfXml = await opfFile.async("text");
-                        const opfDoc = parser.parseFromString(opfXml, "text/xml");
-
+                        const opfDoc = parser.parseFromString(await opfFile.async("text"), "text/xml");
                         const manifest = {};
-                        const items = Array.from(opfDoc.getElementsByTagName("item")).concat(
-                            Array.from(opfDoc.getElementsByTagName("opf:item"))
-                        );
-                        items.forEach(item => {
-                            const id = item.getAttribute("id");
-                            const href = item.getAttribute("href");
+                        Array.from(opfDoc.getElementsByTagName("item")).concat(Array.from(opfDoc.getElementsByTagName("opf:item"))).forEach(item => {
+                            const id = item.getAttribute("id"); const href = item.getAttribute("href");
                             if (id && href) manifest[id] = normalizeZipPath(basePath, href);
                         });
-
-                        const itemrefs = Array.from(opfDoc.getElementsByTagName("itemref")).concat(
-                            Array.from(opfDoc.getElementsByTagName("opf:itemref"))
-                        );
-                        itemrefs.forEach(ref => {
+                        Array.from(opfDoc.getElementsByTagName("itemref")).concat(Array.from(opfDoc.getElementsByTagName("opf:itemref"))).forEach(ref => {
                             const idref = ref.getAttribute("idref");
                             if (idref && manifest[idref]) spinePaths.push(manifest[idref]);
                         });
@@ -1059,12 +1134,8 @@
                     const ncxKey = allZipKeys.find(k => k.toLowerCase().endsWith(".ncx"));
                     if (ncxKey) {
                         const ncxBase = ncxKey.includes('/') ? ncxKey.substring(0, ncxKey.lastIndexOf('/')) : "";
-                        const ncxXml = await zip.file(ncxKey).async("text");
-                        const ncxDoc = parser.parseFromString(ncxXml, "text/xml");
-                        const navPoints = Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(
-                            Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))
-                        );
-                        navPoints.forEach(np => {
+                        const ncxDoc = parser.parseFromString(await zip.file(ncxKey).async("text"), "text/xml");
+                        Array.from(ncxDoc.getElementsByTagName("navPoint")).concat(Array.from(ncxDoc.getElementsByTagName("ncx:navPoint"))).forEach(np => {
                             const textEl = np.getElementsByTagName("text")[0] || np.getElementsByTagName("ncx:text")[0];
                             const contentEl = np.getElementsByTagName("content")[0] || np.getElementsByTagName("ncx:content")[0];
                             if (textEl && contentEl) {
@@ -1079,76 +1150,62 @@
                     }
 
                     if (spinePaths.length === 0) {
-                        spinePaths = allZipKeys
-                            .filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k))
-                            .sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
+                        spinePaths = allZipKeys.filter(k => /\.(x?html|htm)$/i.test(k) && !/(cover|titlepage|toc|nav)\.(x?html|htm)$/i.test(k)).sort((a, b) => a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }));
                     }
 
                     for (let i = 0; i < spinePaths.length; i++) {
                         const pathKey = spinePaths[i];
                         if (/(?:^|\/)(cover|titlepage|toc|nav|sgc-toc)\.(x?html|htm)$/i.test(pathKey)) continue;
-
                         const fileInZip = findZipFile(pathKey);
                         if (fileInZip) {
                             const htmlContent = await fileInZip.async("text");
                             const cleanFileName = pathKey.split('/').pop().replace(/\.(x?html|htm)$/i, '');
                             const tocTitle = tocMap[fileInZip.name.toLowerCase()] || tocMap[pathKey.toLowerCase()];
                             const fallbackTitle = tocTitle || (CHAPTER_REGEX.test(cleanFileName) ? cleanFileName : `Chương ${parsedChapters.length + 1}`);
-
                             const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
                             if (tocTitle) extracted.title = tocTitle.substring(0, 85);
 
-                            // Nếu tiêu đề chương chưa có mặt trong 8 dòng đầu của nội dung thì chèn vào đầu mảng để hiển thị
                             if (extracted.paragraphs.length > 0 && extracted.title) {
                                 const normT = normalizeCompare(extracted.title);
                                 let hasHeading = false;
                                 for (let k = 0; k < Math.min(8, extracted.paragraphs.length); k++) {
                                     const normP = normalizeCompare(extracted.paragraphs[k]);
-                                    if (CHAPTER_REGEX.test(extracted.paragraphs[k]) || normP === normT || normT.includes(normP) || normP.includes(normT)) {
-                                        hasHeading = true;
-                                        break;
+                                    if (CHAPTER_REGEX.test(extracted.paragraphs[k]) || normP === normT || normT.includes(normP)) {
+                                        hasHeading = true; break;
                                     }
                                 }
-                                if (!hasHeading) {
-                                    extracted.paragraphs.unshift(extracted.title);
-                                }
+                                if (!hasHeading) extracted.paragraphs.unshift(extracted.title);
                             }
-
                             if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
                         }
                     }
                 }
 
-                if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản trong file.");
+                if (parsedChapters.length === 0) throw new Error("Không tìm thấy văn bản.");
 
                 const bookObj = {
-                    id: file.name + "_" + file.size + "_apple_v1",
+                    id: file.name + "_" + file.size + "_apple_v2",
                     title: file.name.replace(/\.(txt|epub)$/i, ""),
                     chapters: parsedChapters,
-                    lastChapter: 0,
-                    lastChunk: 0,
-                    updatedAt: Date.now()
+                    lastChapter: 0, lastChunk: 0, updatedAt: Date.now()
                 };
                 await saveBookToDB(bookObj);
                 loadBookObject(bookObj);
 
-                status.textContent = `☁️ Đang đồng bộ "${bookObj.title}" lên Server...`;
+                status.textContent = `☁️ Đang đồng bộ lên Server...`;
                 const uploaded = await uploadBookToServer(bookObj);
-                status.textContent = uploaded
-                    ? `✅ Đã lưu Tủ sách & Đồng bộ Server (${parsedChapters.length} chương)!`
-                    : `✅ Đã lưu Tủ sách trên máy (${parsedChapters.length} chương)!`;
-            } catch (err) {
-                status.textContent = `❌ Lỗi: ${err.message}`;
-            }
+                status.textContent = uploaded ? `✅ Đã lưu Tủ sách & Đồng bộ Server!` : `✅ Đã lưu Tủ sách trên máy!`;
+            } catch (err) { status.textContent = `❌ Lỗi: ${err.message}`; }
         });
 
         function onChapterChange() {
             const wasPlaying = isPlaying;
             stopTTS();
-            const targetIdx = parseInt(chapterSelect.value, 10);
-            renderChapter(targetIdx, 0);
-            saveProgress();
-            if (wasPlaying) startTTS(0);
+            setTimeout(() => {
+                renderChapter(parseInt(chapterSelect.value, 10), 0);
+                saveProgress();
+                if (wasPlaying) startTTS(0);
+            }, 100);
         }
 
         function renderChapter(index, startChunk = 0) {
@@ -1161,14 +1218,11 @@
 
             const normChapTitle = normalizeCompare(chap.title);
             let headingIdx = -1;
-
-            // Tìm vị trí dòng tiêu đề chính trong 8 dòng đầu tiên
             for (let i = 0; i < Math.min(8, chunks.length); i++) {
                 const t = chunks[i].trim();
                 const normT = normalizeCompare(t);
                 if (CHAPTER_REGEX.test(t) || (normChapTitle && normT === normChapTitle)) {
-                    headingIdx = i;
-                    break;
+                    headingIdx = i; break;
                 }
             }
 
@@ -1187,17 +1241,11 @@
                 }).join('');
 
                 let cls = "story-p";
-                if (idx === headingIdx) {
-                    cls = "chap-title";
-                } else if (idx === subtitleIdx) {
-                    cls = "chap-subtitle";
-                } else if (headingIdx !== -1 && idx < headingIdx && text.length < 85) {
-                    cls = "meta-text";
-                } else if (idx < 4 && text.length < 60 && !/[.!?]$/.test(text)) {
-                    cls = "meta-text";
-                } else if (CHAPTER_REGEX.test(text) && text.length < 95) {
-                    cls = "toc-line";
-                }
+                if (idx === headingIdx) cls = "chap-title";
+                else if (idx === subtitleIdx) cls = "chap-subtitle";
+                else if (headingIdx !== -1 && idx < headingIdx && text.length < 85) cls = "meta-text";
+                else if (idx < 4 && text.length < 60 && !/[.!?]$/.test(text)) cls = "meta-text";
+                else if (CHAPTER_REGEX.test(text) && text.length < 95) cls = "toc-line";
 
                 return `<p id="para-${idx}" class="${cls}" onclick="startTTS(${idx})">${wordsHtml}</p>`;
             }).join('');
@@ -1206,39 +1254,23 @@
             clearAudioCache(currentChapterIndex);
         }
 
-        // --- 4. TTS FETCH & DEEP PREFETCH BUFFER MANAGEMENT ---
-        function getCacheKey(chapIdx, chunkIdx) {
-            return `${chapIdx}_${chunkIdx}`;
-        }
-
+        function getCacheKey(chapIdx, chunkIdx) { return `${chapIdx}_${chunkIdx}`; }
         function clearAudioCache(keepChapIdx = null) {
             const prefixToKeep = keepChapIdx !== null ? `${keepChapIdx}_` : null;
-
             Object.keys(abortControllers).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    abortControllers[key].abort();
-                    delete abortControllers[key];
-                }
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) { abortControllers[key].abort(); delete abortControllers[key]; }
             });
-
             Object.keys(audioCache).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    delete audioCache[key];
-                }
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) delete audioCache[key];
             });
-
             Object.keys(resolvedUrls).forEach(key => {
-                if (!prefixToKeep || !key.startsWith(prefixToKeep)) {
-                    URL.revokeObjectURL(resolvedUrls[key]);
-                    delete resolvedUrls[key];
-                }
+                if (!prefixToKeep || !key.startsWith(prefixToKeep)) { URL.revokeObjectURL(resolvedUrls[key]); delete resolvedUrls[key]; }
             });
         }
 
         async function fetchAudioSingle(text, key, session) {
             const controller = new AbortController();
             abortControllers[key] = controller;
-
             for (let attempt = 0; attempt < 3; attempt++) {
                 if (session !== playSessionId) throw new Error("Cancelled");
                 try {
@@ -1248,20 +1280,15 @@
                         body: JSON.stringify({ text: text, voice: SELECTED_VOICE }),
                         signal: controller.signal
                     });
-                    if (!response.ok) throw new Error("HTTP " + response.status);
+                    if (!response.ok) throw new Error();
                     const blob = await response.blob();
-                    if (blob.size < 32) throw new Error("Empty blob");
+                    if (blob.size < 32) throw new Error();
                     delete abortControllers[key];
                     return URL.createObjectURL(blob);
                 } catch (err) {
                     if (err.name === "AbortError" || session !== playSessionId) throw err;
-                    if (attempt === 2) {
-                        delete abortControllers[key];
-                        throw err;
-                    }
-                    if (attempt === 0) {
-                        await syncTunnelUrlIfNeeded();
-                    }
+                    if (attempt === 2) { delete abortControllers[key]; throw err; }
+                    if (attempt === 0) await syncTunnelUrlIfNeeded();
                     await new Promise(r => setTimeout(r, 800));
                 }
             }
@@ -1270,76 +1297,45 @@
         function ensureChunkPromise(chapIdx, chunkIdx, session) {
             const chap = chapters[chapIdx];
             if (!chap || chunkIdx >= chap.paragraphs.length) return null;
-
             const key = getCacheKey(chapIdx, chunkIdx);
             const text = chap.paragraphs[chunkIdx];
-
             if (!audioCache[key]) {
                 audioCache[key] = fetchAudioSingle(text, key, session).then(url => {
-                    if (session === playSessionId) {
-                        resolvedUrls[key] = url;
-                    }
+                    if (session === playSessionId) resolvedUrls[key] = url;
                     return url;
-                }).catch(err => {
-                    delete audioCache[key];
-                    throw err;
-                });
+                }).catch(err => { delete audioCache[key]; throw err; });
             }
             return audioCache[key];
         }
 
-        // Tải trước sâu (8 đoạn trong chương hiện tại + 3 đoạn đầu chương kế tiếp)
         async function startBackgroundWorker(session) {
             if (workerRunning) return;
             workerRunning = true;
-
             try {
                 while (session === playSessionId && isPlaying) {
                     const base = currentChunkIndex;
                     const limit = Math.min(chunks.length - 1, base + 8);
-                    let targetChap = -1;
-                    let targetChunk = -1;
-
+                    let targetChap = -1; let targetChunk = -1;
                     for (let i = base; i <= limit; i++) {
                         const k = getCacheKey(currentChapterIndex, i);
-                        if (!audioCache[k]) {
-                            targetChap = currentChapterIndex;
-                            targetChunk = i;
-                            break;
-                        }
+                        if (!audioCache[k]) { targetChap = currentChapterIndex; targetChunk = i; break; }
                     }
-
-                    // Khi còn <= 4 đoạn là hết chương -> Tải trước luôn 3 đoạn đầu của chương sau
                     if (targetChap === -1 && (chunks.length - 1 - base) <= 4) {
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length) {
                             const nextParas = chapters[nextChapIdx].paragraphs;
-                            const nextLimit = Math.min(nextParas.length - 1, 2);
-                            for (let j = 0; j <= nextLimit; j++) {
+                            for (let j = 0; j <= Math.min(nextParas.length - 1, 2); j++) {
                                 const nk = getCacheKey(nextChapIdx, j);
-                                if (!audioCache[nk]) {
-                                    targetChap = nextChapIdx;
-                                    targetChunk = j;
-                                    break;
-                                }
+                                if (!audioCache[nk]) { targetChap = nextChapIdx; targetChunk = j; break; }
                             }
                         }
                     }
-
                     if (targetChap === -1) break;
-
-                    try {
-                        await ensureChunkPromise(targetChap, targetChunk, session);
-                    } catch (e) {
-                        await new Promise(r => setTimeout(r, 500));
-                    }
+                    try { await ensureChunkPromise(targetChap, targetChunk, session); } catch (e) { await new Promise(r => setTimeout(r, 500)); }
                 }
-            } finally {
-                workerRunning = false;
-            }
+            } finally { workerRunning = false; }
         }
 
-        // --- 5. SINGLE-PLAYER PLAYBACK, LOCK-SCREEN RESILIENCE & KARAOKE ---
         function updateMediaSession() {
             if ('mediaSession' in navigator && chapters[currentChapterIndex]) {
                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -1355,71 +1351,35 @@
             }
         }
 
-        function togglePlayPause() {
-            if (isPlaying) {
-                stopTTS();
-            } else {
-                startTTS(currentChunkIndex);
-            }
-        }
-
-        function prevChunk() {
-            if (chunks.length === 0) return;
-            const prev = Math.max(0, currentChunkIndex - 1);
-            startTTS(prev);
-        }
-
+        function togglePlayPause() { if (isPlaying) stopTTS(); else startTTS(currentChunkIndex); }
+        function prevChunk() { if (chunks.length > 0) startTTS(Math.max(0, currentChunkIndex - 1)); }
         function nextChunk() {
             if (chunks.length === 0) return;
-            if (currentChunkIndex + 1 < chunks.length) {
-                startTTS(currentChunkIndex + 1);
-            } else if (currentChapterIndex + 1 < chapters.length) {
-                currentChapterIndex++;
-                chapterSelect.value = currentChapterIndex;
-                renderChapter(currentChapterIndex, 0);
-                startTTS(0);
+            if (currentChunkIndex + 1 < chunks.length) startTTS(currentChunkIndex + 1);
+            else if (currentChapterIndex + 1 < chapters.length) {
+                currentChapterIndex++; chapterSelect.value = currentChapterIndex;
+                renderChapter(currentChapterIndex, 0); startTTS(0);
             }
         }
 
         async function startTTS(startIndex = 0) {
-            if (chunks.length === 0) {
-                alert("Vui lòng mở file truyện trước!");
-                return;
-            }
-
+            if (chunks.length === 0) { alert("Mở file trước!"); return; }
             playSessionId++;
             const currentSession = playSessionId;
             workerRunning = false;
 
             const currentKey = getCacheKey(currentChapterIndex, startIndex);
-            const nextChapKey0 = getCacheKey(currentChapterIndex + 1, 0);
-
             Object.keys(abortControllers).forEach(k => {
-                if (k !== currentKey && k !== nextChapKey0 && !resolvedUrls[k]) {
-                    abortControllers[k].abort();
-                    delete abortControllers[k];
-                    delete audioCache[k];
-                }
+                if (k !== currentKey && !resolvedUrls[k]) { abortControllers[k].abort(); delete abortControllers[k]; delete audioCache[k]; }
             });
 
-            mainPlayer.onended = null;
-            mainPlayer.onerror = null;
-            mainPlayer.ontimeupdate = null;
-
-            currentChunkIndex = startIndex;
-            isPlaying = true;
-            playToggleBtn.textContent = "■";
-
-            // Kích hoạt đồng bộ luồng giữ âm thanh nền ngay trong thao tác chạm của người dùng
+            mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
+            currentChunkIndex = startIndex; isPlaying = true; playToggleBtn.textContent = "■";
             activateBackgroundKeepAlive();
 
-            // Nếu đoạn hiện tại chưa kịp tải xong, cho mainPlayer phát tạm luồng sóng ngầm để mở khóa quyền Audio của iOS
             if (!resolvedUrls[currentKey]) {
-                mainPlayer.src = keepAliveBlobUrl;
-                mainPlayer.loop = true;
-                mainPlayer.play().catch(() => {});
+                mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {});
             }
-
             updateMediaSession();
             await playLoop(currentSession);
         }
@@ -1428,20 +1388,13 @@
             while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
                 const idx = currentChunkIndex;
                 const key = getCacheKey(currentChapterIndex, idx);
-
-                highlightParagraph(idx);
-                saveProgress();
-                updateMediaSession();
-
-                // Kích hoạt worker tải trước các đoạn kế tiếp ngay lập tức
+                highlightParagraph(idx); saveProgress(); updateMediaSession();
                 startBackgroundWorker(session);
 
                 if (!resolvedUrls[key]) {
                     status.textContent = `⏳ Đang tạo giọng (${idx + 1}/${chunks.length})...`;
                     if (mainPlayer.paused && isPlaying) {
-                        mainPlayer.src = keepAliveBlobUrl;
-                        mainPlayer.loop = true;
-                        mainPlayer.play().catch(() => {});
+                        mainPlayer.src = keepAliveBlobUrl; mainPlayer.loop = true; mainPlayer.play().catch(() => {});
                     }
                 }
 
@@ -1450,71 +1403,42 @@
                     audioUrl = await ensureChunkPromise(currentChapterIndex, idx, session);
                 } catch (err) {
                     if (session !== playSessionId || !isPlaying) return;
-                    status.textContent = `⚠️ Đang thử kết nối lại đoạn ${idx + 1}...`;
+                    status.textContent = `⚠️ Đang thử kết nối lại...`;
                     await new Promise(r => setTimeout(r, 1200));
                     continue;
                 }
 
                 if (session !== playSessionId || !isPlaying) return;
-
                 startBackgroundWorker(session);
-
                 status.textContent = `🔊 ${chapters[currentChapterIndex].title}`;
                 const playResult = await playOnMainPlayer(key, idx, audioUrl, session);
 
                 if (session !== playSessionId || !isPlaying) return;
+                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe)"); return; }
 
-                if (playResult === "blocked") {
-                    stopTTS("⏸ Tạm dừng (Bấm ▶ để nghe tiếp từ đoạn này)");
-                    return;
-                }
-
-                // Dọn bộ nhớ các đoạn đã qua xa (cách 3 đoạn trước)
                 const oldIdx = idx - 3;
                 if (oldIdx >= 0) {
                     const oldKey = getCacheKey(currentChapterIndex, oldIdx);
-                    if (resolvedUrls[oldKey]) {
-                        URL.revokeObjectURL(resolvedUrls[oldKey]);
-                        delete resolvedUrls[oldKey];
-                        delete audioCache[oldKey];
-                    }
+                    if (resolvedUrls[oldKey]) { URL.revokeObjectURL(resolvedUrls[oldKey]); delete resolvedUrls[oldKey]; delete audioCache[oldKey]; }
                 }
-
                 currentChunkIndex++;
             }
 
             if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
                 if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Đang chuyển chương...";
-                    currentChapterIndex++;
-                    chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex, 0);
-                    saveProgress();
+                    status.textContent = "⏭ Chuyển chương...";
+                    currentChapterIndex++; chapterSelect.value = currentChapterIndex;
+                    renderChapter(currentChapterIndex, 0); saveProgress();
                     await playLoop(session);
-                    return;
-                } else {
-                    status.textContent = "✅ Đã đọc hết toàn bộ truyện!";
-                    stopTTS();
-                }
+                } else { status.textContent = "✅ Đã đọc hết truyện!"; stopTTS(); }
             }
         }
 
         function playOnMainPlayer(key, idx, url, session) {
             return new Promise((resolve) => {
-                if (session !== playSessionId || !isPlaying) {
-                    resolve("cancelled");
-                    return;
-                }
-
-                mainPlayer.onended = null;
-                mainPlayer.onerror = null;
-                mainPlayer.ontimeupdate = null;
-                mainPlayer.loop = false;
-
-                if (mainPlayer.dataset.loadedKey !== key) {
-                    mainPlayer.src = url;
-                    mainPlayer.dataset.loadedKey = key;
-                }
+                if (session !== playSessionId || !isPlaying) { resolve("cancelled"); return; }
+                mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null; mainPlayer.loop = false;
+                if (mainPlayer.dataset.loadedKey !== key) { mainPlayer.src = url; mainPlayer.dataset.loadedKey = key; }
                 mainPlayer.playbackRate = parseFloat(speedSelect.value);
 
                 const paraEl = document.getElementById(`para-${idx}`);
@@ -1524,7 +1448,6 @@
                     if (!mainPlayer.duration || wordSpans.length === 0) return;
                     const ratio = Math.min(1, mainPlayer.currentTime / mainPlayer.duration);
                     progressFill.style.width = `${(ratio * 100).toFixed(1)}%`;
-
                     const spokenCount = Math.floor(ratio * wordSpans.length);
                     wordSpans.forEach((sp, wIdx) => {
                         if (wIdx <= spokenCount) sp.classList.add("spoken");
@@ -1533,68 +1456,38 @@
                 };
 
                 const finish = (resType = "ended") => {
-                    mainPlayer.onended = null;
-                    mainPlayer.onerror = null;
-                    mainPlayer.ontimeupdate = null;
-                    progressFill.style.width = "0%";
-                    resolve(resType);
+                    mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
+                    progressFill.style.width = "0%"; resolve(resType);
                 };
-
                 mainPlayer.onended = () => finish("ended");
                 mainPlayer.onerror = () => finish("error");
-
-                mainPlayer.play().catch((err) => {
-                    if (err && err.name === "NotAllowedError") {
-                        finish("blocked");
-                    } else {
-                        finish("error");
-                    }
-                });
+                mainPlayer.play().catch((err) => finish(err && err.name === "NotAllowedError" ? "blocked" : "error"));
             });
         }
 
         function highlightParagraph(index) {
-            document.querySelectorAll('#storyContainer .active-chunk').forEach(p => {
-                p.classList.remove('active-chunk');
-            });
+            document.querySelectorAll('#storyContainer .active-chunk').forEach(p => p.classList.remove('active-chunk'));
             document.querySelectorAll('.word-span.spoken').forEach(s => s.classList.remove('spoken'));
-
             chunkCounter.textContent = chunks.length > 0 ? `${index + 1} / ${chunks.length}` : "0 / 0";
             const activePara = document.getElementById(`para-${index}`);
             if (activePara) {
                 activePara.classList.add('active-chunk');
-                if (document.visibilityState === 'visible') {
-                    activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                if (document.visibilityState === 'visible') activePara.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 
-        function updateSpeed() {
-            const rate = parseFloat(speedSelect.value);
-            mainPlayer.playbackRate = rate;
-        }
+        function updateSpeed() { mainPlayer.playbackRate = parseFloat(speedSelect.value); }
 
         function stopTTS(customMessage = "⏹ Đã tạm dừng.") {
-            playSessionId++;
-            isPlaying = false;
-            workerRunning = false;
-            playToggleBtn.textContent = "▶";
-            progressFill.style.width = "0%";
+            playSessionId++; isPlaying = false; workerRunning = false;
+            playToggleBtn.textContent = "▶"; progressFill.style.width = "0%";
             deactivateBackgroundKeepAlive();
-
-            mainPlayer.onended = null;
-            mainPlayer.onerror = null;
-            mainPlayer.ontimeupdate = null;
-            mainPlayer.pause();
-            mainPlayer.dataset.loadedKey = "";
-
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "paused";
-            }
+            mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
+            mainPlayer.pause(); mainPlayer.dataset.loadedKey = "";
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
             status.textContent = customMessage;
         }
 
-        // Tự động kích hoạt lại luồng âm thanh nền nếu người dùng quay lại màn hình
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible" && isPlaying) {
                 activateBackgroundKeepAlive();
@@ -1603,7 +1496,6 @@
             }
         });
 
-        // Khôi phục truyện đang đọc dở gần nhất khi mở lại trang
         (async () => {
             if (currentBookId) {
                 const savedBook = await getBookById(currentBookId);
