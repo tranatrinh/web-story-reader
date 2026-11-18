@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Story Reader - Apple Books Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- Web Fonts fallback cho Windows/Android để đủ 13 sắc thái font Apple Books -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Lora:wght@400;600;700&family=Nunito+Sans:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
@@ -448,7 +447,7 @@
         }
         .customize-pill-btn:active { opacity: 0.75; }
 
-        /* LIVE PREVIEW CARD IN CUSTOMIZE SHEET (LIKE SCREENSHOTS 1, 2, 3) */
+        /* LIVE PREVIEW CARD IN CUSTOMIZE SHEET */
         .preview-card {
             background: var(--surface-card);
             border-radius: 18px;
@@ -527,7 +526,7 @@
             max-width: 60%;
         }
 
-        /* EXPANDABLE APPLE BOOKS FONT PICKER LIST (SCREENSHOTS 1 & 2) */
+        /* EXPANDABLE APPLE BOOKS FONT PICKER LIST */
         .font-picker-list {
             display: none;
             flex-direction: column;
@@ -590,7 +589,7 @@
         .ios-switch input:checked + .ios-slider { background-color: #34c759; }
         .ios-switch input:checked + .ios-slider:before { transform: translateX(20px); }
 
-        /* EXTRA ACCESSIBILITY CONTROLS WHEN TOGGLED ON */
+        /* EXTRA ACCESSIBILITY CONTROLS */
         .extra-a11y-box {
             display: none;
             flex-direction: column;
@@ -702,7 +701,7 @@
         </div>
     </div>
 
-    <!-- MODAL 1: APPLE BOOKS "CHỦ ĐỀ & CÀI ĐẶT" (SCREENSHOT 4) -->
+    <!-- MODAL 1: APPLE BOOKS "CHỦ ĐỀ & CÀI ĐẶT" -->
     <div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-sheet">
             <div class="modal-header">
@@ -752,7 +751,7 @@
                 </div>
             </div>
 
-            <!-- TÙY CHỈNH BUTTON (OPENS SCREENSHOT 1-2-3 SHEET) -->
+            <!-- TÙY CHỈNH BUTTON -->
             <button class="customize-pill-btn" onclick="openCustomizeModal()">
                 <span>⚙</span>
                 <span>Tùy chỉnh</span>
@@ -785,7 +784,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: APPLE BOOKS "TÙY CHỈNH CHỦ ĐỀ" (SCREENSHOTS 1, 2, 3) -->
+    <!-- MODAL 2: APPLE BOOKS "TÙY CHỈNH CHỦ ĐỀ" -->
     <div class="modal-backdrop" id="customizeModal" onclick="if(event.target===this) closeCustomizeModal()">
         <div class="modal-sheet">
             <div class="modal-header">
@@ -994,7 +993,6 @@
 
         function openCustomizeModal() {
             closeSettingsModal();
-            // Cập nhật đoạn văn mẫu từ chính truyện đang mở nếu có
             if (chunks && chunks.length > 0) {
                 const samplePara = chunks.find(c => c.length > 90) || chunks[0];
                 if (samplePara) document.getElementById('previewSampleText').textContent = samplePara;
@@ -1285,31 +1283,7 @@
 
         function closeBookshelf() { document.getElementById("bookshelfModal").classList.remove("open"); }
 
-        function loadBookObject(book) {
-            stopTTS();
-            clearAudioCache();
-            currentBookId = book.id;
-            currentBookTitle = book.title || "";
-            localStorage.setItem("last_opened_book_apple_v6", book.id);
-            chapters = book.chapters;
-            document.getElementById("headerBookTitle").textContent = book.title;
-
-            chapterSelect.innerHTML = "";
-            chapters.forEach((chap, idx) => {
-                const opt = document.createElement("option");
-                opt.value = idx;
-                opt.textContent = chap.title;
-                chapterSelect.appendChild(opt);
-            });
-            document.getElementById("chapterBar").style.display = "block";
-
-            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
-            chapterSelect.value = targetChap;
-            renderChapter(targetChap, book.lastChunk || 0);
-            status.textContent = `Sẵn sàng đọc`;
-        }
-
-        // --- 3. PARSER & AUDIO ENGINE ---
+        // --- 3. PARSER, CHAPTER NORMALIZER & AUDIO ENGINE ---
         const fileInput = document.getElementById('fileInput');
         const storyContainer = document.getElementById('storyContainer');
         const status = document.getElementById('status');
@@ -1401,6 +1375,63 @@
                 .replace(/đ/g, "d").replace(/Đ/g, "D")
                 .toLowerCase()
                 .replace(/[\s\p{P}]/gu, '');
+        }
+
+        // Chuẩn hóa tiêu đề chương 1 lần duy nhất để Worker & Player đồng nhất 100% index (không lặp / không bỏ chương)
+        function ensureChapterHeadingOnce(chap) {
+            if (!chap || !Array.isArray(chap.paragraphs) || chap.paragraphs.length === 0) return;
+            const title = (chap.title || "").trim();
+            if (!title) return;
+
+            const normT = normalizeVi(title);
+            if (!normT) return;
+
+            for (let k = 0; k < Math.min(5, chap.paragraphs.length); k++) {
+                const line = chap.paragraphs[k].trim();
+                const normP = normalizeVi(line);
+                if (!normP) continue;
+
+                if (
+                    normP === normT ||
+                    (normP.length >= 5 && normT.includes(normP)) ||
+                    (normT.length >= 5 && normP.includes(normT)) ||
+                    (line.length < 100 && CHAPTER_REGEX.test(line))
+                ) {
+                    return;
+                }
+            }
+
+            chap.paragraphs.unshift(title);
+        }
+
+        function loadBookObject(book) {
+            stopTTS();
+            clearAudioCache();
+            currentBookId = book.id;
+            currentBookTitle = book.title || "";
+            localStorage.setItem("last_opened_book_apple_v6", book.id);
+
+            chapters = (book.chapters || []).map(c => {
+                const copyChap = { ...c, paragraphs: [...(c.paragraphs || [])] };
+                ensureChapterHeadingOnce(copyChap);
+                return copyChap;
+            });
+
+            document.getElementById("headerBookTitle").textContent = book.title;
+
+            chapterSelect.innerHTML = "";
+            chapters.forEach((chap, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx;
+                opt.textContent = chap.title;
+                chapterSelect.appendChild(opt);
+            });
+            document.getElementById("chapterBar").style.display = "block";
+
+            const targetChap = Math.min(book.lastChapter || 0, chapters.length - 1);
+            chapterSelect.value = targetChap;
+            renderChapter(targetChap, book.lastChunk || 0, false);
+            status.textContent = `Sẵn sàng đọc`;
         }
 
         function splitLongParagraph(text, maxLen = 400) {
@@ -1579,21 +1610,7 @@
                             const extracted = extractParagraphsFromHtml(htmlContent, fallbackTitle);
                             if (tocTitle) extracted.title = tocTitle.substring(0, 85);
 
-                            if (extracted.paragraphs.length > 0 && extracted.title) {
-                                const normT = normalizeVi(extracted.title);
-                                let hasHeading = false;
-                                for (let k = 0; k < Math.min(6, extracted.paragraphs.length); k++) {
-                                    const line = extracted.paragraphs[k].trim();
-                                    const normP = normalizeVi(line);
-                                    if (line.length < 100 && (CHAPTER_REGEX.test(line) || normP === normT || (normP.length > 4 && normT.includes(normP)))) {
-                                        hasHeading = true;
-                                        break;
-                                    }
-                                }
-                                if (!hasHeading) {
-                                    extracted.paragraphs.unshift(extracted.title);
-                                }
-                            }
+                            ensureChapterHeadingOnce(extracted);
                             if (extracted.paragraphs.length > 0) parsedChapters.push(extracted);
                         }
                     }
@@ -1620,36 +1637,18 @@
             const wasPlaying = isPlaying;
             stopTTS();
             setTimeout(() => {
-                renderChapter(parseInt(chapterSelect.value, 10), 0);
+                renderChapter(parseInt(chapterSelect.value, 10), 0, false);
                 saveProgress();
                 if (wasPlaying) startTTS(0);
             }, 100);
         }
 
-        function renderChapter(index, startChunk = 0) {
+        function renderChapter(index, startChunk = 0, preserveCache = false) {
             currentChapterIndex = index;
             const chap = chapters[currentChapterIndex];
             if (!chap) return;
 
-            const rawParas = chap.paragraphs || [];
-            let workingChunks = [...rawParas];
-            if (workingChunks.length > 0 && chap.title) {
-                const normT = normalizeVi(chap.title);
-                let hasHeading = false;
-                for (let k = 0; k < Math.min(6, workingChunks.length); k++) {
-                    const line = workingChunks[k].trim();
-                    const normP = normalizeVi(line);
-                    if (line.length < 100 && (CHAPTER_REGEX.test(line) || normP === normT || (normP.length > 4 && normT.includes(normP)))) {
-                        hasHeading = true;
-                        break;
-                    }
-                }
-                if (!hasHeading) {
-                    workingChunks.unshift(chap.title);
-                }
-            }
-
-            chunks = workingChunks;
+            chunks = chap.paragraphs || [];
             currentChunkIndex = Math.min(startChunk, Math.max(0, chunks.length - 1));
 
             const normBook = normalizeVi(currentBookTitle.split(/[-–_|]/)[0]);
@@ -1700,7 +1699,9 @@
             }).join('');
 
             highlightParagraph(currentChunkIndex);
-            clearAudioCache(currentChapterIndex);
+            if (!preserveCache) {
+                clearAudioCache(currentChapterIndex);
+            }
         }
 
         function getCacheKey(chapIdx, chunkIdx) { return `${chapIdx}_${chunkIdx}`; }
@@ -1744,10 +1745,9 @@
         }
 
         function ensureChunkPromise(chapIdx, chunkIdx, session) {
-            if (chunkIdx >= chunks.length && chapIdx === currentChapterIndex) return null;
             const chap = chapters[chapIdx];
-            if (!chap) return null;
-            const text = (chapIdx === currentChapterIndex) ? chunks[chunkIdx] : chap.paragraphs[chunkIdx];
+            if (!chap || !chap.paragraphs || chunkIdx >= chap.paragraphs.length) return null;
+            const text = chap.paragraphs[chunkIdx];
             if (!text) return null;
 
             const key = getCacheKey(chapIdx, chunkIdx);
@@ -1775,7 +1775,7 @@
                     if (targetChap === -1 && (chunks.length - 1 - base) <= 4) {
                         const nextChapIdx = currentChapterIndex + 1;
                         if (nextChapIdx < chapters.length) {
-                            const nextParas = chapters[nextChapIdx].paragraphs;
+                            const nextParas = chapters[nextChapIdx].paragraphs || [];
                             for (let j = 0; j <= Math.min(nextParas.length - 1, 2); j++) {
                                 const nk = getCacheKey(nextChapIdx, j);
                                 if (!audioCache[nk]) { targetChap = nextChapIdx; targetChunk = j; break; }
@@ -1815,7 +1815,7 @@
             if (currentChunkIndex + 1 < chunks.length) startTTS(currentChunkIndex + 1);
             else if (currentChapterIndex + 1 < chapters.length) {
                 currentChapterIndex++; chapterSelect.value = currentChapterIndex;
-                renderChapter(currentChapterIndex, 0); startTTS(0);
+                renderChapter(currentChapterIndex, 0, true); startTTS(0);
             }
         }
 
@@ -1842,10 +1842,28 @@
         }
 
         async function playLoop(session) {
-            while (isPlaying && session === playSessionId && currentChunkIndex < chunks.length) {
+            while (isPlaying && session === playSessionId) {
+                if (currentChunkIndex >= chunks.length) {
+                    if (currentChapterIndex < chapters.length - 1) {
+                        status.textContent = "⏭ Chuyển chương...";
+                        const nextChap = currentChapterIndex + 1;
+                        chapterSelect.value = nextChap;
+                        renderChapter(nextChap, 0, true);
+                        saveProgress();
+                        updateMediaSession();
+                        continue;
+                    } else {
+                        status.textContent = "✅ Đã đọc hết truyện!";
+                        stopTTS("Đã đọc hết truyện!");
+                        return;
+                    }
+                }
+
                 const idx = currentChunkIndex;
                 const key = getCacheKey(currentChapterIndex, idx);
-                highlightParagraph(idx); saveProgress(); updateMediaSession();
+                highlightParagraph(idx);
+                saveProgress();
+                updateMediaSession();
                 startBackgroundWorker(session);
 
                 if (!resolvedUrls[key]) {
@@ -1871,7 +1889,8 @@
                 const playResult = await playOnMainPlayer(key, idx, audioUrl, session);
 
                 if (session !== playSessionId || !isPlaying) return;
-                if (playResult === "blocked") { stopTTS("⏸ Tạm dừng"); return; }
+                if (playResult === "blocked") { stopTTS("Đã tạm dừng"); return; }
+                if (playResult === "error") { await new Promise(r => setTimeout(r, 400)); continue; }
 
                 const oldIdx = idx - 3;
                 if (oldIdx >= 0) {
@@ -1879,15 +1898,6 @@
                     if (resolvedUrls[oldKey]) { URL.revokeObjectURL(resolvedUrls[oldKey]); delete resolvedUrls[oldKey]; delete audioCache[oldKey]; }
                 }
                 currentChunkIndex++;
-            }
-
-            if (isPlaying && session === playSessionId && currentChunkIndex >= chunks.length) {
-                if (currentChapterIndex < chapters.length - 1) {
-                    status.textContent = "⏭ Chuyển chương...";
-                    currentChapterIndex++; chapterSelect.value = currentChapterIndex;
-                    renderChapter(currentChapterIndex, 0); saveProgress();
-                    await playLoop(session);
-                } else { status.textContent = "✅ Đã đọc hết truyện!"; stopTTS(); }
             }
         }
 
@@ -1899,19 +1909,36 @@
                 mainPlayer.playbackRate = parseFloat(speedSelect.value);
 
                 const paraEl = document.getElementById(`para-${idx}`);
-                const wordSpans = paraEl ? paraEl.querySelectorAll(".word-span") : [];
+                const wordSpans = paraEl ? Array.from(paraEl.querySelectorAll(".word-span")) : [];
+
+                const weights = wordSpans.map(sp => {
+                    const t = sp.textContent || "";
+                    const pauseBonus = /[.!?…]$/.test(t) ? 5 : (/[,;:]$/.test(t) ? 2.5 : 0);
+                    return t.length + pauseBonus + 1;
+                });
+                const totalWeight = weights.reduce((a, b) => a + b, 0);
 
                 mainPlayer.ontimeupdate = () => {
                     if (!mainPlayer.duration || wordSpans.length === 0) return;
-                    const ratio = Math.min(1, mainPlayer.currentTime / mainPlayer.duration);
-                    const spokenCount = Math.floor(ratio * wordSpans.length);
-                    wordSpans.forEach((sp, wIdx) => {
-                        if (wIdx <= spokenCount) sp.classList.add("spoken");
-                        else sp.classList.remove("spoken");
-                    });
+                    const effectiveDuration = Math.max(0.1, mainPlayer.duration - 0.15);
+                    const ratio = Math.min(1, mainPlayer.currentTime / effectiveDuration);
+                    const targetWeight = ratio * totalWeight;
+
+                    let acc = 0;
+                    for (let wIdx = 0; wIdx < wordSpans.length; wIdx++) {
+                        acc += weights[wIdx];
+                        if (acc <= targetWeight || ratio >= 0.98) {
+                            wordSpans[wIdx].classList.add("spoken");
+                        } else {
+                            wordSpans[wIdx].classList.remove("spoken");
+                        }
+                    }
                 };
 
                 const finish = (resType = "ended") => {
+                    if (resType === "ended") {
+                        wordSpans.forEach(sp => sp.classList.add("spoken"));
+                    }
                     mainPlayer.onended = null; mainPlayer.onerror = null; mainPlayer.ontimeupdate = null;
                     resolve(resType);
                 };
