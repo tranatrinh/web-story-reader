@@ -3,42 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Story Reader - Apple Books Edition</title>
+    <title>AI Story Reader - Apple Books Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Web Fonts fallback cho Windows/Android để đủ 13 sắc thái font Apple Books -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Lora:wght@400;600;700&family=Nunito+Sans:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
     <style>
         /* APPLE BOOKS 6 THEMES */
         :root.theme-nguyen-ban {
-            --bg: #ffffff; --surface: #f5f5f7; --surface-2: #e8e8ed; --border: #dcdce0;
-            --text: #1d1d1f; --text-muted: #78787d; --book-brand: #635334; --chap-sub: #535943;
+            --bg: #ffffff; --surface: #f2f2f7; --surface-card: #ffffff; --surface-2: #e5e5ea; --border: #dcdce0;
+            --text: #1d1d1f; --text-muted: #86868b; --book-brand: #635334; --chap-sub: #535943;
             --pill-dark: #1d1d1f; --pill-dark-text: #ffffff;
             --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.14);
         }
         :root.theme-yen-tinh {
-            --bg: #1c1c1e; --surface: #2c2c2e; --surface-2: #3a3a3c; --border: #48484a;
+            --bg: #1c1c1e; --surface: #2c2c2e; --surface-card: #363638; --surface-2: #444446; --border: #48484a;
             --text: #f2f2f7; --text-muted: #98989d; --book-brand: #d4b982; --chap-sub: #a8b596;
             --pill-dark: #f2f2f7; --pill-dark-text: #1c1c1e;
             --accent: #34d399; --accent-glow: rgba(52, 211, 153, 0.18);
         }
         :root.theme-giay {
-            --bg: #f8f5ee; --surface: #efeae0; --surface-2: #e4ddd0; --border: #d5cdbe;
+            --bg: #f8f5ee; --surface: #efeae0; --surface-card: #f8f5ee; --surface-2: #e4ddd0; --border: #d5cdbe;
             --text: #2b2926; --text-muted: #78736a; --book-brand: #635334; --chap-sub: #535943;
             --pill-dark: #2b2926; --pill-dark-text: #f8f5ee;
             --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.15);
         }
         :root.theme-dam {
-            --bg: #000000; --surface: #161618; --surface-2: #242427; --border: #333338;
+            --bg: #000000; --surface: #161618; --surface-card: #222225; --surface-2: #2c2c30; --border: #38383d;
             --text: #f5f5f7; --text-muted: #8e8e93; --book-brand: #d4b982; --chap-sub: #a8b596;
             --pill-dark: #f5f5f7; --pill-dark-text: #000000;
             --accent: #10b981; --accent-glow: rgba(16, 185, 129, 0.22);
         }
         :root.theme-em-diu {
-            --bg: #efe5d1; --surface: #e4d8c1; --surface-2: #d6c8ad; --border: #c5b699;
+            --bg: #efe5d1; --surface: #e4d8c1; --surface-card: #efe5d1; --surface-2: #d6c8ad; --border: #c5b699;
             --text: #382e24; --text-muted: #7a6d5f; --book-brand: #635334; --chap-sub: #535943;
             --pill-dark: #2e251c; --pill-dark-text: #f5ece0;
             --accent: #0d9488; --accent-glow: rgba(13, 148, 136, 0.16);
         }
         :root.theme-tap-trung {
-            --bg: #fbfbf9; --surface: #f2f2ee; --surface-2: #e6e6e0; --border: #d8d8d0;
+            --bg: #fbfbf9; --surface: #f2f2ee; --surface-card: #ffffff; --surface-2: #e6e6e0; --border: #d8d8d0;
             --text: #18181b; --text-muted: #71717a; --book-brand: #635334; --chap-sub: #535943;
             --pill-dark: #18181b; --pill-dark-text: #ffffff;
             --accent: #059669; --accent-glow: rgba(5, 150, 105, 0.14);
@@ -119,13 +123,15 @@
             flex: 1;
             overflow-y: auto;
             padding: 22px 24px 96px 24px;
-            font-family: var(--reader-font, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif);
+            font-family: var(--reader-font, "New York", "Iowan Old Style", "Literata", Georgia, serif);
             font-size: var(--reader-font-size, 19px);
-            line-height: 1.56;
+            font-weight: var(--reader-font-weight, 400);
+            line-height: var(--reader-line-height, 1.56);
             max-width: 720px;
             width: 100%;
             margin: 0 auto;
             scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
         }
         #storyContainer p {
             margin: 0;
@@ -138,7 +144,6 @@
 
         /* 1. Tên truyện in hoa màu nâu đồng đặc trưng Apple Books */
         #storyContainer p.book-hero-title {
-            font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.65em;
             font-weight: 700;
             line-height: 1.25;
@@ -153,7 +158,7 @@
 
         /* 2. Tác giả & nguồn sách căn giữa chữ nhỏ thanh mảnh */
         #storyContainer p.meta-center {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "New York", Georgia, serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             font-size: 0.82em;
             font-weight: 400;
             line-height: 1.35;
@@ -166,7 +171,6 @@
 
         /* 3. Tiêu đề chương đậm đen chuẩn Apple Books */
         #storyContainer p.chap-number {
-            font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.45em;
             font-weight: 700;
             line-height: 1.28;
@@ -179,13 +183,10 @@
             margin: 12px 0 24px 0;
             padding: 4px 10px;
         }
-        #storyContainer p.chap-number.has-sub {
-            margin-bottom: 10px;
-        }
+        #storyContainer p.chap-number.has-sub { margin-bottom: 10px; }
 
         /* 4. Tên tiêu đề chương phụ màu nâu rêu đậm căn giữa */
         #storyContainer p.chap-subtitle {
-            font-family: "New York", "Iowan Old Style", Georgia, serif;
             font-size: 1.05em;
             font-weight: 700;
             line-height: 1.35;
@@ -199,8 +200,8 @@
         /* 5. Các đoạn nội dung truyện chuẩn sách in */
         #storyContainer p.story-p {
             text-indent: 1.5em;
-            text-align: justify;
-            margin-bottom: 5px;
+            text-align: var(--reader-text-align, justify);
+            margin-bottom: var(--reader-para-gap, 5px);
         }
 
         #storyContainer p.toc-line {
@@ -220,7 +221,7 @@
             font-weight: 600;
         }
 
-        /* SINGLE-ROW FLOATING BOTTOM BAR (APPLE BOOKS STYLE) */
+        /* SINGLE-ROW FLOATING BOTTOM BAR */
         .floating-dock {
             position: fixed;
             bottom: 0;
@@ -298,7 +299,7 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(3px);
+            backdrop-filter: blur(4px);
             display: none;
             align-items: flex-end;
             justify-content: center;
@@ -308,14 +309,14 @@
         .modal-sheet {
             background: var(--surface);
             border-top: 1px solid var(--border);
-            border-radius: 24px 24px 0 0;
+            border-radius: 26px 26px 0 0;
             width: 100%;
             max-width: 580px;
-            max-height: 86dvh;
+            max-height: 90dvh;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            padding: 20px 20px calc(22px + env(safe-area-inset-bottom)) 20px;
+            padding: 18px 20px calc(24px + env(safe-area-inset-bottom)) 20px;
             gap: 14px;
             box-shadow: 0 -10px 35px rgba(0,0,0,0.22);
             animation: slideUp 0.22s ease-out;
@@ -333,13 +334,27 @@
             color: var(--text);
         }
         .close-circle-btn {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: var(--surface-2);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 13px;
+            border: none;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .confirm-circle-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--pill-dark);
+            border: none;
+            color: var(--pill-dark-text);
+            font-size: 15px;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
@@ -347,118 +362,263 @@
             cursor: pointer;
         }
 
-        /* A- / A+ ROW */
-        .font-size-row {
+        /* APPLE BOOKS SEGMENTED A- / A+ PILL */
+        .font-size-segmented {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            background: var(--surface-2);
+            border-radius: 14px;
+            overflow: hidden;
         }
         .font-size-btn {
-            background: var(--bg);
-            border: 1px solid var(--border);
+            background: transparent;
+            border: none;
             color: var(--text);
-            padding: 11px;
-            font-weight: 700;
-            border-radius: 12px;
+            padding: 12px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .font-size-btn:active { opacity: 0.75; }
+        .font-size-btn:first-child {
+            border-right: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .font-size-btn:last-child { font-size: 19px; }
+        .font-size-btn:active { background: rgba(0,0,0,0.06); }
 
-        /* 6 THEMES GRID */
+        /* 6 THEMES GRID WITH APPLE BOOKS ASTERISK */
         .themes-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
         }
         .theme-card {
-            border-radius: 14px;
-            padding: 14px 8px;
+            position: relative;
+            border-radius: 16px;
+            padding: 15px 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
             cursor: pointer;
             border: 2px solid transparent;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             transition: transform 0.15s, border-color 0.2s;
         }
         .theme-card:active { transform: scale(0.96); }
         .theme-card.active {
             border-color: var(--text);
         }
-        .theme-card .aa-label {
-            font-family: Georgia, serif;
-            font-size: 20px;
+        .theme-card .active-star {
+            display: none;
+            position: absolute;
+            top: 6px;
+            right: 9px;
+            font-size: 14px;
             font-weight: 700;
+        }
+        .theme-card.active .active-star { display: block; }
+        .theme-card .aa-label {
+            font-family: "New York", Georgia, serif;
+            font-size: 21px;
+            font-weight: 600;
         }
         .theme-card .theme-name {
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
         }
 
-        /* SETTINGS LIST GROUP */
-        .settings-group {
-            background: var(--bg);
-            border: 1px solid var(--border);
+        /* FULL-WIDTH CUSTOMIZE BUTTON */
+        .customize-pill-btn {
+            width: 100%;
+            background: var(--surface-2);
+            color: var(--text);
+            border: none;
             border-radius: 14px;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .customize-pill-btn:active { opacity: 0.75; }
+
+        /* LIVE PREVIEW CARD IN CUSTOMIZE SHEET (LIKE SCREENSHOTS 1, 2, 3) */
+        .preview-card {
+            background: var(--surface-card);
+            border-radius: 18px;
+            padding: 18px 20px 16px 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            position: relative;
             overflow: hidden;
         }
-        .settings-row {
+        .preview-aa-hero {
+            font-family: var(--reader-font, "New York", Georgia, serif);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            line-height: 1.1;
+        }
+        .preview-sample-text {
+            font-family: var(--reader-font, "New York", Georgia, serif);
+            font-size: 14.5px;
+            font-weight: var(--reader-font-weight, 400);
+            line-height: 1.5;
+            color: var(--text);
+            text-align: var(--reader-text-align, justify);
+            margin: 0;
+            -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+        }
+
+        .section-heading {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 4px 4px -4px 4px;
+        }
+
+        /* IOS GROUPED LIST CARD */
+        .ios-card {
+            background: var(--surface-card);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .ios-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 13px 14px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border);
-            font-size: 13.5px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 500;
             color: var(--text);
             gap: 10px;
         }
-        .settings-row:last-child { border-bottom: none; }
-        .settings-row select {
+        .ios-row:last-child { border-bottom: none; }
+        .ios-row-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ios-row-icon {
+            width: 24px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text);
+        }
+        .ios-row select {
             background: transparent;
             color: var(--text-muted);
             border: none;
-            font-size: 13.5px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
             outline: none;
             cursor: pointer;
             text-align: right;
-            max-width: 62%;
+            max-width: 60%;
         }
 
-        /* MINI TRANSPORT INSIDE SETTINGS */
-        .mini-transport-row {
+        /* EXPANDABLE APPLE BOOKS FONT PICKER LIST (SCREENSHOTS 1 & 2) */
+        .font-picker-list {
+            display: none;
+            flex-direction: column;
+            background: var(--surface-card);
+            border-top: 1px solid var(--border);
+            max-height: 290px;
+            overflow-y: auto;
+        }
+        .font-picker-list.open { display: flex; }
+        .font-option-item {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 10px 14px;
-        }
-        .mini-nav-btn {
-            background: var(--surface);
-            border: 1px solid var(--border);
+            align-items: center;
+            padding: 13px 18px 13px 22px;
+            border-bottom: 1px solid var(--border);
+            font-size: 16px;
             color: var(--text);
-            border-radius: 10px;
-            padding: 7px 14px;
-            font-size: 13px;
-            font-weight: 600;
             cursor: pointer;
+            transition: background 0.15s;
         }
+        .font-option-item:last-child { border-bottom: none; }
+        .font-option-item:active { background: var(--surface); }
+        .font-option-item .check-mark {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            opacity: 0;
+        }
+        .font-option-item.selected .check-mark { opacity: 1; }
+
+        /* IOS TOGGLE SWITCH */
+        .ios-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        .ios-switch input { opacity: 0; width: 0; height: 0; }
+        .ios-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: var(--surface-2);
+            border-radius: 999px;
+            transition: 0.25s;
+        }
+        .ios-slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: 0.25s;
+        }
+        .ios-switch input:checked + .ios-slider { background-color: #34c759; }
+        .ios-switch input:checked + .ios-slider:before { transform: translateX(20px); }
+
+        /* EXTRA ACCESSIBILITY CONTROLS WHEN TOGGLED ON */
+        .extra-a11y-box {
+            display: none;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+            background: var(--surface-card);
+        }
+        .extra-a11y-box.open { display: flex; }
+
+        .reset-theme-btn {
+            width: 100%;
+            background: var(--surface-card);
+            color: #ff3b30;
+            border: none;
+            border-radius: 16px;
+            padding: 15px;
+            font-size: 15.5px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .reset-theme-btn:active { opacity: 0.7; }
 
         /* BOOKSHELF ITEMS */
-        .book-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .book-list { display: flex; flex-direction: column; gap: 8px; }
         .book-item {
-            background: var(--bg);
+            background: var(--surface-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 12px 14px;
             display: flex;
             justify-content: space-between;
@@ -542,68 +702,71 @@
         </div>
     </div>
 
-    <!-- APPLE BOOKS SETTINGS & THEMES MODAL -->
+    <!-- MODAL 1: APPLE BOOKS "CHỦ ĐỀ & CÀI ĐẶT" (SCREENSHOT 4) -->
     <div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-sheet">
             <div class="modal-header">
-                <span>Chủ đề & Cài đặt</span>
-                <button class="close-circle-btn" onclick="closeSettingsModal()">✕</button>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button class="close-circle-btn" onclick="closeSettingsModal()">✕</button>
+                    <span>Chủ đề & Cài đặt</span>
+                </div>
             </div>
 
-            <div class="font-size-row">
-                <button class="font-size-btn" onclick="adjustFontSize(-1)">A−</button>
-                <button class="font-size-btn" onclick="adjustFontSize(1)">A+</button>
+            <!-- A- / A+ SEGMENTED PILL -->
+            <div class="font-size-segmented">
+                <button class="font-size-btn" onclick="adjustFontSize(-1)">A</button>
+                <button class="font-size-btn" onclick="adjustFontSize(1)">A</button>
             </div>
 
+            <!-- 6 THEMES GRID -->
             <div class="themes-grid">
                 <div class="theme-card" id="card-nguyen-ban" style="background:#ffffff; color:#1d1d1f; border-color:#e5e5ea;" onclick="setTheme('nguyen-ban')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Nguyên bản</span>
                 </div>
-                <div class="theme-card" id="card-yen-tinh" style="background:#2c2c2e; color:#f2f2f7;" onclick="setTheme('yen-tinh')">
+                <div class="theme-card" id="card-yen-tinh" style="background:#424245; color:#f2f2f7;" onclick="setTheme('yen-tinh')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Yên tĩnh</span>
                 </div>
                 <div class="theme-card" id="card-giay" style="background:#f8f5ee; color:#2b2926; border-color:#e5dfd3;" onclick="setTheme('giay')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Giấy</span>
                 </div>
                 <div class="theme-card" id="card-dam" style="background:#141416; color:#ffffff;" onclick="setTheme('dam')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Đậm</span>
                 </div>
                 <div class="theme-card" id="card-em-diu" style="background:#efe5d1; color:#382e24;" onclick="setTheme('em-diu')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Êm dịu</span>
                 </div>
                 <div class="theme-card" id="card-tap-trung" style="background:#fbfbf9; color:#18181b; border-color:#e4e4e0;" onclick="setTheme('tap-trung')">
+                    <span class="active-star">*</span>
                     <span class="aa-label">Aa</span>
                     <span class="theme-name">Tập trung</span>
                 </div>
             </div>
 
-            <div class="mini-transport-row">
-                <button class="mini-nav-btn" onclick="prevChunk()">⏮ Đoạn trước</button>
-                <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Điều hướng đọc</span>
-                <button class="mini-nav-btn" onclick="nextChunk()">Đoạn tiếp ⏭</button>
-            </div>
+            <!-- TÙY CHỈNH BUTTON (OPENS SCREENSHOT 1-2-3 SHEET) -->
+            <button class="customize-pill-btn" onclick="openCustomizeModal()">
+                <span>⚙</span>
+                <span>Tùy chỉnh</span>
+            </button>
 
-            <div class="settings-group">
-                <div class="settings-row">
+            <!-- AUDIO & TTS SETTINGS GROUP -->
+            <div class="ios-card">
+                <div class="ios-row">
                     <span>🎙 Giọng đọc AI</span>
                     <select id="voiceSelect" onchange="onVoiceChange()">
                         <option value="default">Mặc định</option>
                     </select>
                 </div>
-                <div class="settings-row">
-                    <span>Aa Phông chữ</span>
-                    <select id="fontFamilySelect" onchange="changeFontFamily()">
-                        <option value="'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif">Nguyên bản (New York)</option>
-                        <option value="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif">Hiện đại (San Francisco)</option>
-                        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Sách cổ điển (Palatino)</option>
-                    </select>
-                </div>
-                <div class="settings-row">
+                <div class="ios-row">
                     <span>⚡ Tốc độ đọc</span>
                     <select id="speedSelect" onchange="updateSpeed()">
                         <option value="0.8">0.8x</option>
@@ -614,23 +777,203 @@
                         <option value="2.0">2.0x</option>
                     </select>
                 </div>
-                <div class="settings-row" onclick="changeServerUrl()" style="cursor:pointer;">
+                <div class="ios-row" onclick="changeServerUrl()" style="cursor:pointer;">
                     <span>🔊 Nguồn phát</span>
-                    <span id="serverBtn" style="color:var(--text-muted);">Luồng Audio (Chạy ngầm) ⌄</span>
+                    <span id="serverBtn" style="color:var(--text-muted); font-size:13.5px;">Luồng Audio ⌄</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- MODAL 2: APPLE BOOKS "TÙY CHỈNH CHỦ ĐỀ" (SCREENSHOTS 1, 2, 3) -->
+    <div class="modal-backdrop" id="customizeModal" onclick="if(event.target===this) closeCustomizeModal()">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <button class="close-circle-btn" onclick="closeCustomizeModal()">✕</button>
+                <span>Tùy chỉnh chủ đề</span>
+                <button class="confirm-circle-btn" onclick="closeCustomizeModal()">✓</button>
+            </div>
+
+            <!-- LIVE Aa PREVIEW CARD -->
+            <div class="preview-card">
+                <div class="preview-aa-hero">Aa</div>
+                <p class="preview-sample-text" id="previewSampleText">
+                    Sau khi ăn hai cái bánh bao tiết lợn, Viên Mục Dã cảm thấy người mình không còn bủn rủn nữa, cậu bèn gọi ông chủ quán mì đến để hỏi tình hình ăn mì của bọn trẻ đêm qua. Theo trí nhớ của ông chủ quán, lúc đó trong quán ngoài mấy đứa bé ra thì còn vài bàn khách nữa, ông ta chạy đi chạy lại để tính tiền và phục vụ nên khá bận rộn, vì thế không để ý được trong số những đứa trẻ đó có đứa nào...
+                </p>
+            </div>
+
+            <div class="section-heading">Văn bản</div>
+            <div class="ios-card">
+                <!-- FONT ROW TRIGGER -->
+                <div class="ios-row" onclick="toggleFontPicker()" style="cursor:pointer;">
+                    <div class="ios-row-left">
+                        <span class="ios-row-icon">Aa</span>
+                        <span>Phông chữ</span>
+                    </div>
+                    <span id="currentFontLabel" style="color:var(--text-muted); font-size:14.5px;">Nguyên bản ›</span>
+                </div>
+
+                <!-- EXPANDABLE 14 APPLE BOOKS FONTS LIST -->
+                <div class="font-picker-list" id="fontPickerList"></div>
+
+                <!-- BOLD TEXT SWITCH -->
+                <div class="ios-row">
+                    <div class="ios-row-left">
+                        <span class="ios-row-icon" style="font-weight:800;">B</span>
+                        <span>Chữ đậm</span>
+                    </div>
+                    <label class="ios-switch">
+                        <input type="checkbox" id="boldTextToggle" onchange="toggleBoldText()">
+                        <span class="ios-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="section-heading">Tùy chọn Trợ năng & Bố cục</div>
+            <div class="ios-card">
+                <div class="ios-row">
+                    <span>Tùy chỉnh</span>
+                    <label class="ios-switch">
+                        <input type="checkbox" id="a11yToggle" onchange="toggleA11yPanel()">
+                        <span class="ios-slider"></span>
+                    </label>
+                </div>
+                <div class="extra-a11y-box" id="extraA11yBox">
+                    <div class="ios-row">
+                        <span>Giãn cách dòng</span>
+                        <select id="lineHeightSelect" onchange="updateLayoutSettings()">
+                            <option value="1.4">Gọn (1.4)</option>
+                            <option value="1.56" selected>Tiêu chuẩn (1.56)</option>
+                            <option value="1.75">Thoáng (1.75)</option>
+                            <option value="1.95">Rộng (1.95)</option>
+                        </select>
+                    </div>
+                    <div class="ios-row">
+                        <span>Căn lề văn bản</span>
+                        <select id="textAlignSelect" onchange="updateLayoutSettings()">
+                            <option value="justify" selected>Căn đều hai bên</option>
+                            <option value="left">Căn trái tự nhiên</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="reset-theme-btn" onclick="resetThemeTypography()">Đặt lại chủ đề</button>
+        </div>
+    </div>
+
     <script>
-        // --- THEME & TYPOGRAPHY SETTINGS ---
-        let currentTheme = localStorage.getItem("my_apple_book_theme_v6") || "nguyen-ban";
-        let currentFontSize = parseFloat(localStorage.getItem("my_apple_book_fontsize")) || 19;
-        let currentFontFamily = localStorage.getItem("my_apple_book_fontfamily") || "'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif";
+        // --- 14 APPLE BOOKS PRO FONTS CATALOG ---
+        const APPLE_FONTS = [
+            { id: "nguyen-ban", name: "Nguyên bản", css: "'New York', 'Iowan Old Style', 'Literata', Georgia, serif" },
+            { id: "athelas", name: "Athelas", css: "'Athelas', 'Source Serif 4', Georgia, serif" },
+            { id: "avenir-next", name: "Avenir Next", css: "'Avenir Next', 'Plus Jakarta Sans', -apple-system, sans-serif" },
+            { id: "canela", name: "Canela", css: "'Canela', 'Cormorant Garamond', Georgia, serif" },
+            { id: "charter", name: "Charter", css: "'Charter', 'Bitstream Charter', 'Lora', Georgia, serif" },
+            { id: "georgia", name: "Georgia", css: "'Georgia', 'Lora', serif" },
+            { id: "iowan", name: "Iowan", css: "'Iowan Old Style', 'Literata', Palatino, serif" },
+            { id: "palatino", name: "Palatino", css: "'Palatino', 'Palatino Linotype', 'Book Antiqua', serif" },
+            { id: "proxima-nova", name: "Proxima Nova", css: "'Proxima Nova', 'Nunito Sans', -apple-system, sans-serif" },
+            { id: "publico", name: "Publico", css: "'Publico', 'Publico Text', 'Source Serif 4', Georgia, serif" },
+            { id: "san-francisco", name: "San Francisco", css: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Plus Jakarta Sans', sans-serif" },
+            { id: "new-york", name: "New York", css: "'New York', 'Literata', 'Iowan Old Style', Georgia, serif" },
+            { id: "seravek", name: "Seravek", css: "'Seravek', 'Nunito Sans', -apple-system, sans-serif" },
+            { id: "times-new-roman", name: "Times New Roman", css: "'Times New Roman', Times, serif" }
+        ];
+
+        // --- THEME & PRO TYPOGRAPHY STATE ---
+        let currentTheme = localStorage.getItem("ab_pro_theme") || "nguyen-ban";
+        let currentFontId = localStorage.getItem("ab_pro_font_id") || "nguyen-ban";
+        let currentFontSize = parseFloat(localStorage.getItem("ab_pro_fontsize")) || 19;
+        let isBoldText = localStorage.getItem("ab_pro_bold") === "true";
+        let isA11yCustom = localStorage.getItem("ab_pro_a11y") === "true";
+        let currentLineHeight = localStorage.getItem("ab_pro_lineheight") || "1.56";
+        let currentTextAlign = localStorage.getItem("ab_pro_textalign") || "justify";
+
+        function applyTypographyToDOM() {
+            const fontObj = APPLE_FONTS.find(f => f.id === currentFontId) || APPLE_FONTS[0];
+            document.documentElement.style.setProperty('--reader-font', fontObj.css);
+            document.documentElement.style.setProperty('--reader-font-size', currentFontSize + 'px');
+            document.documentElement.style.setProperty('--reader-font-weight', isBoldText ? '600' : '400');
+            document.documentElement.style.setProperty('--reader-line-height', isA11yCustom ? currentLineHeight : '1.56');
+            document.documentElement.style.setProperty('--reader-text-align', isA11yCustom ? currentTextAlign : 'justify');
+
+            const isPickerOpen = document.getElementById('fontPickerList').classList.contains('open');
+            document.getElementById('currentFontLabel').textContent = `${fontObj.name} ${isPickerOpen ? '⌄' : '›'}`;
+            document.getElementById('boldTextToggle').checked = isBoldText;
+            document.getElementById('a11yToggle').checked = isA11yCustom;
+            document.getElementById('extraA11yBox').classList.toggle('open', isA11yCustom);
+            document.getElementById('lineHeightSelect').value = currentLineHeight;
+            document.getElementById('textAlignSelect').value = currentTextAlign;
+
+            renderFontPickerList();
+        }
+
+        function renderFontPickerList() {
+            const listEl = document.getElementById('fontPickerList');
+            listEl.innerHTML = APPLE_FONTS.map(f => {
+                const selectedCls = f.id === currentFontId ? "selected" : "";
+                return `
+                    <div class="font-option-item ${selectedCls}" style="font-family: ${f.css};" onclick="selectAppleFont('${f.id}')">
+                        <span>${f.name}</span>
+                        <span class="check-mark">✓</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleFontPicker() {
+            const listEl = document.getElementById('fontPickerList');
+            listEl.classList.toggle('open');
+            applyTypographyToDOM();
+        }
+
+        function selectAppleFont(fontId) {
+            currentFontId = fontId;
+            localStorage.setItem("ab_pro_font_id", fontId);
+            applyTypographyToDOM();
+        }
+
+        function toggleBoldText() {
+            isBoldText = document.getElementById('boldTextToggle').checked;
+            localStorage.setItem("ab_pro_bold", isBoldText);
+            applyTypographyToDOM();
+        }
+
+        function toggleA11yPanel() {
+            isA11yCustom = document.getElementById('a11yToggle').checked;
+            localStorage.setItem("ab_pro_a11y", isA11yCustom);
+            applyTypographyToDOM();
+        }
+
+        function updateLayoutSettings() {
+            currentLineHeight = document.getElementById('lineHeightSelect').value;
+            currentTextAlign = document.getElementById('textAlignSelect').value;
+            localStorage.setItem("ab_pro_lineheight", currentLineHeight);
+            localStorage.setItem("ab_pro_textalign", currentTextAlign);
+            applyTypographyToDOM();
+        }
+
+        function resetThemeTypography() {
+            currentFontId = "nguyen-ban";
+            currentFontSize = 19;
+            isBoldText = false;
+            isA11yCustom = false;
+            currentLineHeight = "1.56";
+            currentTextAlign = "justify";
+            localStorage.setItem("ab_pro_font_id", currentFontId);
+            localStorage.setItem("ab_pro_fontsize", currentFontSize);
+            localStorage.setItem("ab_pro_bold", false);
+            localStorage.setItem("ab_pro_a11y", false);
+            localStorage.setItem("ab_pro_lineheight", currentLineHeight);
+            localStorage.setItem("ab_pro_textalign", currentTextAlign);
+            applyTheme("nguyen-ban");
+            applyTypographyToDOM();
+        }
 
         function applyTheme(themeName) {
             currentTheme = themeName;
-            localStorage.setItem("my_apple_book_theme_v6", themeName);
+            localStorage.setItem("ab_pro_theme", themeName);
             document.documentElement.className = `theme-${themeName}`;
             document.body.className = `theme-${themeName}`;
             document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
@@ -642,24 +985,28 @@
 
         function adjustFontSize(delta) {
             currentFontSize = Math.min(28, Math.max(15, currentFontSize + delta * 1.5));
-            localStorage.setItem("my_apple_book_fontsize", currentFontSize);
-            document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
-        }
-
-        function changeFontFamily() {
-            const select = document.getElementById('fontFamilySelect');
-            currentFontFamily = select.value;
-            localStorage.setItem("my_apple_book_fontfamily", currentFontFamily);
-            document.getElementById('storyContainer').style.setProperty('--reader-font', currentFontFamily);
+            localStorage.setItem("ab_pro_fontsize", currentFontSize);
+            applyTypographyToDOM();
         }
 
         function openSettingsModal() { document.getElementById('settingsModal').classList.add('open'); }
         function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('open'); }
 
+        function openCustomizeModal() {
+            closeSettingsModal();
+            // Cập nhật đoạn văn mẫu từ chính truyện đang mở nếu có
+            if (chunks && chunks.length > 0) {
+                const samplePara = chunks.find(c => c.length > 90) || chunks[0];
+                if (samplePara) document.getElementById('previewSampleText').textContent = samplePara;
+            }
+            document.getElementById('customizeModal').classList.add('open');
+        }
+        function closeCustomizeModal() {
+            document.getElementById('customizeModal').classList.remove('open');
+        }
+
         applyTheme(currentTheme);
-        document.getElementById('storyContainer').style.setProperty('--reader-font-size', currentFontSize + 'px');
-        document.getElementById('storyContainer').style.setProperty('--reader-font', currentFontFamily);
-        document.getElementById('fontFamilySelect').value = currentFontFamily;
+        applyTypographyToDOM();
 
         // --- 1. SERVER & TUNNEL AUTO-SYNC CONFIG ---
         let SERVER_BASE = localStorage.getItem("my_tts_server_url") || "http://localhost:5000";
